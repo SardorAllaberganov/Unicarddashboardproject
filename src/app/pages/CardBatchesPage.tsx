@@ -1,0 +1,757 @@
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Search, ChevronDown, ChevronRight, Plus, Moon, Sun,
+  LogOut, MoreVertical, Eye, Settings2, Upload, Archive,
+} from 'lucide-react';
+import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { F, C } from '../components/ds/tokens';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DATA
+═══════════════════════════════════════════════════════════════════════════ */
+
+type BatchStatus = 'Активна' | 'На паузе' | 'Завершена' | 'Черновик';
+
+interface KpiConfig {
+  label: string;
+  reward: string;
+}
+
+interface BatchCard {
+  id: number;
+  title: string;
+  org: string;
+  totalCards: number;
+  sold: number;
+  kpiDone: number;
+  rewarded: string;
+  status: BatchStatus;
+  created: string;
+  kpiDays: number;
+  kpi: [KpiConfig, KpiConfig, KpiConfig];
+}
+
+const BATCHES: BatchCard[] = [
+  {
+    id: 1,
+    title: 'Партия Апрель 2026',
+    org: 'Mysafar OOO',
+    totalCards: 500,
+    sold: 230,
+    kpiDone: 45,
+    rewarded: '1 825 000',
+    status: 'Активна',
+    created: '01.04.2026',
+    kpiDays: 30,
+    kpi: [
+      { label: 'KPI 1: Регистрация', reward: '5 000' },
+      { label: 'KPI 2: P2P',         reward: '5 000' },
+      { label: 'KPI 3: Оплата 500K', reward: '10 000' },
+    ],
+  },
+  {
+    id: 2,
+    title: 'Партия Апрель 2026',
+    org: 'Unired Marketing',
+    totalCards: 500,
+    sold: 310,
+    kpiDone: 78,
+    rewarded: '2 740 000',
+    status: 'Активна',
+    created: '01.04.2026',
+    kpiDays: 30,
+    kpi: [
+      { label: 'KPI 1: Регистрация', reward: '5 000' },
+      { label: 'KPI 2: P2P',         reward: '5 000' },
+      { label: 'KPI 3: Оплата 500K', reward: '10 000' },
+    ],
+  },
+  {
+    id: 3,
+    title: 'Партия Март 2026',
+    org: 'Express Finance',
+    totalCards: 400,
+    sold: 180,
+    kpiDone: 32,
+    rewarded: '1 370 000',
+    status: 'Активна',
+    created: '01.03.2026',
+    kpiDays: 30,
+    kpi: [
+      { label: 'KPI 1: Регистрация', reward: '5 000' },
+      { label: 'KPI 2: P2P',         reward: '5 000' },
+      { label: 'KPI 3: Оплата 500K', reward: '10 000' },
+    ],
+  },
+  {
+    id: 4,
+    title: 'Партия Март 2026',
+    org: 'Digital Pay',
+    totalCards: 300,
+    sold: 120,
+    kpiDone: 22,
+    rewarded: '920 000',
+    status: 'На паузе',
+    created: '01.03.2026',
+    kpiDays: 30,
+    kpi: [
+      { label: 'KPI 1: Регистрация', reward: '5 000' },
+      { label: 'KPI 2: P2P',         reward: '5 000' },
+      { label: 'KPI 3: Оплата 500K', reward: '10 000' },
+    ],
+  },
+  {
+    id: 5,
+    title: 'Партия Февраль 2026',
+    org: 'SmartCard Group',
+    totalCards: 500,
+    sold: 500,
+    kpiDone: 290,
+    rewarded: '5 800 000',
+    status: 'Завершена',
+    created: '01.02.2026',
+    kpiDays: 30,
+    kpi: [
+      { label: 'KPI 1: Регистрация', reward: '5 000' },
+      { label: 'KPI 2: P2P',         reward: '5 000' },
+      { label: 'KPI 3: Оплата 500K', reward: '10 000' },
+    ],
+  },
+  {
+    id: 6,
+    title: 'Партия Тест',
+    org: 'CardPlus',
+    totalCards: 50,
+    sold: 0,
+    kpiDone: 0,
+    rewarded: '0',
+    status: 'Черновик',
+    created: '10.04.2026',
+    kpiDays: 30,
+    kpi: [
+      { label: 'KPI 1: Регистрация', reward: '5 000' },
+      { label: 'KPI 2: P2P',         reward: '5 000' },
+      { label: 'KPI 3: Оплата 500K', reward: '10 000' },
+    ],
+  },
+];
+
+const ORGS = ['Mysafar OOO', 'Unired Marketing', 'Express Finance', 'Digital Pay', 'SmartCard Group', 'CardPlus'];
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATUS STYLES
+═══════════════════════════════════════════════════════════════════════════ */
+
+const STATUS_CFG: Record<BatchStatus, { bg: string; color: string; dot?: string; border?: string; dotBg?: string }> = {
+  'Активна':   { bg: '#F0FDF4', color: '#15803D', dot: '#16A34A' },
+  'На паузе':  { bg: '#FFFBEB', color: '#B45309', dot: '#D97706' },
+  'Завершена': { bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' },
+  'Черновик':  { bg: C.surface, color: C.text3,   dot: C.inputBorder, border: C.border },
+};
+
+function StatusBadge({ status }: { status: BatchStatus }) {
+  const s = STATUS_CFG[status];
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '5px',
+      fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
+      padding: '3px 10px', borderRadius: '10px',
+      background: s.bg, color: s.color, whiteSpace: 'nowrap',
+      border: s.border ? `1px solid ${s.border}` : '1px solid transparent',
+      flexShrink: 0,
+    }}>
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.dot ?? s.color, flexShrink: 0 }} />
+      {status}
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KPI BADGE
+═══════════════════════════════════════════════════════════════════════════ */
+
+function KpiBadge({ label, reward }: { label: string; reward: string }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '5px',
+      fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+      padding: '3px 9px', borderRadius: '8px',
+      background: C.blueLt, color: C.blue,
+      border: `1px solid ${C.blueTint}`,
+      whiteSpace: 'nowrap', flexShrink: 0,
+    }}>
+      {label} — <span style={{ fontFamily: F.mono, fontSize: '11px' }}>{reward}</span>
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STAT ITEM
+═══════════════════════════════════════════════════════════════════════════ */
+
+function StatItem({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <span style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        {label}
+      </span>
+      <span style={{ fontFamily: mono ? F.mono : F.dm, fontSize: '15px', fontWeight: 600, color: C.text1 }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTION MENU
+═══════════════════════════════════════════════════════════════════════════ */
+
+function ActionMenuItem({ icon: Icon, label, danger, onClick }: {
+  icon: React.ElementType; label: string; danger?: boolean; onClick: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        width: '100%', textAlign: 'left',
+        display: 'flex', alignItems: 'center', gap: '9px',
+        padding: '8px 10px', borderRadius: '7px',
+        border: 'none',
+        background: hov ? (danger ? '#FEF2F2' : '#F9FAFB') : 'none',
+        cursor: 'pointer',
+        fontFamily: F.inter, fontSize: '13px',
+        color: hov ? (danger ? '#DC2626' : C.text1) : (danger ? C.text3 : C.text2),
+        transition: 'all 0.1s',
+      }}
+    >
+      <Icon size={14} strokeWidth={1.75} />
+      {label}
+    </button>
+  );
+}
+
+function BatchActionMenu({ open, onOpen, onClose }: { open: boolean; onOpen: () => void; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open, onClose]);
+
+  return (
+    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={open ? onClose : onOpen}
+        style={{
+          width: '32px', height: '32px',
+          border: `1px solid ${open ? C.blue : C.border}`,
+          borderRadius: '7px',
+          background: open ? C.blueLt : 'transparent',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', transition: 'all 0.12s',
+        }}
+        onMouseEnter={e => { if (!open) { (e.currentTarget.style.background = '#F3F4F6'); } }}
+        onMouseLeave={e => { if (!open) { (e.currentTarget.style.background = 'transparent'); } }}
+      >
+        <MoreVertical size={15} color={open ? C.blue : C.text3} strokeWidth={1.75} />
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', bottom: 'calc(100% + 4px)', right: 0,
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '10px', padding: '6px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+          zIndex: 50, minWidth: '180px',
+        }}>
+          <ActionMenuItem icon={Eye}       label="Карты"          onClick={onClose} />
+          <ActionMenuItem icon={Settings2} label="KPI настройки"  onClick={onClose} />
+          <ActionMenuItem icon={Upload}    label="Импорт"         onClick={onClose} />
+          <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+          <ActionMenuItem icon={Archive}   label="Архивировать"   danger onClick={onClose} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════════════════════════════════════════ */
+
+function CardDivider() {
+  return <div style={{ height: '1px', background: C.border, margin: '14px 0' }} />;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BATCH CARD
+═══════════════════════════════════════════════════════════════════════════ */
+
+function BatchCardItem({ batch }: { batch: BatchCard }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [ghostHov, setGhostHov] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: C.surface,
+        border: `1px solid ${hovered ? '#D1D5DB' : C.border}`,
+        borderRadius: '12px',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'border-color 0.15s, box-shadow 0.15s',
+        boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.07)' : '0 1px 3px rgba(0,0,0,0.04)',
+      }}
+    >
+      {/* ── Top row: title + badge ── */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: F.dm, fontSize: '15px', fontWeight: 700, color: C.text1, lineHeight: 1.25, marginBottom: '4px' }}>
+            {batch.title}
+          </div>
+          <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+            {batch.org}
+          </div>
+        </div>
+        <StatusBadge status={batch.status} />
+      </div>
+
+      <CardDivider />
+
+      {/* ── Stats 2×2 ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+        <StatItem label="Всего карт"     value={String(batch.totalCards)} mono />
+        <StatItem label="Продано"        value={String(batch.sold)} mono />
+        <StatItem label="KPI завершено"  value={String(batch.kpiDone)} mono />
+        <StatItem label="Начислено"      value={`${batch.rewarded} UZS`} mono />
+      </div>
+
+      <CardDivider />
+
+      {/* ── KPI config badges ── */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {batch.kpi.map(k => (
+          <KpiBadge key={k.label} label={k.label} reward={k.reward} />
+        ))}
+      </div>
+
+      <CardDivider />
+
+      {/* ── Bottom meta ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>
+            Создана:{' '}
+            <span style={{ fontFamily: F.mono, color: C.text3 }}>{batch.created}</span>
+          </span>
+          <span style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>
+            Срок KPI:{' '}
+            <span style={{ fontFamily: F.mono, color: C.text3 }}>{batch.kpiDays} дней</span>
+          </span>
+        </div>
+      </div>
+
+      {/* ── Action row ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px' }}>
+        {/* Ghost button */}
+        <button
+          onMouseEnter={() => setGhostHov(true)}
+          onMouseLeave={() => setGhostHov(false)}
+          style={{
+            height: '32px', padding: '0 14px',
+            border: `1px solid ${ghostHov ? C.blue : C.border}`,
+            borderRadius: '7px',
+            background: ghostHov ? C.blueLt : 'transparent',
+            fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+            color: ghostHov ? C.blue : C.text2,
+            cursor: 'pointer', transition: 'all 0.12s',
+            display: 'flex', alignItems: 'center', gap: '5px',
+          }}
+        >
+          <Eye size={13} strokeWidth={1.75} />
+          Подробнее
+        </button>
+
+        {/* Action dots */}
+        <BatchActionMenu open={menuOpen} onOpen={() => setMenuOpen(true)} onClose={() => setMenuOpen(false)} />
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAVBAR USER SECTION
+═══════════════════════════════════════════════════════════════════════════ */
+
+function NavbarUserSection({ darkMode, onDarkModeToggle }: { darkMode: boolean; onDarkModeToggle: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [themeHov, setThemeHov] = useState(false);
+  const [logoutHov, setLogoutHov] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <button
+        onClick={onDarkModeToggle}
+        onMouseEnter={() => setThemeHov(true)}
+        onMouseLeave={() => setThemeHov(false)}
+        style={{
+          width: '36px', height: '36px', borderRadius: '8px',
+          border: `1px solid ${themeHov ? '#D1D5DB' : C.border}`,
+          background: themeHov ? '#F9FAFB' : C.surface,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
+        }}
+      >
+        {darkMode
+          ? <Sun size={15} color="#F59E0B" strokeWidth={1.75} />
+          : <Moon size={15} color={C.text3} strokeWidth={1.75} />}
+      </button>
+
+      <div style={{ width: '1px', height: '24px', background: C.border, margin: '0 6px', flexShrink: 0 }} />
+
+      <div ref={ref} style={{ position: 'relative' }}>
+        <button
+          onClick={() => setMenuOpen(o => !o)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '5px 10px 5px 6px',
+            border: `1px solid ${menuOpen ? C.blue : C.border}`,
+            borderRadius: '10px',
+            background: menuOpen ? C.blueLt : C.surface,
+            cursor: 'pointer', transition: 'all 0.12s',
+            boxShadow: menuOpen ? `0 0 0 3px ${C.blueTint}` : 'none',
+          }}
+        >
+          <div style={{
+            width: '30px', height: '30px', borderRadius: '50%',
+            background: C.blueTint, border: `1.5px solid ${C.blue}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: C.blue }}>АК</span>
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1, whiteSpace: 'nowrap', lineHeight: 1.3 }}>
+              Админ Камолов
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, lineHeight: '16px', whiteSpace: 'nowrap' }}>
+              Bank Admin
+            </div>
+          </div>
+          <ChevronDown size={14} color={C.text4} strokeWidth={1.75}
+            style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s', flexShrink: 0 }}
+          />
+        </button>
+
+        {menuOpen && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+            background: C.surface, border: `1px solid ${C.border}`,
+            borderRadius: '10px', padding: '6px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.09)', zIndex: 60, minWidth: '180px',
+          }}>
+            <button style={{
+              width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 10px', borderRadius: '7px', border: 'none', background: 'none',
+              cursor: 'pointer', fontFamily: F.inter, fontSize: '13px', color: C.text2,
+            }}
+              onMouseEnter={e => ((e.currentTarget as HTMLButtonElement).style.background = '#F9FAFB')}
+              onMouseLeave={e => ((e.currentTarget as HTMLButtonElement).style.background = 'none')}
+            >
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: C.blueTint, border: `1.5px solid ${C.blue}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '10px', fontWeight: 700, color: C.blue }}>АК</span>
+              </div>
+              <div>
+                <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1 }}>Админ Камолов</div>
+                <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>admin@momentcard.uz</div>
+              </div>
+            </button>
+            <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+            <button
+              onMouseEnter={() => setLogoutHov(true)}
+              onMouseLeave={() => setLogoutHov(false)}
+              style={{
+                width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 10px', borderRadius: '7px', border: 'none',
+                background: logoutHov ? '#FEF2F2' : 'none', cursor: 'pointer',
+                fontFamily: F.inter, fontSize: '13px',
+                color: logoutHov ? '#DC2626' : C.text3, transition: 'all 0.1s',
+              }}
+            >
+              <LogOut size={14} strokeWidth={1.75} /> Выйти из системы
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FILTER SELECT
+═══════════════════════════════════════════════════════════════════════════ */
+
+function FilterSelect({ label, options, value, onChange }: {
+  label: string; options: string[]; value: string; onChange: (v: string) => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{ position: 'relative' }}>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          height: '40px', padding: '0 36px 0 12px',
+          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
+          borderRadius: '8px', background: C.surface,
+          fontFamily: F.inter, fontSize: '14px', color: C.text2,
+          outline: 'none', appearance: 'none', cursor: 'pointer',
+          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          transition: 'border-color 0.12s, box-shadow 0.12s',
+          minWidth: '160px',
+        }}
+      >
+        <option value="">{label}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <ChevronDown size={14} color={C.text3} style={{
+        position: 'absolute', right: '10px', top: '50%',
+        transform: 'translateY(-50%)', pointerEvents: 'none',
+      }} />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════���════════════════════════
+   PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+
+export default function CardBatchesPage() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  const [search, setSearch] = useState('');
+  const [orgFilter, setOrgFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [addHov, setAddHov] = useState(false);
+
+  /* Filtered data */
+  const visible = BATCHES.filter(b => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || b.title.toLowerCase().includes(q) || b.org.toLowerCase().includes(q);
+    const matchOrg    = !orgFilter || b.org === orgFilter;
+    const matchStatus = !statusFilter || b.status === statusFilter;
+    return matchSearch && matchOrg && matchStatus;
+  });
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+
+      {/* ── Sidebar ── */}
+      <style>{`
+        .cb-sidebar { flex-shrink: 0; }
+        @media (max-width: 768px) { .cb-sidebar { display: none; } }
+        .cb-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 16px;
+        }
+        @media (max-width: 1100px) {
+          .cb-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .cb-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
+
+      <div className="cb-sidebar">
+        <BankAdminSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(c => !c)}
+          darkMode={darkMode}
+          onDarkModeToggle={() => setDarkMode(d => !d)}
+        />
+      </div>
+
+      {/* ── Main ── */}
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+        {/* ── Sticky navbar ── */}
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 40,
+          background: C.surface, borderBottom: `1px solid ${C.border}`,
+          height: '60px', display: 'flex', alignItems: 'center',
+          padding: '0 32px', flexShrink: 0,
+        }}>
+          <div style={{ flex: 1 }} />
+          <NavbarUserSection darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
+        </div>
+
+        {/* ── Content ── */}
+        <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
+            {/* Breadcrumbs */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
+              <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Партии карт</span>
+            </div>
+
+            {/* ── Top bar: title + primary button ── */}
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+              gap: '16px', marginBottom: '24px', flexWrap: 'wrap',
+            }}>
+              <div>
+                <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+                  Партии карт
+                </h1>
+                <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+                  Управление партиями выпущенных карт
+                </p>
+              </div>
+
+              <button
+                onMouseEnter={() => setAddHov(true)}
+                onMouseLeave={() => setAddHov(false)}
+                style={{
+                  height: '40px', padding: '0 18px',
+                  background: addHov ? C.blueHover : C.blue,
+                  border: 'none', borderRadius: '8px',
+                  fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#fff',
+                  display: 'flex', alignItems: 'center', gap: '7px',
+                  cursor: 'pointer', flexShrink: 0,
+                  boxShadow: addHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+                  transition: 'background 0.15s, box-shadow 0.15s',
+                }}
+              >
+                <Plus size={16} strokeWidth={2.25} />
+                Создать партию
+              </button>
+            </div>
+
+            {/* ── Filter bar ── */}
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: '12px',
+              alignItems: 'center', marginBottom: '24px',
+            }}>
+              {/* Search */}
+              <div style={{ position: 'relative', width: '280px', flexShrink: 0 }}>
+                <Search
+                  size={16}
+                  color={searchFocused ? C.blue : C.text4}
+                  style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', transition: 'color 0.12s' }}
+                />
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                  placeholder="Поиск по названию партии..."
+                  style={{
+                    width: '100%', height: '40px', paddingLeft: '38px', paddingRight: '12px',
+                    border: `1px solid ${searchFocused ? C.blue : C.inputBorder}`,
+                    borderRadius: '8px', background: C.surface,
+                    fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                    outline: 'none', boxSizing: 'border-box',
+                    boxShadow: searchFocused ? `0 0 0 3px ${C.blueTint}` : 'none',
+                    transition: 'border-color 0.12s, box-shadow 0.12s',
+                  }}
+                />
+              </div>
+
+              <FilterSelect
+                label="Организация: Все"
+                options={ORGS}
+                value={orgFilter}
+                onChange={setOrgFilter}
+              />
+
+              <FilterSelect
+                label="Статус: Все"
+                options={['Активна', 'Завершена', 'Черновик', 'На паузе']}
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
+
+              {/* Clear */}
+              {(search || orgFilter || statusFilter) && (
+                <button
+                  onClick={() => { setSearch(''); setOrgFilter(''); setStatusFilter(''); }}
+                  style={{
+                    border: 'none', background: 'none',
+                    fontFamily: F.inter, fontSize: '13px', color: C.text3,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                    padding: '4px 8px', borderRadius: '6px',
+                    transition: 'color 0.12s, background 0.12s',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget.style.color = C.text1); (e.currentTarget.style.background = '#F3F4F6'); }}
+                  onMouseLeave={e => { (e.currentTarget.style.color = C.text3); (e.currentTarget.style.background = 'none'); }}
+                >
+                  <span style={{ fontSize: '16px', lineHeight: 1, marginTop: '-1px' }}>×</span>
+                  Сбросить
+                </button>
+              )}
+
+              {/* Result count */}
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text4, marginLeft: 'auto' }}>
+                {visible.length} из {BATCHES.length} партий
+              </span>
+            </div>
+
+            {/* ── Card grid ── */}
+            {visible.length === 0 ? (
+              <div style={{
+                background: C.surface, border: `1px solid ${C.border}`,
+                borderRadius: '12px', padding: '64px 24px', textAlign: 'center',
+              }}>
+                <div style={{ fontFamily: F.inter, fontSize: '14px', color: C.text4 }}>
+                  Ничего не найдено по заданным фильтрам
+                </div>
+                <button
+                  onClick={() => { setSearch(''); setOrgFilter(''); setStatusFilter(''); }}
+                  style={{
+                    marginTop: '12px', height: '36px', padding: '0 16px',
+                    border: `1px solid ${C.border}`, borderRadius: '8px',
+                    background: C.surface, fontFamily: F.inter, fontSize: '13px',
+                    color: C.text2, cursor: 'pointer',
+                  }}
+                >
+                  Сбросить фильтры
+                </button>
+              </div>
+            ) : (
+              <div className="cb-grid">
+                {visible.map(batch => (
+                  <BatchCardItem key={batch.id} batch={batch} />
+                ))}
+              </div>
+            )}
+
+            <div style={{ height: '48px' }} />
+        </div>
+      </div>
+    </div>
+  );
+}
