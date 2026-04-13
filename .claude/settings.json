@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const fs=require\\('fs'\\); const c=fs.readFileSync\\('src/app/pages/AllCardsPage.tsx','utf-8'\\); const idx=c.indexOf\\('NAVBAR USER SECTION'\\); console.log\\(idx\\); if\\(idx>-1\\) console.log\\(JSON.stringify\\(c.substring\\(idx-80, idx+30\\)\\)\\);\")",
+      "Bash(node _fix2.cjs)",
+      "Bash(node -e ':*)",
+      "Bash(node _fix_pages2.cjs)",
+      "Bash(npx tsc:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(npx -p typescript tsc --noEmit)",
+      "Bash(ls tsconfig*.json)",
+      "Bash(ls node_modules/.bin/tsc*)",
+      "Bash(ls *.json)",
+      "Bash(npm run:*)",
+      "Bash(node _refactor.js)"
+    ]
+  }
+}
