@@ -41,8 +41,8 @@ const NAV_ITEMS_CONFIG: { group: string; items: { icon: React.ElementType; label
   {
     group: 'УПРАВЛЕНИЕ',
     items: [
-      { icon: Users,           label: 'Продавцы' },
-      { icon: CreditCard,      label: 'Карты' },
+      { icon: Users,           label: 'Продавцы', path: '/sellers' },
+      { icon: CreditCard,      label: 'Карты', path: '/org-cards' },
       { icon: ClipboardCheck,  label: 'Назначение карт' },
     ],
   },
@@ -181,41 +181,6 @@ function NavItemRow({
   );
 }
 
-/* ─── Outline Badge ──────────────────────────────────────────────────────── */
-
-function OutlineBadge({ label, dark }: { label: string; dark: boolean }) {
-  return (
-    <div style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '5px',
-      padding: '3px 8px',
-      borderRadius: '6px',
-      border: `1px solid ${dark ? '#374151' : C.border}`,
-      background: 'transparent',
-    }}>
-      {/* Org dot */}
-      <div style={{
-        width: '6px', height: '6px',
-        borderRadius: '50%',
-        background: C.blue,
-        flexShrink: 0,
-      }} />
-      <span style={{
-        fontFamily: F.inter,
-        fontSize: '11px',
-        fontWeight: 500,
-        color: dark ? '#9CA3AF' : C.text3,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        maxWidth: '130px',
-      }}>
-        {label}
-      </span>
-    </div>
-  );
-}
 
 /* ─── Main Sidebar ───────────────────────────────────────────────────────── */
 
@@ -251,51 +216,32 @@ export function OrgAdminSidebar({
 
       {/* ── Header ─────────────────────────────────────── */}
       <div style={{
-        height: collapsed ? '60px' : '72px',
+        height: '60px',
         display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: collapsed ? '0 16px' : '10px 16px',
+        alignItems: 'center',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        padding: '0 16px',
         borderBottom: `1px solid ${borderColor}`,
         flexShrink: 0,
-        gap: '6px',
-        transition: 'height 0.2s ease',
+        gap: '10px',
       }}>
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          gap: '10px',
+          width: '32px', height: '32px', borderRadius: '8px',
+          background: C.blue,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
         }}>
-          {/* Logo mark */}
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '8px',
-            background: C.blue,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <span style={{ fontFamily: F.dm, fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>M</span>
-          </div>
-
-          {!collapsed && (
-            <div style={{ overflow: 'hidden', minWidth: 0 }}>
-              <div style={{
-                fontFamily: F.dm,
-                fontSize: '15px',
-                fontWeight: 700,
-                color: dark ? '#F9FAFB' : C.text1,
-                whiteSpace: 'nowrap',
-                lineHeight: 1.2,
-              }}>
-                Moment KPI
-              </div>
-            </div>
-          )}
+          <span style={{ fontFamily: F.dm, fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>M</span>
         </div>
-
-        {/* Organisation badge — only in expanded state */}
         {!collapsed && (
-          <OutlineBadge label={orgName} dark={dark} />
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{ fontFamily: F.dm, fontSize: '15px', fontWeight: 700, color: dark ? '#F9FAFB' : C.text1, whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+              Moment KPI
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.blue, whiteSpace: 'nowrap', marginTop: '1px' }}>
+              {orgName}
+            </div>
+          </div>
         )}
       </div>
 

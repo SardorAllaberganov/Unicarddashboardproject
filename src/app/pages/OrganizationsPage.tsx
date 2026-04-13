@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Search, ChevronDown, ChevronUp, ChevronRight, MoreVertical,
-  Plus, Moon, Sun, LogOut, Building2,
+  Plus, Building2,
   FileText, Pencil, PowerOff,
 } from 'lucide-react';
 import { BankAdminSidebar } from '../components/BankAdminSidebar';
-import { OrgDetailDrawer, OrgDetail } from '../components/OrgDetailDrawer';
 import { F, C } from '../components/ds/tokens';
+import { Navbar } from '../components/Navbar';
+import { useNavigate } from 'react-router';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -42,124 +43,6 @@ const STATUS_STYLE: Record<StatusKey, { bg: string; color: string; dot: string }
   'На паузе':   { bg: '#FFFBEB', color: '#B45309', dot: '#D97706' },
   'Неактивна':  { bg: '#FEF2F2', color: '#DC2626', dot: '#EF4444' },
 };
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SHARED: NAV USER SECTION (same as dashboard)
-═══════════════════════════════════════════════════════════════════════════ */
-
-function NavbarUserSection({
-  darkMode, onDarkModeToggle,
-}: { darkMode: boolean; onDarkModeToggle: () => void }) {
-  const [menuOpen, setMenuOpen]         = useState(false);
-  const [themeHov, setThemeHov]         = useState(false);
-  const [logoutHov, setLogoutHov]       = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-      {/* Theme toggle */}
-      <button
-        onClick={onDarkModeToggle}
-        onMouseEnter={() => setThemeHov(true)}
-        onMouseLeave={() => setThemeHov(false)}
-        style={{
-          width: '36px', height: '36px', borderRadius: '8px',
-          border: `1px solid ${themeHov ? '#D1D5DB' : C.border}`,
-          background: themeHov ? '#F9FAFB' : C.surface,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
-        }}
-      >
-        {darkMode ? <Sun size={15} color="#F59E0B" strokeWidth={1.75} /> : <Moon size={15} color={C.text3} strokeWidth={1.75} />}
-      </button>
-
-      <div style={{ width: '1px', height: '24px', background: C.border, margin: '0 6px', flexShrink: 0 }} />
-
-      {/* User button */}
-      <div ref={ref} style={{ position: 'relative' }}>
-        <button
-          onClick={() => setMenuOpen(o => !o)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '5px 10px 5px 6px',
-            border: `1px solid ${menuOpen ? C.blue : C.border}`,
-            borderRadius: '10px',
-            background: menuOpen ? C.blueLt : C.surface,
-            cursor: 'pointer', transition: 'all 0.12s',
-            boxShadow: menuOpen ? `0 0 0 3px ${C.blueTint}` : 'none',
-          }}
-        >
-          <div style={{
-            width: '30px', height: '30px', borderRadius: '50%',
-            background: C.blueTint, border: `1.5px solid ${C.blue}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: C.blue }}>АК</span>
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1, whiteSpace: 'nowrap', lineHeight: 1.3 }}>
-              Админ Камолов
-            </div>
-            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, lineHeight: '16px', whiteSpace: 'nowrap' }}>
-              Bank Admin
-            </div>
-          </div>
-          <ChevronDown size={14} color={C.text4} strokeWidth={1.75}
-            style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s', flexShrink: 0 }}
-          />
-        </button>
-
-        {menuOpen && (
-          <div style={{
-            position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: '10px', padding: '6px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.09)', zIndex: 60, minWidth: '180px',
-          }}>
-            <button style={{
-              width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '8px 10px', borderRadius: '7px', border: 'none', background: 'none',
-              cursor: 'pointer', fontFamily: F.inter, fontSize: '13px', color: C.text2,
-            }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#F9FAFB')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-            >
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: C.blueTint, border: `1.5px solid ${C.blue}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: F.inter, fontSize: '10px', fontWeight: 700, color: C.blue }}>АК</span>
-              </div>
-              <div>
-                <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1 }}>Админ Камолов</div>
-                <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>admin@momentcard.uz</div>
-              </div>
-            </button>
-            <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
-            <button
-              onMouseEnter={() => setLogoutHov(true)}
-              onMouseLeave={() => setLogoutHov(false)}
-              style={{
-                width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '8px 10px', borderRadius: '7px', border: 'none',
-                background: logoutHov ? '#FEF2F2' : 'none', cursor: 'pointer',
-                fontFamily: F.inter, fontSize: '13px',
-                color: logoutHov ? '#DC2626' : C.text3, transition: 'all 0.1s',
-              }}
-            >
-              <LogOut size={14} strokeWidth={1.75} /> Выйти из системы
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STATUS BADGE
@@ -483,9 +366,11 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
                     key={row.id}
                     onMouseEnter={() => setHovRow(i)}
                     onMouseLeave={() => setHovRow(null)}
+                    onClick={() => onRowClick(row)}
                     style={{
                       borderBottom: i < sorted.length - 1 ? `1px solid ${C.border}` : 'none',
                       background: hov ? '#F9FAFB' : C.surface,
+                      cursor: 'pointer',
                       transition: 'background 0.1s',
                     }}
                   >
@@ -497,7 +382,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
                     </td>
 
                     {/* Организация */}
-                    <td style={{ padding: '14px 16px', cursor: 'pointer' }} onClick={() => onRowClick(row)}>
+                    <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '32px', height: '32px', borderRadius: '8px',
@@ -645,8 +530,9 @@ function PaginationBtn({ label, active, disabled }: { label: string; active?: bo
 
 export default function OrganizationsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const navigate = useNavigate();
   const [darkMode, setDarkMode]                 = useState(false);
-  const [drawerOrg, setDrawerOrg]               = useState<OrgDetail | null>(null);
+
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
@@ -669,23 +555,14 @@ export default function OrganizationsPage() {
       {/* ── Main ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-        {/* ── Sticky Navbar ──────────────────────────────────────── */}
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 40,
-          background: C.surface, borderBottom: `1px solid ${C.border}`,
-          height: '60px', display: 'flex', alignItems: 'center',
-          padding: '0 32px', flexShrink: 0,
-        }}>
-          <div style={{ flex: 1 }} />
-          <NavbarUserSection darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
-        </div>
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
         {/* ── Content ────────────────────────────────────────────── */}
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
 
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>
               Главная
             </span>
             <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
@@ -712,17 +589,11 @@ export default function OrganizationsPage() {
           </div>
 
           {/* Table */}
-          <OrgTable onRowClick={row => setDrawerOrg(row)} />
+          <OrgTable onRowClick={row => navigate(`/organizations/${row.id}`)} />
 
           <div style={{ height: '40px' }} />
         </div>
       </div>
-
-      {/* ── Detail Drawer ─────────────────────────────────────────── */}
-      <OrgDetailDrawer
-        org={drawerOrg}
-        onClose={() => setDrawerOrg(null)}
-      />
     </div>
   );
 }

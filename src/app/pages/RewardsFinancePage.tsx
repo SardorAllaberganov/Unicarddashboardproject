@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  ChevronRight, ChevronDown, Download, Search, Moon, Sun, LogOut,
-  Wallet, CheckCircle, ArrowDownToLine, Coins, Calendar,
+  ChevronRight, ChevronDown, Download, Search,
+  Wallet, CheckCircle, ArrowDownToLine, Coins,
 } from 'lucide-react';
 import { BankAdminSidebar } from '../components/BankAdminSidebar';
 import { F, C } from '../components/ds/tokens';
+import { Navbar } from '../components/Navbar';
+import { useNavigate } from 'react-router';
+import { DateRangePicker } from '../components/DateRangePicker';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -37,139 +40,6 @@ const TOP_SELLERS = [
   { rank: '4', name: 'Нодира У.', org: 'SmartCard', amount: '310 000', cards: 38 },
   { rank: '5', name: 'Мухаммад', org: 'Unired', amount: '290 000', cards: 35 },
 ];
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   NAVBAR USER SECTION
-═══════════════════════════════════════════════════════════════════════════ */
-
-function NavbarUserSection({ darkMode, onDarkModeToggle }: { darkMode: boolean; onDarkModeToggle: () => void }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [themeHov, setThemeHov] = useState(false);
-  const [logoutHov, setLogoutHov] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-      <button
-        onClick={onDarkModeToggle}
-        onMouseEnter={() => setThemeHov(true)}
-        onMouseLeave={() => setThemeHov(false)}
-        style={{
-          width: '36px', height: '36px', borderRadius: '8px',
-          border: `1px solid ${themeHov ? '#D1D5DB' : C.border}`,
-          background: themeHov ? '#F9FAFB' : C.surface,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
-        }}
-      >
-        {darkMode
-          ? <Sun size={15} color="#F59E0B" strokeWidth={1.75} />
-          : <Moon size={15} color={C.text3} strokeWidth={1.75} />}
-      </button>
-
-      <div style={{ width: '1px', height: '24px', background: C.border, margin: '0 6px', flexShrink: 0 }} />
-
-      <div ref={ref} style={{ position: 'relative' }}>
-        <button
-          onClick={() => setMenuOpen(o => !o)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '5px 10px 5px 6px',
-            background: menuOpen ? C.blueLt : C.surface,
-            cursor: 'pointer', transition: 'all 0.12s',
-            boxShadow: menuOpen ? `0 0 0 3px ${C.blueTint}` : 'none',
-          }}
-        >
-          <div style={{
-            width: '30px', height: '30px', borderRadius: '50%',
-            background: C.blueTint, border: `1.5px solid ${C.blue}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: C.blue }}>АК</span>
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1, whiteSpace: 'nowrap', lineHeight: 1.3 }}>
-              Админ Камолов
-            </div>
-            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, lineHeight: '16px', whiteSpace: 'nowrap' }}>
-              Bank Admin
-            </div>
-          </div>
-          <ChevronDown size={14} color={C.text4} strokeWidth={1.75}
-            style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s', flexShrink: 0 }}
-          />
-        </button>
-
-        {menuOpen && (
-          <div style={{
-            position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: '10px', padding: '6px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.09)', zIndex: 60, minWidth: '180px',
-          }}>
-            <button
-              onMouseEnter={() => setLogoutHov(true)}
-              onMouseLeave={() => setLogoutHov(false)}
-              style={{
-                width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '8px 10px', borderRadius: '7px', border: 'none',
-                background: logoutHov ? '#FEF2F2' : 'none', cursor: 'pointer',
-                fontFamily: F.inter, fontSize: '13px',
-                color: logoutHov ? '#DC2626' : C.text3, transition: 'all 0.1s',
-              }}
-            >
-              <LogOut size={14} strokeWidth={1.75} /> Выйти из системы
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   DATE RANGE PICKER
-═══════════════════════════════════════════════════════════════════════════ */
-
-function DateRangePicker() {
-  const [focused, setFocused] = useState(false);
-
-  return (
-    <div style={{ position: 'relative' }}>
-      <button
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={{
-          height: '40px',
-          padding: '0 14px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.border}`,
-          borderRadius: '8px',
-          background: C.surface,
-          fontFamily: F.inter,
-          fontSize: '14px',
-          color: C.text2,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
-          transition: 'border-color 0.12s, box-shadow 0.12s',
-        }}
-      >
-        <Calendar size={16} color={C.text3} strokeWidth={1.75} />
-        <span>01.04.2026 — 13.04.2026</span>
-      </button>
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STAT CARD
@@ -773,6 +643,8 @@ const dataCellStyle: React.CSSProperties = {
 export default function RewardsFinancePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('Все');
   const [search, setSearch] = useState('');
@@ -792,20 +664,14 @@ export default function RewardsFinancePage() {
       />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 40,
-          background: C.surface, borderBottom: `1px solid ${C.border}`,
-          height: '60px', display: 'flex', alignItems: 'center',
-          padding: '0 32px', flexShrink: 0,
-        }}>
-          <div style={{ flex: 1 }} />
-          <NavbarUserSection darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
-        </div>
+
+
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
             <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
             <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Вознаграждения</span>
           </div>
@@ -829,7 +695,7 @@ export default function RewardsFinancePage() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
-              <DateRangePicker />
+              <DateRangePicker value={dateRange} onChange={setDateRange} />
               <button
                 onMouseEnter={() => setExportHover(true)}
                 onMouseLeave={() => setExportHover(false)}
