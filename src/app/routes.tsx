@@ -15,6 +15,10 @@ import ReportsExportPage from './pages/ReportsExportPage';
 import OrgAdminDashboardPage from './pages/OrgAdminDashboardPage';
 import UsersManagementPage from './pages/UsersManagementPage';
 import SettingsPage from './pages/SettingsPage';
+import SellersManagementPage from './pages/SellersManagementPage';
+import SellerDetailPage from './pages/SellerDetailPage';
+import OrgDetailPage from './pages/OrgDetailPage';
+import OrgCardsPage from './pages/OrgCardsPage';
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +44,10 @@ export const router = createBrowserRouter([
   {
     path: '/organizations',
     Component: OrganizationsPage,
+  },
+  {
+    path: '/organizations/:id',
+    Component: OrgDetailPage,
   },
   {
     path: '/card-batches',
@@ -80,5 +88,17 @@ export const router = createBrowserRouter([
   {
     path: '/settings',
     Component: SettingsPage,
+  },
+  {
+    path: '/sellers',
+    Component: SellersManagementPage,
+  },
+  {
+    path: '/sellers/:id',
+    Component: SellerDetailPage,
+  },
+  {
+    path: '/org-cards',
+    Component: OrgCardsPage,
   },
 ]);
