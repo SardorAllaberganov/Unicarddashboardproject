@@ -384,9 +384,19 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div style={{ padding: '0 60px', width: '100%', boxSizing: 'border-box' }}>
-          <p style={{ fontFamily: inter, fontSize: '13px', color: C.text4, margin: 0, textAlign: 'center' }}>
+          <p style={{ fontFamily: inter, fontSize: '13px', color: C.text4, margin: '0 0 12px', textAlign: 'center' }}>
             © 2026 Universalbank. Все права защищены.
           </p>
+          <div style={{
+            display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap',
+          }}>
+            <span style={{ fontFamily: inter, fontSize: '12px', color: C.text4 }}>
+              Bank Admin: <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.text3 }}>admin / admin123</span>
+            </span>
+            <span style={{ fontFamily: inter, fontSize: '12px', color: C.text4 }}>
+              Org Admin: <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.text3 }}>org / org123</span>
+            </span>
+          </div>
         </div>
       </div>
 
