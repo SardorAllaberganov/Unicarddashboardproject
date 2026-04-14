@@ -128,6 +128,7 @@ function ReportCardComponent({ report }: { report: ReportCard }) {
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
   const [downloadHover, setDownloadHover] = useState(false);
   const [previewHover, setPreviewHover] = useState(false);
+  const navigate = useNavigate();
 
   const colorMap = {
     blue: { bg: C.blueLt, iconColor: C.blue },
@@ -251,6 +252,10 @@ function ReportCardComponent({ report }: { report: ReportCard }) {
         <button
           onMouseEnter={() => setPreviewHover(true)}
           onMouseLeave={() => setPreviewHover(false)}
+          onClick={() => {
+            if (report.id === 'overdue') navigate('/reports/overdue-kpi');
+            else navigate(`/reports/preview/${report.id}?from=${dateRange.from}&to=${dateRange.to}`);
+          }}
           style={{
             height: '40px',
             padding: '0 18px',
@@ -273,9 +278,11 @@ function ReportCardComponent({ report }: { report: ReportCard }) {
           Предпросмотр
         </button>
       </div>
+
     </div>
   );
 }
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
