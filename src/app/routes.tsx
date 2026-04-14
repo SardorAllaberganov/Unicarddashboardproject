@@ -26,6 +26,12 @@ import OrgSettingsPage from './pages/OrgSettingsPage';
 import NewOrganizationPage from './pages/NewOrganizationPage';
 import EditOrganizationPage from './pages/EditOrganizationPage';
 import NewBatchWizardPage from './pages/NewBatchWizardPage';
+import CardBatchDetailPage from './pages/CardBatchDetailPage';
+import EditCardBatchPage from './pages/EditCardBatchPage';
+import BulkCardAssignmentPage from './pages/BulkCardAssignmentPage';
+import ReportPreviewPage from './pages/ReportPreviewPage';
+import OverdueKpiReportPage from './pages/OverdueKpiReportPage';
+import NotificationsHistoryPage from './pages/NotificationsHistoryPage';
 
 export const router = createBrowserRouter([
   {
@@ -73,6 +79,14 @@ export const router = createBrowserRouter([
     Component: NewBatchWizardPage,
   },
   {
+    path: '/card-batches/:id',
+    Component: CardBatchDetailPage,
+  },
+  {
+    path: '/card-batches/:id/edit',
+    Component: EditCardBatchPage,
+  },
+  {
     path: '/kpi-config',
     Component: KPIConfigurationPage,
   },
@@ -95,6 +109,18 @@ export const router = createBrowserRouter([
   {
     path: '/reports',
     Component: ReportsExportPage,
+  },
+  {
+    path: '/reports/preview/:reportId',
+    Component: ReportPreviewPage,
+  },
+  {
+    path: '/reports/overdue-kpi',
+    Component: OverdueKpiReportPage,
+  },
+  {
+    path: '/notifications',
+    Component: NotificationsHistoryPage,
   },
   {
     path: '/org-dashboard',
@@ -123,6 +149,10 @@ export const router = createBrowserRouter([
   {
     path: '/card-assignment',
     Component: CardAssignmentPage,
+  },
+  {
+    path: '/card-assignment/bulk',
+    Component: BulkCardAssignmentPage,
   },
   {
     path: '/org-rewards',
