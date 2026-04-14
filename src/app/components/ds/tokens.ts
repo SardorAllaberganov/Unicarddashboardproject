@@ -32,3 +32,38 @@ export const C = {
   info: '#0891B2',
   infoBg: '#ECFEFF',
 };
+
+/* ── Dark theme overrides ────────────────────────────────────────────── */
+
+export const D = {
+  pageBg: '#0F1117',
+  surface: '#1A1D27',
+  border: '#2D3148',
+  inputBorder: '#2D3148',
+  divider: '#2D3148',
+  text1: '#F1F2F6',
+  text2: '#A0A5B8',
+  text3: '#6B7280',
+  text4: '#4B5060',
+  textDisabled: '#3A3F50',
+  blue: '#3B82F6',
+  blueHover: '#2563EB',
+  blueLt: '#1E2A4A',
+  blueTint: '#1E3A5F',
+  success: '#34D399',
+  successBg: 'rgba(52,211,153,0.12)',
+  warning: '#FBBF24',
+  warningBg: 'rgba(251,191,36,0.12)',
+  error: '#F87171',
+  errorBg: 'rgba(248,113,113,0.12)',
+  info: '#22D3EE',
+  infoBg: 'rgba(34,211,238,0.12)',
+  tableHover: '#1E2130',
+  tableAlt: '#161822',
+  progressTrack: '#2D3148',
+};
+
+/** Pick light or dark token set */
+export function theme(dark: boolean) {
+  return dark ? { ...C, ...D } : C;
+}
