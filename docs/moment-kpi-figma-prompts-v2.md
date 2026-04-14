@@ -211,71 +211,105 @@ Responsive: tablet — hide Телефон, Контактное лицо. Mobil
 
 ---
 
-### Prompt B-03: Organization Detail — Side Drawer
+### Prompt B-03: Organization Detail — Full Page
 
 ```
-Design a Detail Drawer (Prompt 0 §9) that opens when clicking an organization row. Width 640px.
+Design a full-page detail view for a single organization in Bank Admin. Opens when clicking an organization row. Reference Prompt 0 components.
 
-**Drawer header:**
-Title: "Mysafar OOO". Badges: Badge Success "Активна". Below: "Контакт: Рустам Алиев, +998 90 123 45 67" small-body.
+Layout: right of sidebar, page-background, full-width content, page-padding.
 
-**Tabs (Prompt 0 §9 tabs):** Сводка | Продавцы | Карты | Финансы
+**Breadcrumb (Prompt 0 §13):** "Организации" (link) → "Mysafar OOO" (current).
 
----
+**Header row:**
+Left: "Mysafar OOO" page-title. Below: Badge Success "Активна" + "Контакт: Рустам Алиев, +998 90 123 45 67" small-body.
+Right: Outline Button "Редактировать" with Pencil icon + action-dots dropdown (Назначить карты, Деактивировать).
 
-**Tab: Сводка**
-
-4× Stat Card components (compact, 2×2 grid):
+**Row 1 — 4× Stat Card components (Prompt 0 §3), equal width, gap 16px:**
 1. Blue, CreditCard. "Карт выдано" — "500".
 2. Green, ShoppingBag. "Продано" — "230 (46%)".
 3. Violet, CheckCircle2. "KPI выполнено (все 3)" — "45 (19.6%)".
 4. Amber, Wallet. "Начислено" — "1 825 000 UZS".
 
-KPI progress section — 3 horizontal bars (use Funnel Bar Chart row style from Prompt 0 §8, but only 3 bars):
+**Row 2 — Tabs (full-width, Prompt 0 §9 tabs):** Сводка | Продавцы | Карты | Финансы
+
+---
+
+**Tab: Сводка (default active)**
+
+Two columns (60% / 40%), gap 16px:
+
+Left — "KPI прогресс" section-heading:
+3 horizontal bars (Funnel Bar Chart row style from Prompt 0 §8, but only 3 bars):
 — "Регистрация": 185/230 = 80.4%, label "185 из 230".
 — "Пополнение": 120/230 = 52.2%, label "120 из 230".
 — "Оплата 500K": 45/230 = 19.6%, label "45 из 230".
 
-Activity Timeline component (Prompt 0 §15), 3 items:
+Below bars — Earnings breakdown card:
+White card, card-padding.
+— "KPI 1 × 185 = 925 000 UZS"
+— "KPI 2 × 120 = 600 000 UZS"
+— "KPI 3 × 45 = 450 000 UZS"
+— Divider.
+— "Итого начислено: 1 825 000 UZS" body-medium bold.
+— "Выведено: 1 200 000 UZS" | "Баланс: 625 000 UZS".
+
+Right — "Последняя активность" section-heading:
+Activity Timeline component (Prompt 0 §15), 8 items:
 — Green dot: "Карта ...4521 — KPI 3 выполнен (512 000 UZS)" — "2 часа назад".
 — Blue dot: "Карта ...3892 — KPI 2 выполнен" — "5 часов назад".
+— Green dot: "Карта ...2204 — KPI 1 выполнен (Нилуфар)" — "вчера, 15:30".
+— Amber dot: "Камола Р. — вывод 80 000 UZS" — "вчера, 18:00".
 — Gray dot: "Новый продавец добавлен: Камола Р." — "вчера".
+— Blue dot: "20 карт назначены Ислом Т." — "10.04".
+— Green dot: "Карта ...1089 — KPI 1 выполнен" — "09.04".
+— Gray dot: "Партия Апрель 2026 назначена" — "01.04".
+Ghost Button "Показать все →".
 
 ---
 
 **Tab: Продавцы**
 
-Search Input + Primary Button "+ Добавить продавца".
-Compact Data Table:
-Продавец | Карт | Продано | KPI 1 | KPI 2 | KPI 3 | Заработано (mono)
-Абдуллох Р. | 100 | 45 | 38 | 22 | 8 | 330 000
-Санжар М. | 100 | 62 | 55 | 41 | 15 | 555 000
-Нилуфар К. | 100 | 33 | 28 | 18 | 5 | 255 000
-Камола Р. | 50 | 18 | 14 | 9 | 2 | 125 000
-Ислом Т. | 80 | 42 | 35 | 20 | 10 | 350 000
-Дарья Н. | 70 | 30 | 15 | 10 | 5 | 210 000
+Top row: Search Input + Primary Button "+ Добавить продавца".
+Data Table (Prompt 0 §4):
+Продавец (avatar+name) | Телефон (text) | Карт (mono) | Продано (mono) | % продано (progress-cell) | KPI 1 | KPI 2 | KPI 3 | Заработано (mono) | Действия (action-dots)
+Санжар М. | +998 91 111 22 33 | 100 | 62 | 62% | 55 | 41 | 15 | 555 000 | ⋮
+Абдуллох Р. | +998 90 222 33 44 | 100 | 45 | 45% | 38 | 22 | 8 | 330 000 | ⋮
+Ислом Т. | +998 93 333 44 55 | 80 | 42 | 52% | 35 | 20 | 10 | 350 000 | ⋮
+Нилуфар К. | +998 94 444 55 66 | 100 | 33 | 33% | 28 | 18 | 5 | 255 000 | ⋮
+Дарья Н. | +998 95 555 66 77 | 70 | 30 | 43% | 15 | 10 | 5 | 210 000 | ⋮
+Камола Р. | +998 90 666 77 88 | 50 | 18 | 36% | 14 | 9 | 2 | 125 000 | ⋮
+
+Rows clickable → navigates to Seller Detail page (C-03).
 
 ---
 
 **Tab: Карты**
 
-Filter Select "Статус": Все, На складе, У продавца, Продана, Зарегистрирована, Активна + Search Input.
-Compact Data Table:
-Карта (mono) | Продавец | Клиент | Статус (badge) | KPI 1 (kpi-check) | KPI 2 (kpi-check) | KPI 3 (kpi-check)
-...1001 | Абдуллох | Алишер Н. | Badge Success "Активна" | ✅ | ✅ | ✅ 510K
-...1002 | Абдуллох | Дилшод К. | Badge Info "Зарег." | ✅ | ✅ | 64% progress
-...1003 | — | — | Badge Default "На складе" | — | — | —
+Stat Pill row (Prompt 0 §14): "На складе: 140" | "У продавцов: 130" | "Продано: 230".
+Filter Bar: Filter Select "Статус" + Filter Select "Продавец" + Search Input.
+Data Table:
+Карта (mono) | Продавец (text) | Клиент (text) | Статус (badge) | KPI 1 (kpi-check) | KPI 2 (kpi-check) | KPI 3 (kpi-check) | Пополнено (mono) | Расход (mono)
+...1001 | Абдуллох | Алишер Н. | Badge Success "Активна" | ✅ | ✅ | ✅ 510K | 800 000 | 520 000
+...1002 | Абдуллох | Дилшод К. | Badge Info "Зарег." | ✅ | ✅ | 64% progress | 500 000 | 320 000
+...1003 | — | — | Badge Default "На складе" | — | — | — | — | —
+(10+ rows)
+Rows clickable → navigates to Card Detail page (B-08).
+Pagination.
 
 ---
 
 **Tab: Финансы**
 
-Summary row: "Всего начислено: 1 825 000 UZS" stat-display-number + "Выведено: 1 200 000" + "Баланс: 625 000".
+3× compact Stat Cards: "Всего начислено: 1 825 000 UZS" | "Выведено: 1 200 000" | "Баланс: 625 000".
 Data Table:
-Дата (date) | Продавец | Карта (mono) | KPI (badge-blue) | Сумма (mono) | Статус (badge)
+Дата (date) | Продавец (text) | Карта (mono) | KPI (badge-blue) | Сумма (mono) | Статус (badge)
 13.04 | Абдуллох | ...4521 | "KPI 3" | 10 000 | Badge Success "Начислено"
 12.04 | Санжар | ...3892 | "KPI 2" | 5 000 | Badge Success "Начислено"
 11.04 | Абдуллох | ...1002 | "KPI 1" | 5 000 | Badge Success "Начислено"
+(10+ rows)
+Pagination.
+
+Responsive: tabs become scrollable horizontal on mobile. Tables horizontal scroll.
 ```
 
 ---
@@ -443,7 +477,7 @@ Columns: Карта (mono) | Тип (badge-outline) | Организация (te
 9. ...1009 | "VISA USD" | SmartCard | Нодира | Фарход М. | Badge Info "Продана" | ✅ | — | — | 50 000 | —
 10. ...1010 | "VISA SUM" | SmartCard | Нодира | Ислом С. | Badge Success "Активна" | ✅ | ✅ | ✅ 530K | 600 000 | 545 000
 
-Each row clickable → opens Card Detail Drawer (B-08).
+Each row clickable → navigates to Card Detail page (B-08).
 Pagination: "Показано 1–10 из 5 000".
 
 Responsive: horizontal scroll. Priority columns: Карта, Статус, KPI 1–3.
@@ -451,25 +485,36 @@ Responsive: horizontal scroll. Priority columns: Карта, Статус, KPI 1
 
 ---
 
-### Prompt B-08: Card Detail — Side Drawer with KPI Stepper
+### Prompt B-08: Card Detail — Full Page with KPI Stepper
 
 ```
-Design a Detail Drawer (Prompt 0 §9) showing full card detail. Width 560px. This page uses KPI Stepper Variant B (Prompt 0 §7B, progress tracker).
+Design a full-page detail view for a single card. Opens when clicking a card row from any cards table. Reference Prompt 0 components. This page uses KPI Stepper Variant B (Prompt 0 §7B, progress tracker).
 
-**Header:**
-Title: "Карта •••• 1001". Close X.
-Badges row: Badge Outline "VISA SUM" + Badge Success "Активна" + Badge Default "Mysafar OOO".
+Layout: right of sidebar, page-background, full-width content, page-padding.
 
-**Client & Seller info (key-value grid from Prompt 0 §9):**
-Left column: "Клиент" label → "Алишер Набиев" value → "+998 90 123 45 67" muted.
-Right column: "Продавец" label → "Абдуллох Р." value → "Mysafar OOO" muted.
-"Продана: 01.04.2026" caption.
+**Breadcrumb (Prompt 0 §13):** "Все карты" (link) → "Карта •••• 1001" (current).
 
-Divider.
+**Header row:**
+Left: "Карта •••• 1001" page-title.
+Below: Badges row: Badge Outline "VISA SUM" + Badge Success "Активна" + Badge Default "Mysafar OOO" + Badge Default "Партия Апрель 2026".
+Right: Outline Button "История операций" with List icon + action-dots dropdown (Заблокировать карту, Переназначить продавцу).
 
-**KPI Stepper Variant B (Prompt 0 §7B) — 3 steps:**
+**Row 1 — Info strip:**
+White card, padding 16px. Two-column key-value layout:
+Left column:
+— "Клиент" label muted → "Алишер Набиев" body-medium → "+998 90 123 45 67" small-body.
+— "Продана: 01.04.2026" caption.
+Right column:
+— "Продавец" label muted → "Абдуллох Р." body-medium → "Mysafar OOO" small-body.
+— "Партия: Партия Апрель 2026" caption.
 
-Label: "KPI прогресс" section-heading. Right: "Срок: 30 дней (осталось 18)" in warning-color.
+**Row 2 — Two columns (55% / 45%), gap 16px:**
+
+Left column — KPI Stepper Variant B (Prompt 0 §7B):
+White card, card-padding (24px).
+Heading: "KPI прогресс" section-heading. Right: "Срок: 30 дней (осталось 18)" in warning-color.
+
+3 steps, vertical stepper:
 
 Step 1 — Completed (green circle checkmark, green connecting line below):
 Title: "Регистрация в Unired Mobile" body-medium.
@@ -492,25 +537,27 @@ Below bar: "320 000 / 500 000 UZS" mono-value + "64%" primary-blue.
 Right: "⏳ В процессе" warning-color.
 Reward: "Вознаграждение: 10 000 UZS (после выполнения)" caption.
 
+Right column — Financial summary + Transactions:
+White card, card-padding (24px).
+"Финансы по карте" section-heading.
+
+3× Stat rows (each row: icon + label + value):
+— Green ArrowDown icon: "Пополнено" | "800 000 UZS" mono.
+— Red ArrowUp icon: "Потрачено" | "520 000 UZS" mono.
+— Blue Wallet icon: "Баланс" | "280 000 UZS" mono.
+
 Divider.
 
-**Financial summary:**
-"Финансы по карте" card-title.
-3 rows:
-— "Пополнено" | "800 000 UZS" mono — green ArrowDown icon.
-— "Потрачено" | "520 000 UZS" mono — red ArrowUp icon.
-— "Баланс" | "280 000 UZS" mono — blue Wallet icon.
+"Последние операции" body-medium. Ghost Button "Все операции →" right-aligned.
+Compact Data Table (5 rows, no pagination):
+Дата (date) | Тип (text) | Сумма (mono) | Описание (text)
+12.04 | POS оплата | -45 000 (red) | Korzinka Go
+11.04 | POS оплата | -32 000 (red) | Shro
+10.04 | ECOM | -28 000 (red) | Uzum Market
+03.04 | P2P приход | +300 000 (green) | Перевод
+01.04 | P2P приход | +500 000 (green) | Перевод
 
-Divider.
-
-**Transaction history (5 recent):**
-"Последние операции" body-medium.
-Compact list:
-12.04 | POS оплата | -45 000 | "Korzinka Go" — red amount
-11.04 | POS оплата | -32 000 | "Shro" — red
-10.04 | ECOM | -28 000 | "Uzum Market" — red
-03.04 | P2P приход | +300 000 | "Перевод" — green
-01.04 | P2P приход | +500 000 | "Перевод" — green
+Responsive: two columns stack vertically on tablet/mobile. KPI stepper on top, financial below.
 ```
 
 ---
@@ -896,67 +943,98 @@ Responsive: hide phone/balance columns tablet. Horizontal scroll mobile.
 
 ---
 
-### Prompt C-03: Seller Detail — Side Drawer
+### Prompt C-03: Seller Detail — Full Page
 
 ```
-Design a Detail Drawer (Prompt 0 §9) for a seller. Width 600px.
+Design a full-page detail view for a single seller. Opens when clicking a seller row. Organization Admin. Reference Prompt 0 components.
 
-**Header:**
-Title: "Санжар Мирзаев". Close X.
-Below: "+998 91 111 22 33" small-body + Badge Success "Активен" + "UCOIN: UCN-0091" caption.
+Layout: right of sidebar, page-background, full-width content, page-padding.
 
-**Tabs:** Сводка | Карты | Финансы
+**Breadcrumb (Prompt 0 §13):** "Продавцы" (link) → "Санжар Мирзаев" (current).
+
+**Header row:**
+Left: "Санжар Мирзаев" page-title. Below: "+998 91 111 22 33" small-body + Badge Success "Активен" + "UCOIN: UCN-0091" caption.
+Right: Outline Button "Назначить карты" with CreditCard icon + Outline Button "Редактировать" with Pencil icon + action-dots dropdown (Переназначить карты, Деактивировать).
+
+**Row 1 — 4× Stat Card (Prompt 0 §3), equal width, gap 16px:**
+1. Blue, CreditCard. "Карт назначено" — "100".
+2. Green, ShoppingBag. "Продано" — "62 (62%)".
+3. Violet, CheckCircle. "KPI 3 завершено" — "15".
+4. Amber, Wallet. "Заработано" — "555 000 UZS".
+
+**Row 2 — Tabs (full-width, Prompt 0 §9 tabs):** Сводка | Карты | Финансы
 
 ---
 
-**Tab: Сводка**
+**Tab: Сводка (default active)**
 
-4× compact Stat Cards (2×2):
-1. "Карт назначено" — "100".
-2. "Продано" — "62 (62%)".
-3. "KPI 3 завершено" — "15".
-4. "Заработано" — "555 000 UZS".
+Two columns (55% / 45%), gap 16px:
 
+Left — "KPI прогресс" section-heading:
+White card, card-padding.
 KPI breakdown bars (Funnel Bar row style, Prompt 0 §8):
-— KPI 1: 55/62 = 88.7% — "55 из 62 продано".
+— KPI 1: 55/62 = 88.7% — "55 из 62 проданных".
 — KPI 2: 41/62 = 66.1% — "41 из 62".
 — KPI 3: 15/62 = 24.2% — "15 из 62".
 
-Earnings breakdown (key-value grid, Prompt 0 §9):
+Divider.
+
+Earnings breakdown (key-value rows):
 — "KPI 1 × 55 = 275 000 UZS"
 — "KPI 2 × 41 = 205 000 UZS"
 — "KPI 3 × 15 = 150 000 UZS"
 — Divider.
 — "Итого: 555 000 UZS" body-medium bold.
-— "Выведено: 400 000" | "Баланс: 155 000".
+— "Выведено: 400 000 UZS" | "Баланс: 155 000 UZS".
+
+Right — "Статус карт" section-heading:
+White card, card-padding.
+Card Status Flow (Prompt 0 §10) mini visualization — donut or stat rows:
+— "На руках (не продано): 38" body + small bar.
+— "Продано, KPI в процессе: 47" body + small bar.
+— "KPI 3 завершён: 15" body + small bar.
+
+Below: Activity Timeline (Prompt 0 §15), 5 items:
+— Green dot: "Карта ...4521 — KPI 3 выполнен (512K UZS)" — "сегодня, 14:32".
+— Blue dot: "Карта ...3892 — KPI 2 выполнен" — "сегодня, 09:15".
+— Amber dot: "Вывод 120 000 UZS — UZCARD" — "вчера".
+— Green dot: "Карта ...2003 — KPI 1 выполнен" — "10.04".
+— Gray dot: "5 карт назначены" — "01.04".
 
 ---
 
 **Tab: Карты**
 
-Search Input + Filter Select "Статус".
-Compact Data Table:
-Карта (mono) | Клиент | Продано (date) | KPI 1 (kpi-check) | KPI 2 (kpi-check) | KPI 3 (kpi-check) | Пополнено (mono) | Расход (mono)
-...2001 | Камол Т. | 02.04 | ✅ | ✅ | ✅ 620K | 1 200 000 | 680 000
-...2002 | Шахзод Р. | 03.04 | ✅ | ✅ | 82% progress | 700 000 | 410 000
-...2003 | Фарход М. | 04.04 | ✅ | — | — | 50 000 | —
-...2004 | — | — | — | — | — | — | —
+Stat Pill row (Prompt 0 §14): "Назначено: 100" | "На руках: 38" | "Продано: 62" | "KPI 3 ✅: 15".
+Search Input + Filter Select "Статус" + Filter Select "KPI".
 
-Rows clickable → Card Detail Drawer (B-08).
+Data Table (Prompt 0 §4):
+Карта (mono) | Клиент (text) | Телефон (text) | Продано (date) | Статус (badge) | KPI 1 (kpi-check) | KPI 2 (kpi-check) | KPI 3 (kpi-check) | Пополнено (mono) | Расход (mono)
+...2001 | Камол Т. | +998 90... | 02.04 | Badge Success "Активна" | ✅ | ✅ | ✅ 620K | 1 200 000 | 680 000
+...2002 | Шахзод Р. | +998 91... | 03.04 | Badge Success "Активна" | ✅ | ✅ | 82% progress | 700 000 | 410 000
+...2003 | Фарход М. | +998 93... | 04.04 | Badge Info "Зарег." | ✅ | — | — | 50 000 | —
+...2004 | — | — | — | Badge Warning "У продавца" | — | — | — | — | —
+(10+ rows)
+Rows clickable → navigates to Card Detail page (B-08).
+Pagination.
 
 ---
 
 **Tab: Финансы**
 
-Balance display: "Баланс UCOIN кошелька: 155 000 UZS" stat-display-number.
-"Всего заработано: 555 000" | "Выведено: 400 000" body typography.
+3× compact Stat Cards:
+"Баланс UCOIN: 155 000 UZS" (large, primary-blue) | "Всего заработано: 555 000" | "Выведено: 400 000".
 
 Data Table:
-Дата (date) | Тип (badge) | Карта (mono) | KPI (badge-blue) | Сумма (mono) | Статус (badge)
-13.04 | Badge Default "KPI" | ...4521 | "KPI 3" | +10 000 (green) | Badge Success "Начислено"
-13.04 | Badge Warning "Вывод" | — | — | -120 000 (red) | Badge Info "Выведено"
-12.04 | Badge Default "KPI" | ...3892 | "KPI 2" | +5 000 (green) | Badge Success "Начислено"
-10.04 | Badge Default "KPI" | ...2003 | "KPI 1" | +5 000 (green) | Badge Success "Начислено"
+Дата (date) | Тип (badge) | Карта (mono) | KPI (badge-blue) | Сумма (mono) | UCOIN TX (mono-small) | Статус (badge)
+13.04 14:32 | Badge Default "KPI" | ...4521 | "KPI 3" | +10 000 (green) | UCN-8834 | Badge Success "Начислено"
+13.04 09:00 | Badge Warning "Вывод" | — | — | -120 000 (red) | UCN-8832 | Badge Info "Выведено"
+12.04 18:45 | Badge Default "KPI" | ...3892 | "KPI 2" | +5 000 (green) | UCN-8833 | Badge Success "Начислено"
+10.04 11:30 | Badge Default "KPI" | ...2003 | "KPI 1" | +5 000 (green) | UCN-8831 | Badge Success "Начислено"
+(10+ rows)
+Pagination.
+
+Responsive: tabs scrollable on mobile. Columns stack vertically on tablet. Tables horizontal scroll.
 ```
 
 ---
@@ -983,7 +1061,7 @@ Layout: right of sidebar, page-background, full-width content, page-padding.
 Same structure as B-07 without "Организация" column:
 Карта (mono) | Тип (badge-outline) | Продавец (text) | Клиент (text) | Телефон (text) | Статус (badge) | KPI 1 (kpi-check) | KPI 2 (kpi-check) | KPI 3 (kpi-check) | Пополнено (mono) | Расход (mono)
 
-10 sample rows with consistent data. Rows clickable → Card Detail Drawer (B-08).
+10 sample rows with consistent data. Rows clickable → navigates to Card Detail page (B-08).
 Pagination.
 
 Responsive: horizontal scroll.
@@ -1118,21 +1196,56 @@ Action dots dropdown: Подробнее, Подтвердить (for pending), 
 
 Pagination: "Показано 1–8 из 8".
 
-**Withdrawal Detail Drawer (Prompt 0 §9), width 480px — opens from row click:**
-Header: "Вывод #UCN-8832" + Badge Success "Выполнен". Close X.
-Key-value grid:
-— "Продавец" | "Абдуллох Рахимов"
+**Withdrawal Detail — navigates to full page (C-07A) on row click.**
+
+Responsive: horizontal scroll on mobile.
+```
+
+---
+
+### Prompt C-07A: Withdrawal Detail — Full Page
+
+```
+Design a full-page detail view for a single withdrawal. Opens from row click in C-07. Organization Admin. Reference Prompt 0 components.
+
+Layout: right of sidebar, page-background, full-width content, page-padding.
+
+**Breadcrumb (Prompt 0 §13):** "Выводы средств" (link) → "Вывод #UCN-8832" (current).
+
+**Header row:**
+Left: "Вывод #UCN-8832" page-title. Below: Badge Success "Выполнен".
+Right: Outline Button "Назад к списку" with ArrowLeft icon.
+
+**Two columns (50% / 50%), gap 16px:**
+
+Left — "Детали вывода" section-heading:
+White card, card-padding (24px).
+Key-value grid (rows with dividers):
+— "Продавец" | Avatar "АР" + "Абдуллох Рахимов" body-medium
 — "Телефон" | "+998 90 222 33 44"
-— "Сумма" | "120 000 UZS"
+— "Сумма" | "120 000 UZS" mono body-medium
 — "Метод" | "UZCARD"
-— "Реквизиты" | "8600 1234 5678 4455"
-— "Баланс до" | "200 000 UZS"
-— "Баланс после" | "80 000 UZS"
-— "UCOIN TX ID" | "UCN-8832"
+— "Реквизиты" | "8600 1234 5678 4455" mono-small
+— "UCOIN TX ID" | "UCN-8832" mono-small
 — "Запрошено" | "13.04.2026, 14:00"
 — "Выполнено" | "13.04.2026, 14:02"
 
-Responsive: horizontal scroll on mobile.
+Right — "Баланс продавца" section-heading:
+White card, card-padding (24px).
+— "Баланс до вывода" label muted → "200 000 UZS" stat-display-number.
+— Arrow down icon centered.
+— "Сумма вывода" label muted → "-120 000 UZS" body-medium error-color.
+— Divider.
+— "Баланс после вывода" label muted → "80 000 UZS" stat-display-number.
+
+Below right card — "Другие выводы продавца" section-heading:
+Compact Data Table (last 5 withdrawals by this seller):
+Дата | Сумма | Метод | Статус
+11.04 | 80 000 | UZCARD | Badge Success "Выполнен"
+08.04 | 50 000 | UZCARD | Badge Success "Выполнен"
+(...)
+
+Responsive: columns stack vertically on mobile.
 ```
 
 ---
