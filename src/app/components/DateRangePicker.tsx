@@ -389,7 +389,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
 
             {/* ── LEFT: Preset list ── */}
             <div style={{
-              width: '175px', flexShrink: 0,
+              flexShrink: 0,
               borderRight: `1px solid ${C.border}`,
               padding: '14px 8px',
               display: 'flex', flexDirection: 'column',
