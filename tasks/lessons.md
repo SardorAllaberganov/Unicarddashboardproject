@@ -55,3 +55,17 @@ Mistake: Created a new page file but forgot to wire the route / sidebar link / n
 Root cause: Each page creation had three-to-four separate edit points; easy to miss one.
 Fix: Always touch [routes.tsx](src/app/routes.tsx), the relevant sidebar (BankAdmin or OrgAdmin in [Sidebar.tsx](src/app/components/Sidebar.tsx)), and [Navbar.tsx](src/app/components/Navbar.tsx) `ORG_PATHS` in the same turn as the new page.
 Rule: A new page isn't done until it's navigable. Route + sidebar + navbar role detection are part of "creating the page".
+
+## 2026-04-14 — Export buttons without user feedback
+
+Mistake: Every "Экспорт" / "Скачать Excel" button across the app was a no-op with no visual feedback; clicking felt broken.
+Root cause: Each page wired its own download button but none of them triggered any toast or progress UI. Building a per-page toast for every export would have been duplication.
+Fix: Added [useExportToast.tsx](src/app/components/useExportToast.tsx) — a shared hook that manages a single top-right toast through three phases: Processing (spinner, no close) → Success (file name + size, Ghost "Скачать" action, 8s auto-dismiss) → Error (Ghost "Повторить", manual close). Pages wire `start({ subtitle, fileName, fileSize, shouldError? })` and render `node` once.
+Rule: Every export button must route through `useExportToast`. Never attach a plain `onClick` that silently "downloads". Call `start()` with at minimum a subtitle describing what's being exported; the hook handles the rest. Stack multiple exports is prevented because the hook holds one flow at a time.
+
+## 2026-04-14 — Monetary input left unformatted while typing
+
+Mistake: The amount field in the manual reward adjustment modal accepted raw digits; the preview ("Баланс: 155 000 → 165 000") used thousand-space formatting but the input itself showed `10000` with no separators, breaking visual consistency.
+Root cause: The onChange only filtered characters (`replace(/[^0-9 ]/g, '')`) without actively re-formatting the digits into the project's mono-style `1 234 567` shape.
+Fix: On every keystroke, strip non-digits, parse to int, then re-mask through the shared `fmtUzs` helper before calling `setAmountStr`.
+Rule: Every monetary input must be masked with space-thousand separators as the user types. Strip to pure digits on change, then re-apply `n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')` (same helper used for display). Also use `inputMode="numeric"` and render in `F.mono`. The internal numeric value for calculations is always `parseInt(str.replace(/\s/g, ''))`.
