@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  ChevronRight, ChevronDown, Download, Search, Check,
+  ChevronRight, ChevronDown, Download, Search, Check, X,
+  ShoppingBag, CheckCircle2,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
@@ -190,7 +191,11 @@ function KPICheckCell({ value }: { value: boolean | number | null }) {
    DATA TABLE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DataTable({ cards, onRowClick }: { cards: CardRow[]; onRowClick: (id: number) => void }) {
+function DataTable({ cards, onRowClick, onRecordSale }: {
+  cards: CardRow[];
+  onRowClick: (id: number) => void;
+  onRecordSale: (card: CardRow) => void;
+}) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
   return (
@@ -212,6 +217,7 @@ function DataTable({ cards, onRowClick }: { cards: CardRow[]; onRowClick: (id: n
             <th style={hCell}>KPI 3</th>
             <th style={hCell}>Пополнено</th>
             <th style={hCell}>Расход</th>
+            <th style={{ ...hCell, textAlign: 'right' }}>Действия</th>
           </tr>
         </thead>
         <tbody>
@@ -252,6 +258,13 @@ function DataTable({ cards, onRowClick }: { cards: CardRow[]; onRowClick: (id: n
               <td style={dCell}>
                 <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{card.spent}</span>
               </td>
+              <td style={{ ...dCell, textAlign: 'right' }}>
+                {card.status === 'У продавца' ? (
+                  <RecordSaleBtn onClick={e => { e.stopPropagation(); onRecordSale(card); }} />
+                ) : (
+                  <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>—</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -267,9 +280,364 @@ const hCell: React.CSSProperties = {
   letterSpacing: '0.04em', whiteSpace: 'nowrap',
 };
 
+function RecordSaleBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      aria-label="Зафиксировать продажу"
+      style={{
+        height: '30px', padding: '0 12px',
+        border: `1px solid ${hov ? C.success : '#BBF7D0'}`,
+        borderRadius: '7px',
+        background: hov ? C.success : C.successBg,
+        fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
+        color: hov ? '#FFFFFF' : '#15803D',
+        display: 'inline-flex', alignItems: 'center', gap: '5px',
+        cursor: 'pointer', transition: 'all 0.12s',
+      }}
+    >
+      <ShoppingBag size={12} strokeWidth={1.75} />
+      Зафиксировать
+    </button>
+  );
+}
+
 const dCell: React.CSSProperties = {
   padding: '14px 16px', textAlign: 'left', whiteSpace: 'nowrap',
 };
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RECORD SALE MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function OutlineBadge({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+      padding: '2px 8px', borderRadius: '8px',
+      border: `1px solid ${C.border}`, background: C.surface,
+      color: C.text2, whiteSpace: 'nowrap',
+    }}>
+      {children}
+    </span>
+  );
+}
+
+function RecordSaleModal({ open, card, onClose, onConfirm }: {
+  open: boolean;
+  card: CardRow | null;
+  onClose: () => void;
+  onConfirm: (phone: string) => void;
+}) {
+  const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [phoneFocus, setPhoneFocus] = useState(false);
+  const [nameFocus, setNameFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setPhone(''); setName(''); return; }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open || !card) return null;
+
+  const canConfirm = phone.trim().length >= 9;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '520px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <ShoppingBag size={22} color={C.success} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: C.text1,
+          }}>
+            Фиксация продажи
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          {/* Card info strip */}
+          <div style={{
+            background: C.blueLt,
+            borderRadius: '8px', padding: '12px',
+            display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+          }}>
+            <span style={{
+              fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: C.text1,
+            }}>
+              Карта ...{card.cardNumber.slice(-4)}
+            </span>
+            <OutlineBadge>{card.type}</OutlineBadge>
+            <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+              Продавец: <span style={{ color: C.text1, fontWeight: 500 }}>{card.seller}</span>
+            </span>
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Телефон клиента<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <input
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              onFocus={() => setPhoneFocus(true)}
+              onBlur={() => setPhoneFocus(false)}
+              placeholder="+998 __ ___ __ __"
+              style={{
+                width: '100%', height: '40px', padding: '0 12px',
+                border: `1px solid ${phoneFocus ? C.blue : C.inputBorder}`,
+                borderRadius: '8px', background: C.surface,
+                fontFamily: F.mono, fontSize: '14px', color: C.text1,
+                outline: 'none', boxSizing: 'border-box',
+                boxShadow: phoneFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                transition: 'border-color 0.12s, box-shadow 0.12s',
+              }}
+            />
+            <div style={{
+              fontFamily: F.inter, fontSize: '11px', color: C.text4,
+              marginTop: '6px',
+            }}>
+              Номер для привязки и уведомлений
+            </div>
+          </div>
+
+          {/* Name */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              ФИО клиента
+            </label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onFocus={() => setNameFocus(true)}
+              onBlur={() => setNameFocus(false)}
+              placeholder="Фамилия Имя"
+              style={{
+                width: '100%', height: '40px', padding: '0 12px',
+                border: `1px solid ${nameFocus ? C.blue : C.inputBorder}`,
+                borderRadius: '8px', background: C.surface,
+                fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                outline: 'none', boxSizing: 'border-box',
+                boxShadow: nameFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                transition: 'border-color 0.12s, box-shadow 0.12s',
+              }}
+            />
+            <div style={{
+              fontFamily: F.inter, fontSize: '11px', color: C.text4,
+              marginTop: '6px',
+            }}>
+              Опционально — будет отображаться в отчётах
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: C.border, margin: '2px 0' }} />
+
+          {/* Outcome list */}
+          <div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '12px', color: C.text4,
+              marginBottom: '8px',
+            }}>
+              После фиксации:
+            </div>
+            <ul style={{
+              margin: 0, padding: 0, listStyle: 'none',
+              display: 'flex', flexDirection: 'column', gap: '6px',
+            }}>
+              {[
+                'Карта перейдёт в статус «Продана»',
+                'Начнётся отслеживание KPI (срок: 30 дней)',
+                'KPI 1 (Регистрация) будет отслеживаться автоматически',
+              ].map((txt, i) => (
+                <li key={i} style={{
+                  display: 'flex', gap: '8px',
+                  fontFamily: F.inter, fontSize: '12px', color: C.text2, lineHeight: 1.5,
+                }}>
+                  <span style={{ color: C.text4, flexShrink: 0 }}>•</span>
+                  <span>{txt}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={() => { if (canConfirm) onConfirm(phone); }}
+            disabled={!canConfirm}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: !canConfirm ? '#93C5FD' : confirmHov ? C.blueHover : C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF',
+              cursor: canConfirm ? 'pointer' : 'not-allowed',
+              opacity: canConfirm ? 1 : 0.85,
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: canConfirm && confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : canConfirm ? '0 1px 3px rgba(37,99,235,0.16)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            <ShoppingBag size={14} strokeWidth={2} />
+            Зафиксировать продажу
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUCCESS TOAST
+═══════════════════════════════════════════════════════════════════════════ */
+
+function SuccessToast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 4000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'fixed', bottom: '24px', right: '24px',
+        maxWidth: '420px',
+        background: C.surface, border: `1px solid #BBF7D0`,
+        borderLeft: `3px solid ${C.success}`,
+        borderRadius: '10px',
+        padding: '12px 14px',
+        display: 'flex', alignItems: 'flex-start', gap: '10px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        zIndex: 200,
+        animation: 'toastIn 0.2s ease-out',
+      }}
+    >
+      <style>{`
+        @keyframes toastIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      <div style={{
+        width: '22px', height: '22px', borderRadius: '50%',
+        background: C.successBg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, marginTop: '1px',
+      }}>
+        <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
+          color: C.text1, marginBottom: '2px',
+        }}>
+          Продажа зафиксирована
+        </div>
+        <div style={{
+          fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.4,
+        }}>
+          {message}
+        </div>
+      </div>
+      <button
+        onClick={onClose}
+        aria-label="Закрыть"
+        style={{
+          width: '22px', height: '22px', border: 'none',
+          background: 'transparent', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderRadius: '5px', flexShrink: 0,
+        }}
+      >
+        <X size={13} color={C.text4} strokeWidth={1.75} />
+      </button>
+    </div>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
@@ -286,9 +654,19 @@ export default function OrgCardsPage() {
   const [kpiFilter, setKpiFilter] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [exportHover, setExportHover] = useState(false);
+  const [bulkHov, setBulkHov] = useState(false);
+  const [saleCard, setSaleCard] = useState<CardRow | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const handleRowClick = (id: number) => {
     navigate(`/card-detail/${id}?from=org`);
+  };
+
+  const handleConfirmSale = (phone: string) => {
+    if (!saleCard) return;
+    const last4 = saleCard.cardNumber.slice(-4);
+    setToast(`Карта •••• ${last4} → ${phone}`);
+    setSaleCard(null);
   };
 
   return (
@@ -324,23 +702,43 @@ export default function OrgCardsPage() {
                 Карты организации Mysafar OOO
               </p>
             </div>
-            <button
-              onMouseEnter={() => setExportHover(true)}
-              onMouseLeave={() => setExportHover(false)}
-              style={{
-                height: '40px', padding: '0 18px',
-                border: `1px solid ${exportHover ? C.blue : C.border}`,
-                borderRadius: '8px',
-                background: exportHover ? C.blueLt : C.surface,
-                fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                color: exportHover ? C.blue : C.text2,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px',
-                flexShrink: 0, transition: 'all 0.12s',
-              }}
-            >
-              <Download size={16} strokeWidth={1.75} />
-              Экспорт
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+              <button
+                onMouseEnter={() => setBulkHov(true)}
+                onMouseLeave={() => setBulkHov(false)}
+                onClick={() => navigate('/card-assignment/bulk')}
+                style={{
+                  height: '40px', padding: '0 18px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: bulkHov ? C.blueHover : C.blue,
+                  fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
+                  color: '#FFFFFF',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px',
+                  boxShadow: bulkHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                Массовое назначение
+              </button>
+              <button
+                onMouseEnter={() => setExportHover(true)}
+                onMouseLeave={() => setExportHover(false)}
+                style={{
+                  height: '40px', padding: '0 18px',
+                  border: `1px solid ${exportHover ? C.blue : C.border}`,
+                  borderRadius: '8px',
+                  background: exportHover ? C.blueLt : C.surface,
+                  fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
+                  color: exportHover ? C.blue : C.text2,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px',
+                  transition: 'all 0.12s',
+                }}
+              >
+                <Download size={16} strokeWidth={1.75} />
+                Экспорт
+              </button>
+            </div>
           </div>
 
           {/* Stat Pills */}
@@ -410,7 +808,7 @@ export default function OrgCardsPage() {
           </div>
 
           {/* Data Table */}
-          <DataTable cards={CARDS} onRowClick={handleRowClick} />
+          <DataTable cards={CARDS} onRowClick={handleRowClick} onRecordSale={setSaleCard} />
 
           {/* Pagination */}
           <div style={{
@@ -423,6 +821,15 @@ export default function OrgCardsPage() {
           <div style={{ height: '48px' }} />
         </div>
       </div>
+
+      <RecordSaleModal
+        open={!!saleCard}
+        card={saleCard}
+        onClose={() => setSaleCard(null)}
+        onConfirm={handleConfirmSale}
+      />
+
+      {toast && <SuccessToast message={toast} onClose={() => setToast(null)} />}
     </div>
   );
 }
