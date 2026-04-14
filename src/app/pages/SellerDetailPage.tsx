@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   X, CreditCard, ShoppingBag, CheckCircle2, Wallet,
   Check, Minus, Search, ChevronDown, ChevronRight,
+  Pencil, Lock, AlertTriangle, Info, ArrowDown, ArrowRightLeft,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
@@ -308,6 +309,8 @@ function TabCards() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [hovRow, setHovRow] = useState<number | null>(null);
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignHov, setReassignHov] = useState(false);
 
   return (
     <div>
@@ -353,6 +356,26 @@ function TabCards() {
             position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none',
           }} />
         </div>
+
+        <button
+          onMouseEnter={() => setReassignHov(true)}
+          onMouseLeave={() => setReassignHov(false)}
+          onClick={() => setReassignOpen(true)}
+          style={{
+            height: '36px', padding: '0 14px',
+            border: `1px solid ${reassignHov ? C.blue : C.border}`,
+            borderRadius: '8px',
+            background: reassignHov ? C.blueLt : C.surface,
+            fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+            color: reassignHov ? C.blue : C.text1,
+            display: 'inline-flex', alignItems: 'center', gap: '6px',
+            cursor: 'pointer', transition: 'all 0.12s',
+            marginLeft: 'auto',
+          }}
+        >
+          <ArrowRightLeft size={14} strokeWidth={1.75} />
+          Переназначить карты
+        </button>
       </div>
 
       {/* Table */}
@@ -414,6 +437,12 @@ function TabCards() {
           </tbody>
         </table>
       </div>
+
+      <ReassignCardsModal
+        open={reassignOpen}
+        onClose={() => setReassignOpen(false)}
+        onConfirm={() => setReassignOpen(false)}
+      />
     </div>
   );
 }
@@ -564,12 +593,1082 @@ const TABS: { id: TabId; label: string }[] = [
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEACTIVATE SELLER MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+const OTHER_SELLERS = [
+  'Абдуллох Рахимов (100 карт)',
+  'Ислом Тошматов (80 карт)',
+  'Нилуфар Каримова (100 карт)',
+  'Камола Расулова (100 карт)',
+];
+
+function DeactivateSellerModal({ open, onClose, onConfirm }: {
+  open: boolean; onClose: () => void; onConfirm: () => void;
+}) {
+  const [mode, setMode] = useState<'warehouse' | 'transfer'>('warehouse');
+  const [targetSeller, setTargetSeller] = useState('');
+  const [targetFocus, setTargetFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  React.useEffect(() => {
+    if (!open) { setMode('warehouse'); setTargetSeller(''); return; }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const canConfirm = mode === 'warehouse' || (mode === 'transfer' && !!targetSeller);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '560px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <AlertTriangle size={22} color={C.warning} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Деактивировать продавца
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '18px',
+        }}>
+          {/* Step 1: Confirmation text */}
+          <p style={{
+            margin: 0, fontFamily: F.inter, fontSize: '14px',
+            color: C.text1, lineHeight: 1.5,
+          }}>
+            Вы уверены, что хотите деактивировать этого продавца?
+          </p>
+
+          {/* Seller info card */}
+          <div style={{
+            background: '#FFFBEB',
+            borderTop: `1px solid #FDE68A`,
+            borderRight: `1px solid #FDE68A`,
+            borderBottom: `1px solid #FDE68A`,
+            borderLeft: `3px solid ${C.warning}`,
+            borderRadius: '8px', padding: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '50%',
+                background: C.blueLt, border: `1px solid ${C.blueTint}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: F.inter, fontSize: '12px', fontWeight: 600, color: C.blue,
+                flexShrink: 0,
+              }}>
+                СМ
+              </div>
+              <span style={{
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+              }}>
+                Санжар Мирзаев
+              </span>
+              <BadgeSuccess>Активен</BadgeSuccess>
+            </div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '12px', color: C.text2,
+              marginBottom: '4px', lineHeight: 1.5,
+            }}>
+              Карт назначено: <span style={{ fontFamily: F.mono, color: C.text1, fontWeight: 500 }}>100</span>
+              {' | '}
+              Продано: <span style={{ fontFamily: F.mono, color: C.text1, fontWeight: 500 }}>62</span>
+              {' | '}
+              На руках: <span style={{ fontFamily: F.mono, color: C.text1, fontWeight: 500 }}>38</span>
+            </div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '12px', color: C.text2, lineHeight: 1.5,
+            }}>
+              Заработано: <span style={{ fontFamily: F.mono, color: C.text1, fontWeight: 500 }}>555 000 UZS</span>
+              {' | '}
+              Баланс: <span style={{ fontFamily: F.mono, color: C.text1, fontWeight: 500 }}>155 000 UZS</span>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: C.border }} />
+
+          {/* Step 2: Card reassignment */}
+          <div>
+            <div style={{
+              fontFamily: F.dm, fontSize: '14px', fontWeight: 700,
+              color: C.text1, marginBottom: '12px',
+            }}>
+              Что делать с 38 нераспроданными картами?
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <RadioOption
+                selected={mode === 'warehouse'}
+                onClick={() => setMode('warehouse')}
+                title="Вернуть на склад организации"
+                caption="Карты получат статус «На складе»"
+              />
+              <RadioOption
+                selected={mode === 'transfer'}
+                onClick={() => setMode('transfer')}
+                title="Передать другому продавцу"
+              />
+
+              {mode === 'transfer' && (
+                <div style={{ marginLeft: '30px', marginTop: '-2px' }}>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      value={targetSeller}
+                      onChange={e => setTargetSeller(e.target.value)}
+                      onFocus={() => setTargetFocus(true)}
+                      onBlur={() => setTargetFocus(false)}
+                      style={{
+                        width: '100%', height: '40px', padding: '0 36px 0 12px',
+                        border: `1px solid ${targetFocus ? C.blue : C.inputBorder}`,
+                        borderRadius: '8px', background: C.surface,
+                        fontFamily: F.inter, fontSize: '13px',
+                        color: targetSeller ? C.text1 : C.text4,
+                        outline: 'none', appearance: 'none', cursor: 'pointer',
+                        boxShadow: targetFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                        transition: 'border-color 0.12s, box-shadow 0.12s',
+                      }}
+                    >
+                      <option value="">Выберите продавца</option>
+                      {OTHER_SELLERS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <ChevronDown size={14} color={C.text3} style={{
+                      position: 'absolute', right: '12px', top: '50%',
+                      transform: 'translateY(-50%)', pointerEvents: 'none',
+                    }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: C.border }} />
+
+          {/* Wallet balance section */}
+          <div>
+            <div style={{
+              fontFamily: F.dm, fontSize: '14px', fontWeight: 700,
+              color: C.text1, marginBottom: '4px',
+            }}>
+              Баланс кошелька: <span style={{ fontFamily: F.mono, color: C.blue }}>155 000 UZS</span>
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, lineHeight: 1.4 }}>
+              Продавец сможет вывести остаток средств после деактивации
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={() => { if (canConfirm) onConfirm(); }}
+            disabled={!canConfirm}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${!canConfirm ? '#FECACA' : confirmHov ? '#DC2626' : C.error}`,
+              borderRadius: '8px',
+              background: !canConfirm ? '#FFFFFF' : confirmHov ? C.errorBg : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: !canConfirm ? '#FCA5A5' : confirmHov ? '#B91C1C' : C.error,
+              cursor: canConfirm ? 'pointer' : 'not-allowed',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              transition: 'all 0.12s',
+            }}
+          >
+            <AlertTriangle size={14} strokeWidth={1.75} />
+            Деактивировать продавца
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RadioOption({ selected, onClick, title, caption }: {
+  selected: boolean; onClick: () => void; title: string; caption?: string;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: '10px',
+        padding: '10px 12px',
+        border: `1px solid ${selected ? C.blue : hov ? C.inputBorder : C.border}`,
+        borderRadius: '8px',
+        background: selected ? C.blueLt : hov ? '#F9FAFB' : C.surface,
+        cursor: 'pointer', transition: 'all 0.12s',
+      }}
+    >
+      <div style={{
+        width: '18px', height: '18px', borderRadius: '50%',
+        border: `2px solid ${selected ? C.blue : '#D1D5DB'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginTop: '1px', flexShrink: 0,
+        transition: 'border-color 0.12s',
+      }}>
+        {selected && (
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.blue }} />
+        )}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{
+          fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+          color: C.text1, lineHeight: 1.3,
+        }}>
+          {title}
+        </div>
+        {caption && (
+          <div style={{
+            fontFamily: F.inter, fontSize: '11px', color: C.text4,
+            marginTop: '3px', lineHeight: 1.4,
+          }}>
+            {caption}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REASSIGN CARDS MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+const REASSIGN_TARGETS: { name: string; onHand: number }[] = [
+  { name: 'Абдуллох Рахимов', onHand: 55 },
+  { name: 'Ислом Тошматов',   onHand: 34 },
+  { name: 'Нилуфар Каримова', onHand: 67 },
+  { name: 'Камола Расулова',  onHand: 50 },
+];
+
+const UNSOLD_CARDS: { num: string; type: string }[] = [
+  { num: '...3041', type: 'VISA SUM' },
+  { num: '...3042', type: 'VISA SUM' },
+  { num: '...3043', type: 'VISA USD' },
+  { num: '...3044', type: 'VISA SUM' },
+  { num: '...3045', type: 'VISA SUM' },
+  { num: '...3046', type: 'VISA USD' },
+  { num: '...3047', type: 'VISA SUM' },
+  { num: '...3048', type: 'VISA SUM' },
+  { num: '...3049', type: 'VISA SUM' },
+  { num: '...3050', type: 'VISA SUM' },
+  { num: '...3051', type: 'VISA SUM' },
+  { num: '...3052', type: 'VISA SUM' },
+];
+
+const TOTAL_ON_HAND = 38;
+
+function ReassignCardsModal({ open, onClose, onConfirm }: {
+  open: boolean; onClose: () => void; onConfirm: () => void;
+}) {
+  const [target, setTarget] = useState('');
+  const [targetFocus, setTargetFocus] = useState(false);
+  const [count, setCount] = useState(10);
+  const [specific, setSpecific] = useState(false);
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  const [maxHov, setMaxHov] = useState(false);
+  const [countFocus, setCountFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  React.useEffect(() => {
+    if (!open) {
+      setTarget('');
+      setCount(10);
+      setSpecific(false);
+      setSelectedCards(new Set());
+      return;
+    }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const targetInfo = REASSIGN_TARGETS.find(t => t.name === target);
+  const effectiveCount = specific ? selectedCards.size : count;
+  const canConfirm = !!target && effectiveCount > 0;
+
+  const toggleCard = (num: string) => {
+    setSelectedCards(prev => {
+      const next = new Set(prev);
+      if (next.has(num)) next.delete(num);
+      else next.add(num);
+      return next;
+    });
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '560px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: C.text1,
+          }}>
+            Переназначить карты
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '14px',
+        }}>
+          {/* From */}
+          <div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+              color: C.text4, textTransform: 'uppercase', letterSpacing: '0.06em',
+              marginBottom: '8px',
+            }}>
+              Откуда
+            </div>
+            <SellerRow name="Санжар Мирзаев" meta={`На руках: ${TOTAL_ON_HAND} карт`} />
+          </div>
+
+          {/* Arrow down */}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <ArrowDown size={22} color={C.text4} strokeWidth={1.75} />
+          </div>
+
+          {/* To */}
+          <div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+              color: C.text4, textTransform: 'uppercase', letterSpacing: '0.06em',
+              marginBottom: '8px',
+            }}>
+              Кому
+            </div>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={target}
+                onChange={e => setTarget(e.target.value)}
+                onFocus={() => setTargetFocus(true)}
+                onBlur={() => setTargetFocus(false)}
+                style={{
+                  width: '100%', height: '40px', padding: '0 36px 0 12px',
+                  border: `1px solid ${targetFocus ? C.blue : C.inputBorder}`,
+                  borderRadius: '8px', background: C.surface,
+                  fontFamily: F.inter, fontSize: '13px',
+                  color: target ? C.text1 : C.text4,
+                  outline: 'none', appearance: 'none', cursor: 'pointer',
+                  boxShadow: targetFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  transition: 'border-color 0.12s, box-shadow 0.12s',
+                }}
+              >
+                <option value="">Выберите продавца</option>
+                {REASSIGN_TARGETS.map(s => (
+                  <option key={s.name} value={s.name}>{s.name} ({s.onHand} карт)</option>
+                ))}
+              </select>
+              <ChevronDown size={14} color={C.text3} style={{
+                position: 'absolute', right: '12px', top: '50%',
+                transform: 'translateY(-50%)', pointerEvents: 'none',
+              }} />
+            </div>
+
+            {targetInfo && (
+              <div style={{ marginTop: '10px' }}>
+                <SellerRow
+                  name={targetInfo.name}
+                  meta={`На руках: ${targetInfo.onHand} карт → будет ${targetInfo.onHand} + ${effectiveCount} = ${targetInfo.onHand + effectiveCount}`}
+                />
+              </div>
+            )}
+          </div>
+
+          <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+
+          {/* Card selection */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Количество карт для переназначения
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <button
+                  onClick={() => setCount(c => Math.max(1, c - 1))}
+                  disabled={specific || count <= 1}
+                  aria-label="Уменьшить"
+                  style={{
+                    width: '36px', height: '40px',
+                    border: `1px solid ${C.inputBorder}`, borderRight: 'none',
+                    borderRadius: '8px 0 0 8px',
+                    background: (specific || count <= 1) ? '#F9FAFB' : C.surface,
+                    fontFamily: F.inter, fontSize: '16px',
+                    color: (specific || count <= 1) ? C.textDisabled : C.text2,
+                    cursor: (specific || count <= 1) ? 'not-allowed' : 'pointer',
+                    opacity: specific ? 0.5 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'color 0.12s, background 0.12s',
+                  }}
+                >−</button>
+                <input
+                  type="number" value={count}
+                  onChange={e => {
+                    const v = parseInt(e.target.value) || 1;
+                    setCount(Math.min(TOTAL_ON_HAND, Math.max(1, v)));
+                  }}
+                  onFocus={() => setCountFocus(true)}
+                  onBlur={() => setCountFocus(false)}
+                  min={1} max={TOTAL_ON_HAND}
+                  disabled={specific}
+                  style={{
+                    width: '80px', height: '40px', padding: '0 10px',
+                    border: `1px solid ${countFocus ? C.blue : C.inputBorder}`,
+                    borderRadius: 0,
+                    background: specific ? '#F9FAFB' : C.surface,
+                    fontFamily: F.mono, fontSize: '14px',
+                    color: specific ? C.text4 : C.text1,
+                    textAlign: 'center', outline: 'none', boxSizing: 'border-box',
+                    cursor: specific ? 'not-allowed' : 'text',
+                    opacity: specific ? 0.6 : 1,
+                  }}
+                />
+                <button
+                  onClick={() => setCount(c => Math.min(TOTAL_ON_HAND, c + 1))}
+                  disabled={specific || count >= TOTAL_ON_HAND}
+                  aria-label="Увеличить"
+                  style={{
+                    width: '36px', height: '40px',
+                    border: `1px solid ${C.inputBorder}`, borderLeft: 'none',
+                    borderRadius: '0 8px 8px 0',
+                    background: (specific || count >= TOTAL_ON_HAND) ? '#F9FAFB' : C.surface,
+                    fontFamily: F.inter, fontSize: '16px',
+                    color: (specific || count >= TOTAL_ON_HAND) ? C.textDisabled : C.text2,
+                    cursor: (specific || count >= TOTAL_ON_HAND) ? 'not-allowed' : 'pointer',
+                    opacity: specific ? 0.5 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'color 0.12s, background 0.12s',
+                  }}
+                >+</button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCount(TOTAL_ON_HAND)}
+                onMouseEnter={() => setMaxHov(true)}
+                onMouseLeave={() => setMaxHov(false)}
+                disabled={specific}
+                style={{
+                  border: 'none', background: 'none', padding: '4px 6px',
+                  borderRadius: '6px',
+                  fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
+                  color: specific ? C.text4 : maxHov ? C.blueHover : C.blue,
+                  cursor: specific ? 'not-allowed' : 'pointer',
+                  textDecoration: maxHov && !specific ? 'underline' : 'none',
+                  transition: 'color 0.12s',
+                }}
+                title={specific ? undefined : 'Установить максимум'}
+              >
+                из {TOTAL_ON_HAND} доступных
+              </button>
+            </div>
+
+            {/* Specific cards toggle */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: '12px', marginTop: '14px',
+            }}>
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                Выбрать конкретные карты
+              </span>
+              <Toggle on={specific} onChange={setSpecific} />
+            </div>
+
+            {specific && (
+              <div style={{ marginTop: '12px' }}>
+                <div style={{
+                  border: `1px solid ${C.border}`, borderRadius: '8px',
+                  maxHeight: '180px', overflowY: 'auto', background: C.surface,
+                }}>
+                  {UNSOLD_CARDS.map(c => {
+                    const checked = selectedCards.has(c.num);
+                    return (
+                      <label key={c.num} style={{
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '9px 12px',
+                        borderBottom: `1px solid ${C.border}`,
+                        cursor: 'pointer',
+                        background: checked ? C.blueLt : 'transparent',
+                        transition: 'background 0.1s',
+                      }}>
+                        <div style={{
+                          width: '16px', height: '16px', borderRadius: '4px',
+                          border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
+                          background: checked ? C.blue : C.surface,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          {checked && <Check size={10} color="#fff" strokeWidth={3} />}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleCard(c.num)}
+                          style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+                        />
+                        <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text1 }}>
+                          {c.num}
+                        </span>
+                        <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>
+                          — {c.type}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div style={{
+                  fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+                  color: C.blue, marginTop: '10px',
+                }}>
+                  Выбрано: <span style={{ fontFamily: F.mono }}>{selectedCards.size}</span> из <span style={{ fontFamily: F.mono }}>{TOTAL_ON_HAND}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Summary */}
+          {target && effectiveCount > 0 && (
+            <div style={{
+              background: '#F9FAFB',
+              borderTop: `1px solid ${C.border}`,
+              borderRight: `1px solid ${C.border}`,
+              borderBottom: `1px solid ${C.border}`,
+              borderLeft: `3px solid ${C.blue}`,
+              borderRadius: '8px', padding: '12px',
+            }}>
+              <div style={{
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 600,
+                color: C.text1, marginBottom: '4px',
+              }}>
+                Переназначить {effectiveCount} карт: Санжар М. → {targetInfo?.name.split(' ')[0]} {targetInfo?.name.split(' ')[1]?.[0]}.
+              </div>
+              <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>
+                Карты перейдут в статус «У продавца» у нового продавца
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={() => { if (canConfirm) onConfirm(); }}
+            disabled={!canConfirm}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: !canConfirm ? '#93C5FD' : confirmHov ? C.blueHover : C.blue,
+              opacity: canConfirm ? 1 : 0.85,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF',
+              cursor: canConfirm ? 'pointer' : 'not-allowed',
+              boxShadow: canConfirm && confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : canConfirm ? '0 1px 3px rgba(37,99,235,0.16)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            Переназначить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SellerRow({ name, meta }: { name: string; meta: string }) {
+  const inits = name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '12px',
+      padding: '10px 12px',
+      border: `1px solid ${C.border}`, borderRadius: '8px',
+      background: C.surface,
+    }}>
+      <div style={{
+        width: '34px', height: '34px', borderRadius: '50%',
+        background: C.blueLt, border: `1px solid ${C.blueTint}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: F.inter, fontSize: '12px', fontWeight: 600, color: C.blue,
+        flexShrink: 0,
+      }}>
+        {inits}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{
+          fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+          lineHeight: 1.3,
+        }}>
+          {name}
+        </div>
+        <div style={{
+          fontFamily: F.inter, fontSize: '12px', color: C.text3,
+          marginTop: '2px', lineHeight: 1.4,
+        }}>
+          {meta}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      onClick={() => onChange(!on)}
+      style={{
+        width: '40px', height: '22px',
+        border: 'none', borderRadius: '999px',
+        background: on ? C.blue : '#D1D5DB',
+        position: 'relative', cursor: 'pointer',
+        transition: 'background 0.15s',
+        flexShrink: 0,
+      }}
+    >
+      <div style={{
+        position: 'absolute',
+        top: '2px', left: on ? '20px' : '2px',
+        width: '18px', height: '18px', borderRadius: '50%',
+        background: '#fff',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+        transition: 'left 0.15s',
+      }} />
+    </button>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EDIT SELLER MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function EditSellerModal({ open, onClose, onSave }: {
+  open: boolean; onClose: () => void; onSave: () => void;
+}) {
+  const [name, setName] = useState('Санжар Мирзаев');
+  const [phone, setPhone] = useState('+998 91 111 22 33');
+  const [status, setStatus] = useState<'Активен' | 'Неактивен'>('Активен');
+  const [nameFocus, setNameFocus] = useState(false);
+  const [phoneFocus, setPhoneFocus] = useState(false);
+  const [statusFocus, setStatusFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [saveHov, setSaveHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const inputStyle = (focused: boolean): React.CSSProperties => ({
+    width: '100%', height: '40px', padding: '0 12px',
+    border: `1px solid ${focused ? C.blue : C.inputBorder}`,
+    borderRadius: '8px', background: C.surface,
+    fontFamily: F.inter, fontSize: '14px', color: C.text1,
+    outline: 'none', boxSizing: 'border-box',
+    boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+    transition: 'border-color 0.12s, box-shadow 0.12s',
+  });
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+    color: C.text2, marginBottom: '8px',
+  };
+
+  const helperStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: '6px',
+    marginTop: '6px',
+    fontFamily: F.inter, fontSize: '11px', color: C.text4,
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '520px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: C.text1,
+          }}>
+            Редактировать продавца
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          {/* ФИО */}
+          <div>
+            <label style={labelStyle}>
+              ФИО<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onFocus={() => setNameFocus(true)}
+              onBlur={() => setNameFocus(false)}
+              style={inputStyle(nameFocus)}
+            />
+          </div>
+
+          {/* Телефон */}
+          <div>
+            <label style={labelStyle}>
+              Телефон<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <input
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              onFocus={() => setPhoneFocus(true)}
+              onBlur={() => setPhoneFocus(false)}
+              style={{ ...inputStyle(phoneFocus), fontFamily: F.mono }}
+            />
+            <div style={helperStyle}>
+              <Info size={11} strokeWidth={1.75} />
+              Изменение телефона потребует повторной верификации
+            </div>
+          </div>
+
+          {/* UCOIN кошелёк (disabled) */}
+          <div>
+            <label style={labelStyle}>UCOIN кошелёк</label>
+            <div style={{
+              position: 'relative', width: '100%', height: '40px',
+              border: `1px solid ${C.inputBorder}`, borderRadius: '8px',
+              background: '#F9FAFB',
+              display: 'flex', alignItems: 'center',
+              padding: '0 36px 0 12px',
+              fontFamily: F.mono, fontSize: '14px', color: C.text3,
+              cursor: 'not-allowed',
+            }}>
+              UCN-0091
+              <Lock size={14} color={C.text4} strokeWidth={1.75} style={{
+                position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+              }} />
+            </div>
+            <div style={helperStyle}>
+              <Info size={11} strokeWidth={1.75} />
+              Кошелёк создаётся автоматически
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+
+          {/* Статус */}
+          <div>
+            <div style={{
+              fontFamily: F.dm, fontSize: '14px', fontWeight: 700,
+              color: C.text1, marginBottom: '10px',
+            }}>
+              Статус
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+                Текущий:
+              </span>
+              <BadgeSuccess>Активен</BadgeSuccess>
+              <div style={{ width: '1px', height: '18px', background: C.border }} />
+              <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+                Изменить на:
+              </span>
+              <div style={{ position: 'relative', minWidth: '180px' }}>
+                <select
+                  value={status}
+                  onChange={e => setStatus(e.target.value as 'Активен' | 'Неактивен')}
+                  onFocus={() => setStatusFocus(true)}
+                  onBlur={() => setStatusFocus(false)}
+                  style={{
+                    width: '100%', height: '38px', padding: '0 36px 0 12px',
+                    border: `1px solid ${statusFocus ? C.blue : C.inputBorder}`,
+                    borderRadius: '8px', background: C.surface,
+                    fontFamily: F.inter, fontSize: '13px', color: C.text1,
+                    outline: 'none', appearance: 'none', cursor: 'pointer',
+                    boxShadow: statusFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                    transition: 'border-color 0.12s, box-shadow 0.12s',
+                  }}
+                >
+                  <option>Активен</option>
+                  <option>Неактивен</option>
+                </select>
+                <ChevronDown size={14} color={C.text3} style={{
+                  position: 'absolute', right: '12px', top: '50%',
+                  transform: 'translateY(-50%)', pointerEvents: 'none',
+                }} />
+              </div>
+            </div>
+
+            {/* Deactivation warning */}
+            {status === 'Неактивен' && (
+              <div style={{
+                display: 'flex', gap: '8px',
+                marginTop: '12px', padding: '12px 14px',
+                background: C.warningBg, border: `1px solid #FDE68A`,
+                borderRadius: '8px',
+              }}>
+                <AlertTriangle size={15} color={C.warning} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '1px' }} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
+                    color: '#B45309', marginBottom: '6px',
+                  }}>
+                    При деактивации:
+                  </div>
+                  <ul style={{
+                    margin: 0, padding: 0, listStyle: 'none',
+                    display: 'flex', flexDirection: 'column', gap: '4px',
+                  }}>
+                    {[
+                      '38 нераспроданных карт будут возвращены на склад организации',
+                      'Новые назначения станут невозможны',
+                      'Текущий KPI прогресс по проданным картам сохранится',
+                    ].map((txt, i) => (
+                      <li key={i} style={{
+                        display: 'flex', gap: '6px',
+                        fontFamily: F.inter, fontSize: '12px', color: '#B45309', lineHeight: 1.5,
+                      }}>
+                        <span style={{ flexShrink: 0 }}>•</span>
+                        <span>{txt}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setSaveHov(true)}
+            onMouseLeave={() => setSaveHov(false)}
+            onClick={onSave}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: saveHov ? C.blueHover : C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF', cursor: 'pointer',
+              boxShadow: saveHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+              transition: 'all 0.15s',
+            }}
+          >
+            Сохранить
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SellerDetailPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('summary');
   const [closeHov, setCloseHov] = useState(false);
+  const [editHov, setEditHov] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deactivateHov, setDeactivateHov] = useState(false);
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
@@ -622,21 +1721,59 @@ export default function SellerDetailPage() {
                   </span>
                 </div>
               </div>
-              <button
-                onMouseEnter={() => setCloseHov(true)}
-                onMouseLeave={() => setCloseHov(false)}
-                onClick={() => window.history.back()}
-                style={{
-                  width: '36px', height: '36px',
-                  border: `1px solid ${closeHov ? '#D1D5DB' : C.border}`,
-                  borderRadius: '8px',
-                  background: closeHov ? '#F9FAFB' : C.surface,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
-                }}
-              >
-                <X size={16} color={C.text3} strokeWidth={1.75} />
-              </button>
+              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                <button
+                  onMouseEnter={() => setDeactivateHov(true)}
+                  onMouseLeave={() => setDeactivateHov(false)}
+                  onClick={() => setDeactivateOpen(true)}
+                  style={{
+                    height: '36px', padding: '0 14px',
+                    border: `1px solid ${deactivateHov ? C.error : C.border}`,
+                    borderRadius: '8px',
+                    background: deactivateHov ? C.errorBg : C.surface,
+                    fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+                    color: deactivateHov ? '#DC2626' : C.text3,
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    cursor: 'pointer', transition: 'all 0.12s',
+                  }}
+                >
+                  <AlertTriangle size={14} strokeWidth={1.75} />
+                  Деактивировать
+                </button>
+                <button
+                  onMouseEnter={() => setEditHov(true)}
+                  onMouseLeave={() => setEditHov(false)}
+                  onClick={() => setEditOpen(true)}
+                  style={{
+                    height: '36px', padding: '0 14px',
+                    border: `1px solid ${editHov ? C.blue : C.border}`,
+                    borderRadius: '8px',
+                    background: editHov ? C.blueLt : C.surface,
+                    fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+                    color: editHov ? C.blue : C.text1,
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    cursor: 'pointer', transition: 'all 0.12s',
+                  }}
+                >
+                  <Pencil size={14} strokeWidth={1.75} />
+                  Редактировать
+                </button>
+                <button
+                  onMouseEnter={() => setCloseHov(true)}
+                  onMouseLeave={() => setCloseHov(false)}
+                  onClick={() => window.history.back()}
+                  style={{
+                    width: '36px', height: '36px',
+                    border: `1px solid ${closeHov ? '#D1D5DB' : C.border}`,
+                    borderRadius: '8px',
+                    background: closeHov ? '#F9FAFB' : C.surface,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
+                  }}
+                >
+                  <X size={16} color={C.text3} strokeWidth={1.75} />
+                </button>
+              </div>
             </div>
 
             {/* Tabs */}
@@ -679,6 +1816,18 @@ export default function SellerDetailPage() {
           <div style={{ height: '48px' }} />
         </div>
       </div>
+
+      <EditSellerModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onSave={() => setEditOpen(false)}
+      />
+
+      <DeactivateSellerModal
+        open={deactivateOpen}
+        onClose={() => setDeactivateOpen(false)}
+        onConfirm={() => setDeactivateOpen(false)}
+      />
     </div>
   );
 }

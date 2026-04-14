@@ -6,6 +6,7 @@ import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
+import { usePopoverPosition } from '../components/usePopoverPosition';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -162,18 +163,9 @@ function ProgressCell({ value }: { value: number }) {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 function ActionDropdown({ sellerId }: { sellerId: number }) {
-  const [open, setOpen] = useState(false);
+  const pop = usePopoverPosition();
   const [hovered, setHovered] = useState<string | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
 
   const actions = [
     { id: 'details', label: 'Подробнее' },
@@ -183,15 +175,16 @@ function ActionDropdown({ sellerId }: { sellerId: number }) {
   ];
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={pop.rootRef} style={{ position: 'relative' }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={pop.triggerRef as React.RefObject<HTMLButtonElement>}
+        onClick={pop.toggle}
         style={{
           width: '28px',
           height: '28px',
-          border: `1px solid ${open ? C.blue : C.border}`,
+          border: `1px solid ${pop.open ? C.blue : C.border}`,
           borderRadius: '6px',
-          background: open ? C.blueLt : C.surface,
+          background: pop.open ? C.blueLt : C.surface,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -199,20 +192,17 @@ function ActionDropdown({ sellerId }: { sellerId: number }) {
           transition: 'all 0.12s',
         }}
       >
-        <MoreVertical size={14} color={open ? C.blue : C.text3} strokeWidth={1.75} />
+        <MoreVertical size={14} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
       </button>
 
-      {open && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 4px)',
-          right: 0,
+      {pop.open && (
+        <div ref={pop.menuRef} style={{
+          ...pop.menuStyle,
           background: C.surface,
           border: `1px solid ${C.border}`,
           borderRadius: '10px',
           padding: '6px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.09)',
-          zIndex: 50,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           minWidth: '200px',
         }}>
           {actions.map((action, idx) => (
@@ -223,7 +213,7 @@ function ActionDropdown({ sellerId }: { sellerId: number }) {
                 onMouseLeave={() => setHovered(null)}
                 onClick={() => {
                   if (action.id === 'details') navigate(`/sellers/${sellerId}`);
-                  setOpen(false);
+                  pop.close();
                 }}
                 style={{
                   width: '100%',
