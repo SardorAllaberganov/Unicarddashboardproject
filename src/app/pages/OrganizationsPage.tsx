@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  Search, ChevronDown, ChevronUp, ChevronRight, MoreVertical,
+  Search, ChevronDown, ChevronUp, ChevronRight,
   Plus, Building2,
-  FileText, Pencil, PowerOff,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
@@ -60,86 +59,6 @@ function StatusBadge({ status }: { status: StatusKey }) {
       <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.dot, flexShrink: 0 }} />
       {status}
     </span>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ACTION DOTS DROPDOWN
-═══════════════════════════════════════════════════════════════════════════ */
-
-interface ActionMenuProps { rowId: number; open: boolean; onOpen: () => void; onClose: () => void; status: StatusKey; }
-
-function ActionMenuItem({ icon: Icon, label, hoverBg, hoverColor, baseColor, onClick }: {
-  icon: React.ElementType; label: string; hoverBg: string; hoverColor: string; baseColor: string; onClick: () => void;
-}) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      onClick={onClick}
-      style={{
-        width: '100%', textAlign: 'left',
-        display: 'flex', alignItems: 'center', gap: '9px',
-        padding: '8px 10px', borderRadius: '7px',
-        border: 'none', background: hov ? hoverBg : 'none',
-        cursor: 'pointer',
-        fontFamily: F.inter, fontSize: '13px',
-        color: hov ? hoverColor : baseColor,
-        transition: 'all 0.1s',
-      }}
-    >
-      <Icon size={14} strokeWidth={1.75} />
-      {label}
-    </button>
-  );
-}
-
-function ActionMenu({ rowId, open, onOpen, onClose, status }: ActionMenuProps) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [open, onClose]);
-
-  return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        onClick={open ? onClose : onOpen}
-        style={{
-          width: '32px', height: '32px',
-          border: `1px solid ${open ? C.blue : 'transparent'}`,
-          borderRadius: '7px',
-          background: open ? C.blueLt : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', transition: 'all 0.12s',
-        }}
-        onMouseEnter={e => { if (!open) { (e.currentTarget as HTMLButtonElement).style.background = '#F3F4F6'; (e.currentTarget as HTMLButtonElement).style.borderColor = C.border; }}}
-        onMouseLeave={e => { if (!open) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'transparent'; }}}
-      >
-        <MoreVertical size={16} color={open ? C.blue : C.text4} strokeWidth={1.75} />
-      </button>
-
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', right: 0,
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '10px', padding: '6px',
-          boxShadow: '0 8px 20px rgba(0,0,0,0.09)',
-          zIndex: 50, minWidth: '172px',
-        }}>
-          <ActionMenuItem icon={FileText} label="Подробнее"     baseColor={C.text2} hoverBg="#F9FAFB" hoverColor={C.text1}  onClick={onClose} />
-          <ActionMenuItem icon={Pencil}   label="Редактировать" baseColor={C.text2} hoverBg="#F9FAFB" hoverColor={C.text1}  onClick={onClose} />
-          <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
-          <ActionMenuItem icon={PowerOff} label="Деактивировать" baseColor={C.text3} hoverBg="#FEF2F2" hoverColor="#DC2626" onClick={onClose} />
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -204,7 +123,6 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
   const [statusFilter, setStatus] = useState('');
   const [sortFilter, setSortFilter] = useState('');
   const [hovRow, setHovRow]     = useState<number | null>(null);
-  const [openMenu, setOpenMenu] = useState<number | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
 
   function toggleSort(key: string) {
@@ -238,7 +156,6 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
     { key: 'kpiDone',  label: 'KPI выполнено',     sortable: true,  align: 'right' },
     { key: 'rewarded', label: 'Начислено',         sortable: false, align: 'right' },
     { key: 'status',   label: 'Статус',            sortable: false  },
-    { key: 'actions',  label: '',                  sortable: false  },
   ];
 
   return (
@@ -457,17 +374,6 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
                       <StatusBadge status={row.status} />
                     </td>
 
-                    {/* Действия */}
-                    <td style={{ padding: '14px 16px 14px 8px', width: '52px' }}
-                        onClick={e => e.stopPropagation()}>
-                      <ActionMenu
-                        rowId={row.id}
-                        open={openMenu === row.id}
-                        onOpen={() => setOpenMenu(row.id)}
-                        onClose={() => setOpenMenu(null)}
-                        status={row.status}
-                      />
-                    </td>
                   </tr>
                 );
               })}
@@ -544,7 +450,7 @@ export default function OrganizationsPage() {
       `}</style>
 
       <div className="org-sidebar-wrap">
-        <BankAdminSidebar
+        <Sidebar role="bank"
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(c => !c)}
           darkMode={darkMode}
@@ -600,10 +506,12 @@ export default function OrganizationsPage() {
 
 function PrimaryButton() {
   const [hov, setHov] = useState(false);
+  const navigate = useNavigate();
   return (
     <button
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
+      onClick={() => navigate('/organizations/new')}
       style={{
         height: '40px', padding: '0 18px',
         background: hov ? C.blueHover : C.blue,

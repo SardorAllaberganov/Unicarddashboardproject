@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import {
   X, CreditCard, ShoppingBag, CheckCircle2, Wallet,
   Check, Minus, Search, ChevronDown, ChevronRight, Plus,
+  Pencil, AlertTriangle,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
 import { useNavigate } from 'react-router';
@@ -560,6 +561,161 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   DEACTIVATE CONFIRMATION MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [confirmInput, setConfirmInput] = useState('');
+  const [cancelHov, setCancelHov] = useState(false);
+  const [deactivateHov, setDeactivateHov] = useState(false);
+
+  if (!open) return null;
+
+  const canDeactivate = confirmInput === 'Mysafar OOO';
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0, 0, 0, 0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 100,
+    }}>
+      <div style={{
+        background: C.surface, border: `1px solid ${C.border}`,
+        borderRadius: '16px', width: '480px', maxWidth: '90vw',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+      }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '20px 24px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <AlertTriangle size={24} color={C.warning} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
+              Деактивировать организацию
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: '32px', height: '32px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: C.surface,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '24px' }}>
+          <p style={{
+            fontFamily: F.inter, fontSize: '14px', color: C.text2,
+            margin: '0 0 16px',
+          }}>
+            Вы уверены, что хотите деактивировать организацию?
+          </p>
+
+          {/* Warning card */}
+          <div style={{
+            background: C.surface, border: `1px solid ${C.border}`,
+            borderLeft: `3px solid ${C.warning}`,
+            borderRadius: '8px', padding: '16px', marginBottom: '20px',
+          }}>
+            <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1, marginBottom: '8px' }}>
+              Mysafar OOO
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginBottom: '8px' }}>
+              При деактивации произойдёт следующее:
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {[
+                '6 продавцов будут заблокированы',
+                '140 нераспроданных карт вернутся на склад банка',
+                'Новые продажи станут невозможны',
+                'Текущий KPI прогресс будет заморожен',
+              ].map(text => (
+                <div key={text} style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+                  • {text}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Confirmation input */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Введите название организации для подтверждения
+            </label>
+            <input
+              value={confirmInput}
+              onChange={e => setConfirmInput(e.target.value)}
+              placeholder="Mysafar OOO"
+              style={{
+                width: '100%', height: '40px', padding: '0 12px',
+                border: `1px solid ${C.inputBorder}`,
+                borderRadius: '8px', background: C.surface,
+                fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4, marginTop: '6px' }}>
+              Введите точное название
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+          gap: '12px', padding: '16px 24px', borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '40px', padding: '0 20px',
+              border: `1px solid ${cancelHov ? C.blue : C.border}`,
+              borderRadius: '8px',
+              background: cancelHov ? C.blueLt : C.surface,
+              fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
+              color: cancelHov ? C.blue : C.text2,
+              cursor: 'pointer', transition: 'all 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setDeactivateHov(true)}
+            onMouseLeave={() => setDeactivateHov(false)}
+            disabled={!canDeactivate}
+            onClick={() => { console.log('Deactivating Mysafar OOO'); onClose(); }}
+            style={{
+              height: '40px', padding: '0 20px',
+              border: 'none', borderRadius: '8px',
+              background: canDeactivate ? (deactivateHov ? '#DC2626' : C.error) : C.border,
+              fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
+              color: '#FFFFFF',
+              cursor: canDeactivate ? 'pointer' : 'not-allowed',
+              transition: 'all 0.12s',
+            }}
+          >
+            Деактивировать
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -569,10 +725,13 @@ export default function OrgDetailPage() {
   const [darkMode, setDarkMode] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('summary');
   const [closeHov, setCloseHov] = useState(false);
+  const [editHov, setEditHov] = useState(false);
+  const [deactivateHov, setDeactivateHov] = useState(false);
+  const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <BankAdminSidebar
+      <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}
@@ -628,21 +787,62 @@ export default function OrgDetailPage() {
                   </div>
                 </div>
               </div>
-              <button
-                onMouseEnter={() => setCloseHov(true)}
-                onMouseLeave={() => setCloseHov(false)}
-                onClick={() => navigate('/organizations')}
-                style={{
-                  width: '36px', height: '36px',
-                  border: `1px solid ${closeHov ? '#D1D5DB' : C.border}`,
-                  borderRadius: '8px',
-                  background: closeHov ? '#F9FAFB' : C.surface,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
-                }}
-              >
-                <X size={16} color={C.text3} strokeWidth={1.75} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                {/* Deactivate */}
+                <button
+                  onMouseEnter={() => setDeactivateHov(true)}
+                  onMouseLeave={() => setDeactivateHov(false)}
+                  onClick={() => setDeactivateModalOpen(true)}
+                  style={{
+                    height: '36px', padding: '0 14px',
+                    border: `1px solid ${deactivateHov ? C.error : C.border}`,
+                    borderRadius: '8px',
+                    background: deactivateHov ? C.errorBg : C.surface,
+                    fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+                    color: deactivateHov ? '#DC2626' : C.text3,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                    transition: 'all 0.12s',
+                  }}
+                >
+                  <AlertTriangle size={14} strokeWidth={1.75} />
+                  Деактивировать
+                </button>
+                {/* Edit */}
+                <button
+                  onMouseEnter={() => setEditHov(true)}
+                  onMouseLeave={() => setEditHov(false)}
+                  onClick={() => navigate('/organizations/1/edit')}
+                  style={{
+                    height: '36px', padding: '0 14px',
+                    border: `1px solid ${editHov ? C.blue : C.border}`,
+                    borderRadius: '8px',
+                    background: editHov ? C.blueLt : C.surface,
+                    fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+                    color: editHov ? C.blue : C.text2,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                    transition: 'all 0.12s',
+                  }}
+                >
+                  <Pencil size={14} strokeWidth={1.75} />
+                  Редактировать
+                </button>
+                {/* Close */}
+                <button
+                  onMouseEnter={() => setCloseHov(true)}
+                  onMouseLeave={() => setCloseHov(false)}
+                  onClick={() => navigate('/organizations')}
+                  style={{
+                    width: '36px', height: '36px',
+                    border: `1px solid ${closeHov ? '#D1D5DB' : C.border}`,
+                    borderRadius: '8px',
+                    background: closeHov ? '#F9FAFB' : C.surface,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', transition: 'all 0.12s',
+                  }}
+                >
+                  <X size={16} color={C.text3} strokeWidth={1.75} />
+                </button>
+              </div>
             </div>
 
             {/* Tabs */}
@@ -682,6 +882,8 @@ export default function OrgDetailPage() {
           <div style={{ height: '48px' }} />
         </div>
       </div>
+
+      <DeactivateModal open={deactivateModalOpen} onClose={() => setDeactivateModalOpen(false)} />
     </div>
   );
 }
