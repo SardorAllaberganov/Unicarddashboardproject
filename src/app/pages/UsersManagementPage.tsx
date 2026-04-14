@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { usePopoverPosition } from '../components/usePopoverPosition';
 import {
   ChevronRight, ChevronDown, Search, Plus, MoreVertical, X,
+  ShieldAlert, ShieldCheck, Check, KeyRound,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
@@ -288,36 +290,39 @@ function AvatarCell({ initials, name }: { initials: string; name: string }) {
    ACTION DOTS DROPDOWN
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ActionDropdown({ userId }: { userId: number }) {
-  const [open, setOpen] = useState(false);
+function ActionDropdown({ userId, status, onEditRole, onToggleBlock, onResetPassword }: {
+  userId: number;
+  status: UserStatus;
+  onEditRole: () => void;
+  onToggleBlock: () => void;
+  onResetPassword: () => void;
+}) {
+  const pop = usePopoverPosition();
   const [hovered, setHovered] = useState<string | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
-
+  const isBlocked = status === 'Заблокирован';
   const actions = [
     { id: 'details', label: 'Подробнее' },
     { id: 'edit-role', label: 'Редактировать роль' },
     { id: 'reset-pw', label: 'Сбросить пароль' },
-    { id: 'block', label: 'Заблокировать / Разблокировать', danger: true },
+    {
+      id: 'block',
+      label: isBlocked ? 'Разблокировать' : 'Заблокировать',
+      danger: !isBlocked,
+    },
   ];
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={pop.rootRef} style={{ position: 'relative' }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={pop.triggerRef as React.RefObject<HTMLButtonElement>}
+        onClick={pop.toggle}
         style={{
           width: '28px',
           height: '28px',
-          border: `1px solid ${open ? C.blue : C.border}`,
+          border: `1px solid ${pop.open ? C.blue : C.border}`,
           borderRadius: '6px',
-          background: open ? C.blueLt : C.surface,
+          background: pop.open ? C.blueLt : C.surface,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -325,20 +330,17 @@ function ActionDropdown({ userId }: { userId: number }) {
           transition: 'all 0.12s',
         }}
       >
-        <MoreVertical size={14} color={open ? C.blue : C.text3} strokeWidth={1.75} />
+        <MoreVertical size={14} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
       </button>
 
-      {open && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 4px)',
-          right: 0,
+      {pop.open && (
+        <div ref={pop.menuRef} style={{
+          ...pop.menuStyle,
           background: C.surface,
           border: `1px solid ${C.border}`,
           borderRadius: '10px',
           padding: '6px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.09)',
-          zIndex: 50,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
           minWidth: '220px',
         }}>
           {actions.map((action, idx) => (
@@ -348,8 +350,11 @@ function ActionDropdown({ userId }: { userId: number }) {
                 onMouseEnter={() => setHovered(action.id)}
                 onMouseLeave={() => setHovered(null)}
                 onClick={() => {
-                  console.log('Action:', action.id, 'User:', userId);
-                  setOpen(false);
+                  if (action.id === 'edit-role') onEditRole();
+                  else if (action.id === 'block') onToggleBlock();
+                  else if (action.id === 'reset-pw') onResetPassword();
+                  else console.log('Action:', action.id, 'User:', userId);
+                  pop.close();
                 }}
                 style={{
                   width: '100%',
@@ -382,7 +387,12 @@ function ActionDropdown({ userId }: { userId: number }) {
    DATA TABLE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DataTable({ users }: { users: UserRow[] }) {
+function DataTable({ users, onEditRole, onToggleBlock, onResetPassword }: {
+  users: UserRow[];
+  onEditRole: (user: UserRow) => void;
+  onToggleBlock: (user: UserRow) => void;
+  onResetPassword: (user: UserRow) => void;
+}) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
   return (
@@ -460,7 +470,13 @@ function DataTable({ users }: { users: UserRow[] }) {
                 <StatusBadge status={user.status} />
               </td>
               <td style={dataCellStyle}>
-                <ActionDropdown userId={user.id} />
+                <ActionDropdown
+                  userId={user.id}
+                  status={user.status}
+                  onEditRole={() => onEditRole(user)}
+                  onToggleBlock={() => onToggleBlock(user)}
+                  onResetPassword={() => onResetPassword(user)}
+                />
               </td>
             </tr>
           ))}
@@ -863,6 +879,971 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   EDIT ROLE MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+const ROLE_DESCRIPTIONS: Record<string, { title: string; lines: string[] }> = {
+  'Банк-администратор': {
+    title: 'Банк-администратор',
+    lines: [
+      'Полный доступ ко всем данным банка: организации, партии карт, KPI, финансы',
+      'Может управлять пользователями и настройками системы',
+    ],
+  },
+  'Менеджер организации': {
+    title: 'Менеджер организации',
+    lines: [
+      'Полный доступ к данным своей организации: продавцы, карты, финансы, настройки',
+      'Не может видеть данные других организаций',
+    ],
+  },
+  'Оператор': {
+    title: 'Оператор',
+    lines: [
+      'Оперативные действия в назначенной организации: фиксация продаж, назначение карт',
+      'Ограниченный доступ к финансовым отчётам',
+    ],
+  },
+  'Наблюдатель': {
+    title: 'Наблюдатель',
+    lines: [
+      'Только чтение: просмотр карт, продавцов, отчётов своей организации',
+      'Не может редактировать или создавать данные',
+    ],
+  },
+};
+
+const ORG_OPTIONS = ['Mysafar OOO', 'Unired Marketing', 'Express Finance', 'Digital Pay', 'SmartCard Group', 'CardPlus'];
+
+const ROLE_SHORT_TO_LONG: Record<UserRole, string> = {
+  'Банк-админ':    'Банк-администратор',
+  'Менеджер орг.': 'Менеджер организации',
+  'Оператор':      'Оператор',
+  'Наблюдатель':   'Наблюдатель',
+};
+
+const NEEDS_ORG = new Set(['Менеджер организации', 'Оператор', 'Наблюдатель']);
+
+function EditRoleModal({ open, user, onClose, onSave }: {
+  open: boolean;
+  user: UserRow | null;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  const initialRole = user ? ROLE_SHORT_TO_LONG[user.role] : '';
+  const initialOrg = user?.organization ?? '';
+
+  const [role, setRole] = useState(initialRole);
+  const [org, setOrg] = useState(initialOrg);
+  const [roleFocus, setRoleFocus] = useState(false);
+  const [orgFocus, setOrgFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [saveHov, setSaveHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (open && user) {
+      setRole(ROLE_SHORT_TO_LONG[user.role]);
+      setOrg(user.organization);
+    }
+  }, [open, user]);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open || !user) return null;
+
+  const needsOrg = NEEDS_ORG.has(role);
+  const desc = ROLE_DESCRIPTIONS[role];
+  const orgChanged = needsOrg && org !== initialOrg && initialOrg !== '—';
+  const canSave = !!role && (!needsOrg || !!org);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '520px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: C.text1,
+          }}>
+            Изменить роль пользователя
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          {/* User strip */}
+          <div style={{
+            background: '#F9FAFB', borderRadius: '8px', padding: '12px',
+            display: 'flex', alignItems: 'center', gap: '12px',
+            flexWrap: 'wrap',
+          }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '50%',
+              background: C.blueLt, border: `1px solid ${C.blueTint}`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.blue,
+              flexShrink: 0,
+            }}>
+              {user.initials}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+              }}>
+                {user.name}
+              </div>
+              <div style={{
+                fontFamily: F.mono, fontSize: '12px', color: C.text3,
+                marginTop: '2px',
+              }}>
+                {user.phone}
+              </div>
+            </div>
+            <div style={{ marginLeft: 'auto' }}>
+              <RoleBadge role={user.role} />
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: '1px', background: C.border }} />
+
+          {/* Role select */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Новая роль<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={role}
+                onChange={e => setRole(e.target.value)}
+                onFocus={() => setRoleFocus(true)}
+                onBlur={() => setRoleFocus(false)}
+                style={{
+                  width: '100%', height: '40px', padding: '0 36px 0 12px',
+                  border: `1px solid ${roleFocus ? C.blue : C.inputBorder}`,
+                  borderRadius: '8px', background: C.surface,
+                  fontFamily: F.inter, fontSize: '13px', color: C.text1,
+                  outline: 'none', appearance: 'none', cursor: 'pointer',
+                  boxShadow: roleFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  transition: 'border-color 0.12s, box-shadow 0.12s',
+                }}
+              >
+                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <ChevronDown size={14} color={C.text3} style={{
+                position: 'absolute', right: '12px', top: '50%',
+                transform: 'translateY(-50%)', pointerEvents: 'none',
+              }} />
+            </div>
+          </div>
+
+          {/* Role description */}
+          {desc && (
+            <div style={{
+              background: '#F9FAFB', border: `1px solid ${C.border}`,
+              borderRadius: '8px', padding: '12px',
+            }}>
+              <div style={{
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 600,
+                color: C.text1, marginBottom: '6px',
+              }}>
+                {desc.title}
+              </div>
+              <ul style={{
+                margin: 0, padding: 0, listStyle: 'none',
+                display: 'flex', flexDirection: 'column', gap: '4px',
+              }}>
+                {desc.lines.map((line, i) => (
+                  <li key={i} style={{
+                    display: 'flex', gap: '6px',
+                    fontFamily: F.inter, fontSize: '12px', color: C.text2, lineHeight: 1.5,
+                  }}>
+                    <span style={{ color: C.text4, flexShrink: 0 }}>•</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Conditional org field */}
+          {needsOrg && (
+            <div>
+              <label style={{
+                display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+                color: C.text2, marginBottom: '8px',
+              }}>
+                Организация<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={org}
+                  onChange={e => setOrg(e.target.value)}
+                  onFocus={() => setOrgFocus(true)}
+                  onBlur={() => setOrgFocus(false)}
+                  style={{
+                    width: '100%', height: '40px', padding: '0 36px 0 12px',
+                    border: `1px solid ${orgFocus ? C.blue : C.inputBorder}`,
+                    borderRadius: '8px', background: C.surface,
+                    fontFamily: F.inter, fontSize: '13px',
+                    color: org ? C.text1 : C.text4,
+                    outline: 'none', appearance: 'none', cursor: 'pointer',
+                    boxShadow: orgFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                    transition: 'border-color 0.12s, box-shadow 0.12s',
+                  }}
+                >
+                  <option value="">Выберите организацию</option>
+                  {ORG_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+                <ChevronDown size={14} color={C.text3} style={{
+                  position: 'absolute', right: '12px', top: '50%',
+                  transform: 'translateY(-50%)', pointerEvents: 'none',
+                }} />
+              </div>
+
+              {orgChanged && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '6px',
+                  marginTop: '8px',
+                  fontFamily: F.inter, fontSize: '12px',
+                  color: C.warning, lineHeight: 1.4,
+                }}>
+                  <span style={{ flexShrink: 0 }}>⚠</span>
+                  <span>Пользователь потеряет доступ к данным {initialOrg}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setSaveHov(true)}
+            onMouseLeave={() => setSaveHov(false)}
+            onClick={() => { if (canSave) onSave(); }}
+            disabled={!canSave}
+            aria-label="Сохранить роль"
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: !canSave ? '#93C5FD' : saveHov ? C.blueHover : C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF',
+              cursor: canSave ? 'pointer' : 'not-allowed',
+              opacity: canSave ? 1 : 0.85,
+              boxShadow: canSave && saveHov ? '0 2px 8px rgba(37,99,235,0.28)' : canSave ? '0 1px 3px rgba(37,99,235,0.16)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            Сохранить роль
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BLOCK / UNBLOCK USER MODALS
+═══════════════════════════════════════════════════════════════════════════ */
+
+const BLOCK_REASONS = [
+  'Нарушение политики',
+  'Запрос организации',
+  'Подозрительная активность',
+  'Другое',
+];
+
+function UserCardStrip({ user }: { user: UserRow }) {
+  const statusCfg: Record<UserStatus, { bg: string; color: string; dot: string; border?: string }> = {
+    'Активен':      { bg: C.successBg, color: '#15803D', dot: C.success },
+    'Заблокирован': { bg: '#F3F4F6',    color: C.text2,  dot: C.text4, border: C.border },
+    'Ожидает':      { bg: C.warningBg,  color: '#B45309', dot: C.warning },
+  };
+  const s = statusCfg[user.status];
+  return (
+    <div style={{
+      background: '#F9FAFB', borderRadius: '8px', padding: '12px',
+      display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+    }}>
+      <div style={{
+        width: '36px', height: '36px', borderRadius: '50%',
+        background: C.blueLt, border: `1px solid ${C.blueTint}`,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.blue,
+        flexShrink: 0,
+      }}>
+        {user.initials}
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{
+          fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+        }}>
+          {user.name}
+        </div>
+        <div style={{
+          fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '2px',
+        }}>
+          {user.role} — {user.organization}
+        </div>
+      </div>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: '5px',
+        fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
+        padding: '3px 10px', borderRadius: '10px',
+        background: s.bg, color: s.color,
+        border: s.border ? `1px solid ${s.border}` : '1px solid transparent',
+        whiteSpace: 'nowrap',
+      }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.dot }} />
+        {user.status}
+      </span>
+    </div>
+  );
+}
+
+function BlockUserModal({ open, user, onClose, onConfirm }: {
+  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void;
+}) {
+  const [reason, setReason] = useState('');
+  const [reasonFocus, setReasonFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setReason(''); return; }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open || !user) return null;
+
+  const canConfirm = !!reason;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <ShieldAlert size={22} color={C.error} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Заблокировать пользователя
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          <UserCardStrip user={user} />
+
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Причина блокировки
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                onFocus={() => setReasonFocus(true)}
+                onBlur={() => setReasonFocus(false)}
+                style={{
+                  width: '100%', height: '40px', padding: '0 36px 0 12px',
+                  border: `1px solid ${reasonFocus ? C.blue : C.inputBorder}`,
+                  borderRadius: '8px', background: C.surface,
+                  fontFamily: F.inter, fontSize: '13px',
+                  color: reason ? C.text1 : C.text4,
+                  outline: 'none', appearance: 'none', cursor: 'pointer',
+                  boxShadow: reasonFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  transition: 'border-color 0.12s, box-shadow 0.12s',
+                }}
+              >
+                <option value="">Выберите причину</option>
+                {BLOCK_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <ChevronDown size={14} color={C.text3} style={{
+                position: 'absolute', right: '12px', top: '50%',
+                transform: 'translateY(-50%)', pointerEvents: 'none',
+              }} />
+            </div>
+          </div>
+
+          <div style={{
+            fontFamily: F.inter, fontSize: '13px', color: C.text2, lineHeight: 1.5,
+          }}>
+            При блокировке пользователь немедленно потеряет доступ к платформе.
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={() => { if (canConfirm) onConfirm(); }}
+            disabled={!canConfirm}
+            aria-label="Заблокировать"
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: !canConfirm ? '#FCA5A5' : confirmHov ? '#DC2626' : C.error,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF',
+              cursor: canConfirm ? 'pointer' : 'not-allowed',
+              opacity: canConfirm ? 1 : 0.85,
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: canConfirm && confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : canConfirm ? '0 1px 3px rgba(239,68,68,0.20)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            <ShieldAlert size={14} strokeWidth={2} />
+            Заблокировать
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UnblockUserModal({ open, user, onClose, onConfirm }: {
+  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void;
+}) {
+  const [notify, setNotify] = useState(true);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setNotify(true); return; }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open || !user) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <ShieldCheck size={22} color={C.success} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Разблокировать пользователя
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '14px',
+        }}>
+          <UserCardStrip user={user} />
+
+          <div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '13px', color: C.text2, marginBottom: '3px',
+            }}>
+              Причина блокировки: <span style={{ color: C.text1, fontWeight: 500 }}>Запрос организации</span>
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>
+              Дата блокировки: <span style={{ fontFamily: F.mono }}>08.04.2026</span>
+            </div>
+          </div>
+
+          {/* Notify checkbox */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            cursor: 'pointer',
+          }}>
+            <div
+              onClick={() => setNotify(n => !n)}
+              style={{
+                width: '16px', height: '16px', borderRadius: '4px',
+                border: `1.5px solid ${notify ? C.blue : C.inputBorder}`,
+                background: notify ? C.blue : C.surface,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.12s',
+              }}
+            >
+              {notify && <Check size={11} color="#fff" strokeWidth={3} />}
+            </div>
+            <input
+              type="checkbox"
+              checked={notify}
+              onChange={e => setNotify(e.target.checked)}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+            />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+              Отправить уведомление о разблокировке по SMS
+            </span>
+          </label>
+        </div>
+
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={onConfirm}
+            aria-label="Разблокировать"
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: confirmHov ? C.blueHover : C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <ShieldCheck size={14} strokeWidth={2} />
+            Разблокировать
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESET PASSWORD MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function ResetPasswordModal({ open, user, onClose, onConfirm }: {
+  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void;
+}) {
+  const [method, setMethod] = useState<'sms' | 'email'>('sms');
+  const [forceChange, setForceChange] = useState(true);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setMethod('sms'); setForceChange(true); return; }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open || !user) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '440px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <KeyRound size={22} color={C.blue} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Сбросить пароль
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          {/* User info */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '12px',
+          }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '50%',
+              background: C.blueLt, border: `1px solid ${C.blueTint}`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.blue,
+              flexShrink: 0,
+            }}>
+              {user.initials}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+              }}>
+                {user.name}
+              </div>
+              <div style={{
+                fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '2px',
+              }}>
+                {user.role} — {user.organization}
+              </div>
+            </div>
+          </div>
+
+          <p style={{
+            margin: 0, fontFamily: F.inter, fontSize: '13px',
+            color: C.text2, lineHeight: 1.5,
+          }}>
+            Текущий пароль будет аннулирован. Новый временный пароль будет отправлен пользователю.
+          </p>
+
+          {/* Method radio group */}
+          <div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Способ отправки
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <MethodRadio
+                selected={method === 'sms'}
+                onClick={() => setMethod('sms')}
+                label={<>SMS на <span style={{ fontFamily: F.mono, color: C.text1 }}>{user.phone}</span></>}
+              />
+              <MethodRadio
+                selected={method === 'email'}
+                onClick={() => setMethod('email')}
+                label={<>Email на <span style={{ fontFamily: F.mono, color: C.text1 }}>{user.email}</span></>}
+              />
+            </div>
+          </div>
+
+          {/* Force change checkbox */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            cursor: 'pointer',
+          }}>
+            <div
+              onClick={() => setForceChange(f => !f)}
+              style={{
+                width: '16px', height: '16px', borderRadius: '4px',
+                border: `1.5px solid ${forceChange ? C.blue : C.inputBorder}`,
+                background: forceChange ? C.blue : C.surface,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.12s',
+              }}
+            >
+              {forceChange && <Check size={11} color="#fff" strokeWidth={3} />}
+            </div>
+            <input
+              type="checkbox"
+              checked={forceChange}
+              onChange={e => setForceChange(e.target.checked)}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+            />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+              Потребовать смену пароля при первом входе
+            </span>
+          </label>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={onConfirm}
+            aria-label="Сбросить пароль"
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: confirmHov ? C.blueHover : C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <KeyRound size={14} strokeWidth={2} />
+            Сбросить пароль
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MethodRadio({ selected, onClick, label }: {
+  selected: boolean; onClick: () => void; label: React.ReactNode;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '10px 12px',
+        border: `1px solid ${selected ? C.blue : hov ? C.inputBorder : C.border}`,
+        borderRadius: '8px',
+        background: selected ? C.blueLt : hov ? '#F9FAFB' : C.surface,
+        cursor: 'pointer', transition: 'all 0.12s',
+      }}
+    >
+      <div style={{
+        width: '18px', height: '18px', borderRadius: '50%',
+        border: `2px solid ${selected ? C.blue : '#D1D5DB'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+        transition: 'border-color 0.12s',
+      }}>
+        {selected && (
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.blue }} />
+        )}
+      </div>
+      <span style={{
+        fontFamily: F.inter, fontSize: '13px', color: C.text1,
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -879,6 +1860,15 @@ export default function UsersManagementPage() {
 
   const [addUserModalOpen, setAddUserModalOpen] = useState(false);
   const [addUserHover, setAddUserHover] = useState(false);
+  const [editRoleUser, setEditRoleUser] = useState<UserRow | null>(null);
+  const [blockUser, setBlockUser] = useState<UserRow | null>(null);
+  const [unblockUser, setUnblockUser] = useState<UserRow | null>(null);
+  const [resetPwUser, setResetPwUser] = useState<UserRow | null>(null);
+
+  const handleToggleBlock = (user: UserRow) => {
+    if (user.status === 'Заблокирован') setUnblockUser(user);
+    else setBlockUser(user);
+  };
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
@@ -1054,7 +2044,12 @@ export default function UsersManagementPage() {
           </div>
 
           {/* Data Table */}
-          <DataTable users={USERS} />
+          <DataTable
+            users={USERS}
+            onEditRole={setEditRoleUser}
+            onToggleBlock={handleToggleBlock}
+            onResetPassword={setResetPwUser}
+          />
 
           {/* Pagination */}
           <div style={{
@@ -1073,6 +2068,38 @@ export default function UsersManagementPage() {
 
       {/* Add User Modal */}
       <AddUserModal open={addUserModalOpen} onClose={() => setAddUserModalOpen(false)} />
+
+      {/* Edit Role Modal */}
+      <EditRoleModal
+        open={!!editRoleUser}
+        user={editRoleUser}
+        onClose={() => setEditRoleUser(null)}
+        onSave={() => setEditRoleUser(null)}
+      />
+
+      {/* Block User Modal */}
+      <BlockUserModal
+        open={!!blockUser}
+        user={blockUser}
+        onClose={() => setBlockUser(null)}
+        onConfirm={() => setBlockUser(null)}
+      />
+
+      {/* Unblock User Modal */}
+      <UnblockUserModal
+        open={!!unblockUser}
+        user={unblockUser}
+        onClose={() => setUnblockUser(null)}
+        onConfirm={() => setUnblockUser(null)}
+      />
+
+      {/* Reset Password Modal */}
+      <ResetPasswordModal
+        open={!!resetPwUser}
+        user={resetPwUser}
+        onClose={() => setResetPwUser(null)}
+        onConfirm={() => setResetPwUser(null)}
+      />
     </div>
   );
 }
