@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { usePopoverPosition } from '../components/usePopoverPosition';
 import {
   Search, ChevronDown, ChevronRight, Plus, MoreVertical, Eye, Settings2, Upload, Archive,
 } from 'lucide-react';
@@ -234,49 +235,41 @@ function ActionMenuItem({ icon: Icon, label, danger, onClick }: {
   );
 }
 
-function BatchActionMenu({ open, onOpen, onClose }: { open: boolean; onOpen: () => void; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [open, onClose]);
+function BatchActionMenu() {
+  const pop = usePopoverPosition();
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={pop.rootRef} style={{ position: 'relative', display: 'inline-block' }}>
       <button
-        onClick={open ? onClose : onOpen}
+        ref={pop.triggerRef as React.RefObject<HTMLButtonElement>}
+        onClick={e => { e.stopPropagation(); pop.toggle(); }}
         style={{
           width: '32px', height: '32px',
-          border: `1px solid ${open ? C.blue : C.border}`,
+          border: `1px solid ${pop.open ? C.blue : C.border}`,
           borderRadius: '7px',
-          background: open ? C.blueLt : 'transparent',
+          background: pop.open ? C.blueLt : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', transition: 'all 0.12s',
         }}
-        onMouseEnter={e => { if (!open) { (e.currentTarget.style.background = '#F3F4F6'); } }}
-        onMouseLeave={e => { if (!open) { (e.currentTarget.style.background = 'transparent'); } }}
+        onMouseEnter={e => { if (!pop.open) { (e.currentTarget.style.background = '#F3F4F6'); } }}
+        onMouseLeave={e => { if (!pop.open) { (e.currentTarget.style.background = 'transparent'); } }}
       >
-        <MoreVertical size={15} color={open ? C.blue : C.text3} strokeWidth={1.75} />
+        <MoreVertical size={15} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
       </button>
 
-      {open && (
-        <div style={{
-          position: 'absolute', bottom: 'calc(100% + 4px)', right: 0,
+      {pop.open && (
+        <div ref={pop.menuRef} style={{
+          ...pop.menuStyle,
           background: C.surface, border: `1px solid ${C.border}`,
           borderRadius: '10px', padding: '6px',
           boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
-          zIndex: 50, minWidth: '180px',
+          minWidth: '180px',
         }}>
-          <ActionMenuItem icon={Eye}       label="Карты"          onClick={onClose} />
-          <ActionMenuItem icon={Settings2} label="KPI настройки"  onClick={onClose} />
-          <ActionMenuItem icon={Upload}    label="Импорт"         onClick={onClose} />
+          <ActionMenuItem icon={Eye}       label="Карты"          onClick={pop.close} />
+          <ActionMenuItem icon={Settings2} label="KPI настройки"  onClick={pop.close} />
+          <ActionMenuItem icon={Upload}    label="Импорт"         onClick={pop.close} />
           <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
-          <ActionMenuItem icon={Archive}   label="Архивировать"   danger onClick={onClose} />
+          <ActionMenuItem icon={Archive}   label="Архивировать"   danger onClick={pop.close} />
         </div>
       )}
     </div>
@@ -296,14 +289,15 @@ function CardDivider() {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 function BatchCardItem({ batch }: { batch: BatchCard }) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [ghostHov, setGhostHov] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => navigate(`/card-batches/${batch.id}`)}
       style={{
         background: C.surface,
         border: `1px solid ${hovered ? '#D1D5DB' : C.border}`,
@@ -311,6 +305,7 @@ function BatchCardItem({ batch }: { batch: BatchCard }) {
         padding: '20px',
         display: 'flex',
         flexDirection: 'column',
+        cursor: 'pointer',
         transition: 'border-color 0.15s, box-shadow 0.15s',
         boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.07)' : '0 1px 3px rgba(0,0,0,0.04)',
       }}
@@ -369,6 +364,7 @@ function BatchCardItem({ batch }: { batch: BatchCard }) {
         <button
           onMouseEnter={() => setGhostHov(true)}
           onMouseLeave={() => setGhostHov(false)}
+          onClick={e => { e.stopPropagation(); navigate(`/card-batches/${batch.id}`); }}
           style={{
             height: '32px', padding: '0 14px',
             border: `1px solid ${ghostHov ? C.blue : C.border}`,
@@ -385,7 +381,9 @@ function BatchCardItem({ batch }: { batch: BatchCard }) {
         </button>
 
         {/* Action dots */}
-        <BatchActionMenu open={menuOpen} onOpen={() => setMenuOpen(true)} onClose={() => setMenuOpen(false)} />
+        <div onClick={e => e.stopPropagation()}>
+          <BatchActionMenu />
+        </div>
       </div>
     </div>
   );
