@@ -19,6 +19,13 @@ import SellersManagementPage from './pages/SellersManagementPage';
 import SellerDetailPage from './pages/SellerDetailPage';
 import OrgDetailPage from './pages/OrgDetailPage';
 import OrgCardsPage from './pages/OrgCardsPage';
+import CardAssignmentPage from './pages/CardAssignmentPage';
+import OrgFinancePage from './pages/OrgFinancePage';
+import OrgWithdrawalsPage from './pages/OrgWithdrawalsPage';
+import OrgSettingsPage from './pages/OrgSettingsPage';
+import NewOrganizationPage from './pages/NewOrganizationPage';
+import EditOrganizationPage from './pages/EditOrganizationPage';
+import NewBatchWizardPage from './pages/NewBatchWizardPage';
 
 export const router = createBrowserRouter([
   {
@@ -46,12 +53,24 @@ export const router = createBrowserRouter([
     Component: OrganizationsPage,
   },
   {
+    path: '/organizations/new',
+    Component: NewOrganizationPage,
+  },
+  {
     path: '/organizations/:id',
     Component: OrgDetailPage,
   },
   {
+    path: '/organizations/:id/edit',
+    Component: EditOrganizationPage,
+  },
+  {
     path: '/card-batches',
     Component: CardBatchesPage,
+  },
+  {
+    path: '/card-batches/new',
+    Component: NewBatchWizardPage,
   },
   {
     path: '/kpi-config',
@@ -100,5 +119,21 @@ export const router = createBrowserRouter([
   {
     path: '/org-cards',
     Component: OrgCardsPage,
+  },
+  {
+    path: '/card-assignment',
+    Component: CardAssignmentPage,
+  },
+  {
+    path: '/org-rewards',
+    Component: OrgFinancePage,
+  },
+  {
+    path: '/org-withdrawals',
+    Component: OrgWithdrawalsPage,
+  },
+  {
+    path: '/org-settings',
+    Component: OrgSettingsPage,
   },
 ]);
