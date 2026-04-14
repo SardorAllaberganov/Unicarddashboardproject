@@ -7,6 +7,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
 import { useNavigate } from 'react-router';
+import { useExportToast } from '../components/useExportToast';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -170,6 +171,15 @@ export default function OverdueKpiReportPage() {
   const [hovRow, setHovRow] = useState<number | null>(null);
   const [exportHov, setExportHov] = useState(false);
   const navigate = useNavigate();
+  const exportToast = useExportToast();
+
+  const triggerExport = () => {
+    exportToast.start({
+      subtitle: 'Просроченные KPI за период',
+      fileName: 'report_overdue-kpi_2026-04.xlsx',
+      fileSize: '188 KB',
+    });
+  };
 
   const inRange = (d: number, range: string): boolean => {
     if (range === '1–7 дней')   return d >= 1 && d <= 7;
@@ -236,6 +246,7 @@ export default function OverdueKpiReportPage() {
             <button
               onMouseEnter={() => setExportHov(true)}
               onMouseLeave={() => setExportHov(false)}
+              onClick={triggerExport}
               aria-label="Экспорт"
               style={{
                 height: '40px', padding: '0 16px',
@@ -389,6 +400,8 @@ export default function OverdueKpiReportPage() {
           <div style={{ height: '48px' }} />
         </div>
       </div>
+
+      {exportToast.node}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
+import { useExportToast } from '../components/useExportToast';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -123,7 +124,10 @@ function FilterSelect({ label, options }: { label: string; options: string[] }) 
    REPORT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ReportCardComponent({ report }: { report: ReportCard }) {
+function ReportCardComponent({ report, onExport }: {
+  report: ReportCard;
+  onExport: (reportId: string, title: string, range: { from: string; to: string }) => void;
+}) {
   const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
   const [downloadHover, setDownloadHover] = useState(false);
@@ -226,6 +230,7 @@ function ReportCardComponent({ report }: { report: ReportCard }) {
         <button
           onMouseEnter={() => setDownloadHover(true)}
           onMouseLeave={() => setDownloadHover(false)}
+          onClick={() => onExport(report.id, report.title, dateRange)}
           style={{
             height: '40px',
             padding: '0 18px',
@@ -292,6 +297,15 @@ export default function ReportsExportPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
+  const exportToast = useExportToast();
+
+  const handleExport = (reportId: string, title: string, range: { from: string; to: string }) => {
+    exportToast.start({
+      subtitle: `${title} за ${range.from.slice(5).replace('-', '.')}–${range.to.slice(5).replace('-', '.')}.2026`,
+      fileName: `report_${reportId}_${range.from.slice(0, 7)}.xlsx`,
+      fileSize: '245 KB',
+    });
+  };
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
@@ -340,7 +354,7 @@ export default function ReportsExportPage() {
 
           <div className="reports-grid">
             {REPORTS.map(report => (
-              <ReportCardComponent key={report.id} report={report} />
+              <ReportCardComponent key={report.id} report={report} onExport={handleExport} />
             ))}
           </div>
 
@@ -361,6 +375,8 @@ export default function ReportsExportPage() {
           <div style={{ height: '48px' }} />
         </div>
       </div>
+
+      {exportToast.node}
     </div>
   );
 }

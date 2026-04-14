@@ -4,6 +4,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
+import { useExportToast } from '../components/useExportToast';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -88,16 +89,24 @@ export default function ReportPreviewPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [closeHov, setCloseHov] = useState(false);
-  const [dlSmallHov, setDlSmallHov] = useState(false);
   const [cancelHov, setCancelHov] = useState(false);
   const [dlPrimaryHov, setDlPrimaryHov] = useState(false);
   const navigate = useNavigate();
   const { reportId } = useParams();
   const [params] = useSearchParams();
+  const exportToast = useExportToast();
 
   const title = REPORT_TITLES[reportId ?? ''] ?? 'Отчёт';
   const from = params.get('from') ?? '2026-04-01';
   const to = params.get('to') ?? '2026-04-13';
+
+  const triggerExport = () => {
+    exportToast.start({
+      subtitle: `${title} за ${fmtDateRu(from)}–${fmtDateRu(to)}`,
+      fileName: `report_${reportId ?? 'all'}_${from.slice(0, 7)}.xlsx`,
+      fileSize: '245 KB',
+    });
+  };
 
   const totals = PREVIEW_ROWS.reduce((t, r) => ({
     issued: t.issued + r.issued,
@@ -170,47 +179,26 @@ export default function ReportPreviewPage() {
           }}>
             {/* Subheader row */}
             <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              gap: '12px', padding: '14px 20px',
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '14px 20px',
               borderBottom: `1px solid ${C.border}`,
               flexWrap: 'wrap',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-                  Период:{' '}
-                  <span style={{ fontFamily: F.mono, color: C.text1 }}>
-                    {fmtDateRu(from)} — {fmtDateRu(to)}
-                  </span>
+              <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+                Период:{' '}
+                <span style={{ fontFamily: F.mono, color: C.text1 }}>
+                  {fmtDateRu(from)} — {fmtDateRu(to)}
                 </span>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center',
-                  fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
-                  padding: '3px 10px', borderRadius: '10px',
-                  background: '#F3F4F6', color: C.text2,
-                  border: `1px solid ${C.border}`,
-                }}>
-                  Предварительный
-                </span>
-              </div>
-
-              <button
-                onMouseEnter={() => setDlSmallHov(true)}
-                onMouseLeave={() => setDlSmallHov(false)}
-                aria-label="Скачать Excel"
-                style={{
-                  height: '32px', padding: '0 12px',
-                  border: `1px solid ${dlSmallHov ? C.blue : C.border}`,
-                  borderRadius: '7px',
-                  background: dlSmallHov ? C.blueLt : C.surface,
-                  fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
-                  color: dlSmallHov ? C.blue : C.text1,
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  cursor: 'pointer', transition: 'all 0.12s',
-                }}
-              >
-                <Download size={13} strokeWidth={1.75} />
-                Скачать Excel
-              </button>
+              </span>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center',
+                fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+                padding: '3px 10px', borderRadius: '10px',
+                background: '#F3F4F6', color: C.text2,
+                border: `1px solid ${C.border}`,
+              }}>
+                Предварительный
+              </span>
             </div>
 
             {/* Table */}
@@ -299,6 +287,7 @@ export default function ReportPreviewPage() {
                 <button
                   onMouseEnter={() => setDlPrimaryHov(true)}
                   onMouseLeave={() => setDlPrimaryHov(false)}
+                  onClick={triggerExport}
                   aria-label="Скачать Excel"
                   style={{
                     height: '38px', padding: '0 18px',
@@ -321,6 +310,8 @@ export default function ReportPreviewPage() {
           <div style={{ height: '48px' }} />
         </div>
       </div>
+
+      {exportToast.node}
     </div>
   );
 }
