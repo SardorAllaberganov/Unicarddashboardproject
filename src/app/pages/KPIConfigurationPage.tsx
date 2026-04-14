@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronRight, ChevronLeft, Check, Plus, Trash2, ChevronDown, AlertCircle, Calendar, Building2,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
@@ -1159,7 +1159,7 @@ export default function KPIConfigurationPage() {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
       {/* Sidebar */}
-      <BankAdminSidebar
+      <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}
@@ -1284,7 +1284,7 @@ export default function KPIConfigurationPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    border: saveHover ? `2px solid ${C.success}` : 'none',
+                    border: 'none',
                     boxShadow: saveHover ? '0 2px 12px rgba(16,185,129,0.3)' : '0 1px 3px rgba(16,185,129,0.2)',
                     transition: 'all 0.12s',
                   }}

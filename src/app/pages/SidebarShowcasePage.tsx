@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BankAdminSidebar, BankAdminSidebarDemo } from '../components/BankAdminSidebar';
+import { Sidebar, BankAdminSidebarDemo } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 
 const inter = F.inter;
@@ -111,7 +111,7 @@ export default function SidebarShowcasePage() {
               : '0 4px 24px rgba(37,99,235,0.12)',
             border: `1px solid ${liveDark ? '#374151' : C.border}`,
           }}>
-            <BankAdminSidebar
+            <Sidebar role="bank"
               collapsed={liveCollapsed}
               onToggle={() => setLiveCollapsed(c => !c)}
               darkMode={liveDark}
@@ -174,7 +174,7 @@ export default function SidebarShowcasePage() {
           marginBottom: '48px',
           overflowX: 'auto',
         }}>
-          <BankAdminSidebarDemo />
+          <Sidebar role="bank"Demo />
         </div>
 
         {/* ──────────────────────────────────────────

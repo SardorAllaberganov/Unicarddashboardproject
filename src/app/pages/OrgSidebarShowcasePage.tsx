@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { OrgAdminSidebar, OrgAdminSidebarDemo } from '../components/OrgAdminSidebar';
+import { Sidebar, OrgAdminSidebarDemo } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 
 const inter = F.inter;
@@ -134,7 +134,7 @@ export default function OrgSidebarShowcasePage() {
               : '0 4px 24px rgba(16,185,129,0.1)',
             border: `1px solid ${liveDark ? '#374151' : C.border}`,
           }}>
-            <OrgAdminSidebar
+            <Sidebar role="org"
               collapsed={liveCollapsed}
               onToggle={() => setLiveCollapsed(c => !c)}
               darkMode={liveDark}
@@ -233,7 +233,7 @@ export default function OrgSidebarShowcasePage() {
           marginBottom: '48px',
           overflowX: 'auto',
         }}>
-          <OrgAdminSidebarDemo />
+          <Sidebar role="org"Demo />
         </div>
 
         {/* ── §03 Comparison: Bank vs Org ── */}

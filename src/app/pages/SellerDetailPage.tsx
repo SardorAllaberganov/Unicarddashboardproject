@@ -3,7 +3,7 @@ import {
   X, CreditCard, ShoppingBag, CheckCircle2, Wallet,
   Check, Minus, Search, ChevronDown, ChevronRight,
 } from 'lucide-react';
-import { OrgAdminSidebar } from '../components/OrgAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
 import { useNavigate } from 'react-router';
@@ -573,7 +573,7 @@ export default function SellerDetailPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <OrgAdminSidebar
+      <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}

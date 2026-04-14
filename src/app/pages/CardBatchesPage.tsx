@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Search, ChevronDown, ChevronRight, Plus, MoreVertical, Eye, Settings2, Upload, Archive,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
@@ -473,7 +473,7 @@ export default function CardBatchesPage() {
       `}</style>
 
       <div className="cb-sidebar">
-        <BankAdminSidebar
+        <Sidebar role="bank"
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(c => !c)}
           darkMode={darkMode}
@@ -512,6 +512,7 @@ export default function CardBatchesPage() {
               <button
                 onMouseEnter={() => setAddHov(true)}
                 onMouseLeave={() => setAddHov(false)}
+                onClick={() => navigate('/card-batches/new')}
                 style={{
                   height: '40px', padding: '0 18px',
                   background: addHov ? C.blueHover : C.blue,

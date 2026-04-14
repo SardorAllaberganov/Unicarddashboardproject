@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   ChevronRight, ChevronDown, Download, Search, Check,
 } from 'lucide-react';
-import { OrgAdminSidebar } from '../components/OrgAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
@@ -288,12 +288,12 @@ export default function OrgCardsPage() {
   const [exportHover, setExportHover] = useState(false);
 
   const handleRowClick = (id: number) => {
-    navigate(`/card-detail/${id}`);
+    navigate(`/card-detail/${id}?from=org`);
   };
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <OrgAdminSidebar
+      <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}

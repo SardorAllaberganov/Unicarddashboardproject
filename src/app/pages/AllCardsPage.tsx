@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronRight, ChevronDown, Download, Search, Check,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
@@ -539,7 +539,7 @@ export default function AllCardsPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <BankAdminSidebar
+      <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}

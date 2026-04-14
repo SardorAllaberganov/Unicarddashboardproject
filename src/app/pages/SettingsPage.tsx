@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronRight, Download, AlertTriangle, X,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
@@ -234,7 +234,7 @@ function ProfileTab() {
           style={{
             height: '40px',
             padding: '0 20px',
-            border: saveHover ? `2px solid ${C.blueHover}` : 'none',
+            border: 'none',
             borderRadius: '8px',
             background: saveHover ? C.blueHover : C.blue,
             fontFamily: F.inter,
@@ -341,7 +341,7 @@ function SecurityTab() {
             marginTop: '16px',
             height: '40px',
             padding: '0 20px',
-            border: updatePwHover ? `2px solid ${C.blueHover}` : 'none',
+            border: 'none',
             borderRadius: '8px',
             background: updatePwHover ? C.blueHover : C.blue,
             fontFamily: F.inter,
@@ -634,7 +634,7 @@ function NotificationsTab() {
         style={{
           height: '40px',
           padding: '0 20px',
-          border: saveHover ? `2px solid ${C.blueHover}` : 'none',
+          border: 'none',
           borderRadius: '8px',
           background: saveHover ? C.blueHover : C.blue,
           fontFamily: F.inter,
@@ -768,7 +768,7 @@ function KPIDefaultsTab() {
           style={{
             height: '40px',
             padding: '0 20px',
-            border: saveHover ? `2px solid ${C.blueHover}` : 'none',
+            border: 'none',
             borderRadius: '8px',
             background: saveHover ? C.blueHover : C.blue,
             fontFamily: F.inter,
@@ -1214,7 +1214,7 @@ export default function SettingsPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <BankAdminSidebar
+      <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}

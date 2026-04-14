@@ -3,7 +3,7 @@ import {
   ChevronRight, ChevronDown, FileSpreadsheet, Eye, Building2, Users,
   CreditCard, Wallet, TrendingUp, Clock,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
@@ -125,6 +125,7 @@ function FilterSelect({ label, options }: { label: string; options: string[] }) 
 
 function ReportCardComponent({ report }: { report: ReportCard }) {
   const [filtersExpanded, setFiltersExpanded] = useState(true);
+  const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
   const [downloadHover, setDownloadHover] = useState(false);
   const [previewHover, setPreviewHover] = useState(false);
 
@@ -283,12 +284,11 @@ function ReportCardComponent({ report }: { report: ReportCard }) {
 export default function ReportsExportPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
   const navigate = useNavigate();
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <BankAdminSidebar
+      <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}

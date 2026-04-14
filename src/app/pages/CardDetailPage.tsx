@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   X, ArrowDownLeft, ArrowUpRight, Wallet, Check, Clock, ChevronRight,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Navbar } from '../components/Navbar';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -383,6 +383,8 @@ export default function CardDetailPage() {
   const [darkMode, setDarkMode] = useState(false);
   const [closeHover, setCloseHover] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isOrg = searchParams.get('from') === 'org';
 
   const kpiSteps: KPIStepData[] = [
     {
@@ -423,7 +425,7 @@ export default function CardDetailPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <BankAdminSidebar
+      <Sidebar role={isOrg ? 'org' : 'bank'}
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}
@@ -436,9 +438,9 @@ export default function CardDetailPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
+            <span onClick={() => navigate(isOrg ? '/org-dashboard' : '/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
             <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span onClick={() => navigate('/all-cards')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Все карты</span>
+            <span onClick={() => navigate(isOrg ? '/org-cards' : '/all-cards')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>{isOrg ? 'Карты' : 'Все карты'}</span>
             <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
             <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Карта •••• 1001</span>
           </div>
@@ -480,7 +482,7 @@ export default function CardDetailPage() {
               <button
                 onMouseEnter={() => setCloseHover(true)}
                 onMouseLeave={() => setCloseHover(false)}
-                onClick={() => navigate('/all-cards')}
+                onClick={() => navigate(isOrg ? '/org-cards' : '/all-cards')}
                 style={{
                   width: '36px',
                   height: '36px',

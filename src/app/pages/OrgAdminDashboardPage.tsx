@@ -4,7 +4,7 @@ import {
   ArrowUpDown, Wallet, Check,
   ArrowRight, Circle, Dot,
 } from 'lucide-react';
-import { OrgAdminSidebar } from '../components/OrgAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
@@ -494,7 +494,7 @@ export default function OrgAdminDashboardPage() {
         }
       `}</style>
 
-      <OrgAdminSidebar
+      <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}

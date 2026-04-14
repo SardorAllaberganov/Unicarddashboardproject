@@ -3,7 +3,7 @@ import {
   ChevronRight, ChevronDown, Download, Search,
   Wallet, CheckCircle, ArrowDownToLine, Coins,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
@@ -656,7 +656,7 @@ export default function RewardsFinancePage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <BankAdminSidebar
+      <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}

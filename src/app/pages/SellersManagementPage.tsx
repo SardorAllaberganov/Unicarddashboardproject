@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronRight, ChevronDown, Search, Plus, MoreVertical, X,
 } from 'lucide-react';
-import { OrgAdminSidebar } from '../components/OrgAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
@@ -655,7 +655,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
             style={{
               height: '40px',
               padding: '0 20px',
-              border: saveHover ? `2px solid ${C.blueHover}` : 'none',
+              border: 'none',
               borderRadius: '8px',
               background: saveHover ? C.blueHover : C.blue,
               fontFamily: F.inter,
@@ -693,7 +693,7 @@ export default function SellersManagementPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <OrgAdminSidebar
+      <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}
@@ -737,7 +737,7 @@ export default function SellersManagementPage() {
               style={{
                 height: '40px',
                 padding: '0 18px',
-                border: addBtnHover ? `2px solid ${C.blueHover}` : 'none',
+                border: 'none',
                 borderRadius: '8px',
                 background: addBtnHover ? C.blueHover : C.blue,
                 fontFamily: F.inter,

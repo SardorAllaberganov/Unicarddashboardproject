@@ -3,7 +3,7 @@ import {
   ChevronRight, ChevronDown, Upload, Download, X, CheckCircle,
   FileSpreadsheet, AlertTriangle,
 } from 'lucide-react';
-import { BankAdminSidebar } from '../components/BankAdminSidebar';
+import { Sidebar } from '../components/Sidebar';
 import { useNavigate } from 'react-router';
 import { F, C } from '../components/ds/tokens';
 import { Navbar } from '../components/Navbar';
@@ -602,7 +602,7 @@ export default function CardImportPage() {
   if (showSuccess) {
     return (
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-        <BankAdminSidebar
+        <Sidebar role="bank"
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(c => !c)}
           darkMode={darkMode}
@@ -628,7 +628,7 @@ export default function CardImportPage() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
-      <BankAdminSidebar
+      <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode}
