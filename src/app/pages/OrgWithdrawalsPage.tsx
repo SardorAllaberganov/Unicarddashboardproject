@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { usePopoverPosition } from '../components/usePopoverPosition';
 import {
   ChevronRight, ChevronDown, Search, MoreVertical,
-  ArrowDownToLine, Clock, CheckCircle,
+  ArrowDownToLine, Clock, CheckCircle, X, XCircle, Check,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
@@ -142,17 +143,8 @@ function AvatarCell({ name }: { name: string }) {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 function ActionDropdown({ status, onAction }: { status: WdStatus; onAction: (action: string) => void }) {
-  const [open, setOpen] = useState(false);
+  const pop = usePopoverPosition();
   const [hovered, setHovered] = useState<string | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
 
   const actions = [
     { id: 'details', label: 'Подробнее' },
@@ -163,27 +155,29 @@ function ActionDropdown({ status, onAction }: { status: WdStatus; onAction: (act
   ];
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={pop.rootRef} style={{ position: 'relative' }}>
       <button
-        onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+        ref={pop.triggerRef as React.RefObject<HTMLButtonElement>}
+        onClick={e => { e.stopPropagation(); pop.toggle(); }}
         style={{
           width: '28px', height: '28px',
-          border: `1px solid ${open ? C.blue : C.border}`,
+          border: `1px solid ${pop.open ? C.blue : C.border}`,
           borderRadius: '6px',
-          background: open ? C.blueLt : C.surface,
+          background: pop.open ? C.blueLt : C.surface,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', transition: 'all 0.12s',
         }}
       >
-        <MoreVertical size={14} color={open ? C.blue : C.text3} strokeWidth={1.75} />
+        <MoreVertical size={14} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
       </button>
 
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+      {pop.open && (
+        <div ref={pop.menuRef} style={{
+          ...pop.menuStyle,
           background: C.surface, border: `1px solid ${C.border}`,
           borderRadius: '10px', padding: '6px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.09)', zIndex: 50, minWidth: '180px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          minWidth: '180px',
         }}>
           {actions.map((action, idx) => (
             <React.Fragment key={action.id}>
@@ -191,7 +185,7 @@ function ActionDropdown({ status, onAction }: { status: WdStatus; onAction: (act
               <button
                 onMouseEnter={() => setHovered(action.id)}
                 onMouseLeave={() => setHovered(null)}
-                onClick={e => { e.stopPropagation(); onAction(action.id); setOpen(false); }}
+                onClick={e => { e.stopPropagation(); onAction(action.id); pop.close(); }}
                 style={{
                   width: '100%', textAlign: 'left',
                   display: 'flex', alignItems: 'center', gap: '8px',
@@ -256,6 +250,473 @@ const dCell: React.CSSProperties = {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   APPROVE WITHDRAWAL MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+const SELLER_FULL_NAMES: Record<string, string> = {
+  'Санжар М.':    'Санжар Мирзаев',
+  'Абдуллох Р.':  'Абдуллох Рахимов',
+  'Нилуфар К.':   'Нилуфар Каримова',
+  'Ислом Т.':     'Ислом Тошматов',
+  'Камола Р.':    'Камола Расулова',
+  'Дарья Н.':     'Дарья Нам',
+};
+
+const SELLER_BALANCES: Record<string, number> = {
+  'Санжар М.':    155_000,
+  'Абдуллох Р.':  220_000,
+  'Нилуфар К.':   90_000,
+  'Ислом Т.':     60_000,
+  'Камола Р.':    45_000,
+  'Дарья Н.':     80_000,
+};
+
+function fmtUzs(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function KV({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '110px 1fr',
+      alignItems: 'baseline', gap: '14px',
+      padding: '6px 0',
+    }}>
+      <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>{label}</span>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>{children}</span>
+    </div>
+  );
+}
+
+function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
+  open: boolean; wd: WdRow | null; onClose: () => void; onConfirm: () => void;
+}) {
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open || !wd) return null;
+
+  const fullName = SELLER_FULL_NAMES[wd.seller] ?? wd.seller;
+  const balanceBefore = SELLER_BALANCES[wd.seller] ?? 0;
+  const amountNum = parseInt(wd.amount.replace(/\s/g, '')) || 0;
+  const balanceAfter = balanceBefore - amountNum;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <CheckCircle size={22} color={C.success} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Подтвердить вывод средств
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          {/* Transaction card */}
+          <div style={{
+            background: '#F0FDF4',
+            borderTop: `1px solid #BBF7D0`,
+            borderRight: `1px solid #BBF7D0`,
+            borderBottom: `1px solid #BBF7D0`,
+            borderLeft: `3px solid ${C.success}`,
+            borderRadius: '8px', padding: '16px',
+          }}>
+            <KV label="Продавец">{fullName}</KV>
+            <KV label="Сумма">
+              <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: C.text1 }}>
+                {wd.amount} UZS
+              </span>
+            </KV>
+            <KV label="Метод">{wd.method}</KV>
+            <KV label="Реквизиты">
+              <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text2 }}>{wd.details}</span>
+            </KV>
+            <KV label="Баланс">
+              <span>
+                <span style={{ fontFamily: F.mono, color: C.text3 }}>{fmtUzs(balanceBefore)}</span>
+                <span style={{ margin: '0 6px', color: C.text4 }}>→</span>
+                <span style={{ fontFamily: F.mono, fontWeight: 600, color: C.text1 }}>{fmtUzs(balanceAfter)}</span>
+                <span style={{ color: C.text4, marginLeft: '4px' }}>UZS</span>
+              </span>
+            </KV>
+            <KV label="Запрошено">
+              <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text2 }}>
+                {wd.date.replace(' ', ', ')}
+              </span>
+            </KV>
+          </div>
+
+          <div style={{
+            fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.5,
+          }}>
+            Средства будут переведены на карту продавца через UCOIN.
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={onConfirm}
+            aria-label="Подтвердить вывод"
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: confirmHov ? C.blueHover : C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <CheckCircle size={14} strokeWidth={2} />
+            Подтвердить вывод
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   REJECT WITHDRAWAL MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+const REJECT_REASONS = [
+  'Недостаточно средств на счёте организации',
+  'Неверные реквизиты',
+  'Подозрительная операция',
+  'Запрос организации',
+  'Другое',
+];
+
+function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
+  open: boolean; wd: WdRow | null; onClose: () => void; onConfirm: () => void;
+}) {
+  const [reason, setReason] = useState('');
+  const [comment, setComment] = useState('');
+  const [notify, setNotify] = useState(true);
+  const [reasonFocus, setReasonFocus] = useState(false);
+  const [commentFocus, setCommentFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setReason(''); setComment(''); setNotify(true); return; }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open || !wd) return null;
+
+  const fullName = SELLER_FULL_NAMES[wd.seller] ?? wd.seller;
+  const canConfirm = !!reason;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <XCircle size={22} color={C.error} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Отклонить вывод средств
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          {/* Transaction card */}
+          <div style={{
+            background: C.errorBg,
+            borderTop: `1px solid #FECACA`,
+            borderRight: `1px solid #FECACA`,
+            borderBottom: `1px solid #FECACA`,
+            borderLeft: `3px solid ${C.error}`,
+            borderRadius: '8px', padding: '16px',
+          }}>
+            <div style={{
+              fontFamily: F.inter, fontSize: '14px', fontWeight: 600,
+              color: C.text1, marginBottom: '4px',
+            }}>
+              Продавец: {fullName}
+            </div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '13px', color: C.text2,
+              marginBottom: '4px',
+            }}>
+              Сумма: <span style={{ fontFamily: F.mono, color: C.text1, fontWeight: 500 }}>{wd.amount} UZS</span>
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+              Запрошено: <span style={{ fontFamily: F.mono }}>{wd.date.replace(' ', ', ')}</span>
+            </div>
+          </div>
+
+          {/* Reason select */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Причина отклонения<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                onFocus={() => setReasonFocus(true)}
+                onBlur={() => setReasonFocus(false)}
+                style={{
+                  width: '100%', height: '40px', padding: '0 36px 0 12px',
+                  border: `1px solid ${reasonFocus ? C.blue : C.inputBorder}`,
+                  borderRadius: '8px', background: C.surface,
+                  fontFamily: F.inter, fontSize: '13px',
+                  color: reason ? C.text1 : C.text4,
+                  outline: 'none', appearance: 'none', cursor: 'pointer',
+                  boxShadow: reasonFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  transition: 'border-color 0.12s, box-shadow 0.12s',
+                }}
+              >
+                <option value="">Выберите причину</option>
+                {REJECT_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <ChevronDown size={14} color={C.text3} style={{
+                position: 'absolute', right: '12px', top: '50%',
+                transform: 'translateY(-50%)', pointerEvents: 'none',
+              }} />
+            </div>
+          </div>
+
+          {/* Comment textarea */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Комментарий (опционально)
+            </label>
+            <textarea
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              onFocus={() => setCommentFocus(true)}
+              onBlur={() => setCommentFocus(false)}
+              placeholder="Дополнительная информация для продавца..."
+              style={{
+                width: '100%', minHeight: '72px', padding: '10px 12px',
+                border: `1px solid ${commentFocus ? C.blue : C.inputBorder}`,
+                borderRadius: '8px', background: C.surface,
+                fontFamily: F.inter, fontSize: '13px', color: C.text1,
+                outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+                boxShadow: commentFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                transition: 'border-color 0.12s, box-shadow 0.12s',
+              }}
+            />
+          </div>
+
+          {/* Notify checkbox */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            cursor: 'pointer',
+          }}>
+            <div
+              onClick={() => setNotify(n => !n)}
+              style={{
+                width: '16px', height: '16px', borderRadius: '4px',
+                border: `1.5px solid ${notify ? C.blue : C.inputBorder}`,
+                background: notify ? C.blue : C.surface,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.12s',
+              }}
+            >
+              {notify && <Check size={11} color="#fff" strokeWidth={3} />}
+            </div>
+            <input
+              type="checkbox"
+              checked={notify}
+              onChange={e => setNotify(e.target.checked)}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
+            />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+              Уведомить продавца о причине отклонения
+            </span>
+          </label>
+
+          <div style={{
+            fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.5,
+          }}>
+            Средства будут возвращены на баланс кошелька продавца.
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={() => { if (canConfirm) onConfirm(); }}
+            disabled={!canConfirm}
+            aria-label="Отклонить вывод"
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: !canConfirm ? '#FCA5A5' : confirmHov ? '#DC2626' : C.error,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF',
+              cursor: canConfirm ? 'pointer' : 'not-allowed',
+              opacity: canConfirm ? 1 : 0.85,
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: canConfirm && confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : canConfirm ? '0 1px 3px rgba(239,68,68,0.20)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            <XCircle size={14} strokeWidth={2} />
+            Отклонить вывод
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -270,6 +731,8 @@ export default function OrgWithdrawalsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [hovRow, setHovRow] = useState<number | null>(null);
+  const [approveWd, setApproveWd] = useState<WdRow | null>(null);
+  const [rejectWd, setRejectWd] = useState<WdRow | null>(null);
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
@@ -426,7 +889,11 @@ export default function OrgWithdrawalsPage() {
                       <td style={dCell}>
                         <ActionDropdown
                           status={wd.status}
-                          onAction={action => console.log(action, wd.id)}
+                          onAction={action => {
+                            if (action === 'approve') setApproveWd(wd);
+                            else if (action === 'reject') setRejectWd(wd);
+                            else console.log(action, wd.id);
+                          }}
                         />
                       </td>
                     </tr>
@@ -447,6 +914,20 @@ export default function OrgWithdrawalsPage() {
           <div style={{ height: '48px' }} />
         </div>
       </div>
+
+      <ApproveWithdrawalModal
+        open={!!approveWd}
+        wd={approveWd}
+        onClose={() => setApproveWd(null)}
+        onConfirm={() => setApproveWd(null)}
+      />
+
+      <RejectWithdrawalModal
+        open={!!rejectWd}
+        wd={rejectWd}
+        onClose={() => setRejectWd(null)}
+        onConfirm={() => setRejectWd(null)}
+      />
     </div>
   );
 }
