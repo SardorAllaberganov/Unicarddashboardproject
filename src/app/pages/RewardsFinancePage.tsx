@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronRight, ChevronDown, Download, Search,
-  Wallet, CheckCircle, ArrowDownToLine, Coins,
+  Wallet, CheckCircle, ArrowDownToLine, Coins, X, Plus, Minus,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
@@ -637,6 +637,451 @@ const dataCellStyle: React.CSSProperties = {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   MANUAL ADJUSTMENT MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+interface SellerOption {
+  name: string;
+  org: string;
+  balance: number;
+  earned: number;
+}
+
+const SELLER_OPTIONS: SellerOption[] = [
+  { name: 'Санжар Мирзаев',   org: 'Mysafar OOO',      balance: 155_000, earned: 555_000 },
+  { name: 'Абдуллох Рахимов', org: 'Mysafar OOO',      balance: 220_000, earned: 780_000 },
+  { name: 'Нилуфар Каримова', org: 'Mysafar OOO',      balance: 90_000,  earned: 410_000 },
+  { name: 'Ислом Тошматов',   org: 'Unired Marketing', balance: 60_000,  earned: 275_000 },
+  { name: 'Камола Расулова',  org: 'Express Finance',  balance: 45_000,  earned: 210_000 },
+  { name: 'Дарья Нам',        org: 'Digital Pay',      balance: 80_000,  earned: 330_000 },
+];
+
+const CREDIT_REASONS = ['Бонус за перевыполнение', 'Компенсация ошибки', 'Промо-акция', 'Другое'];
+const DEBIT_REASONS  = ['Корректировка ошибки',    'Штраф',              'Возврат начисления', 'Другое'];
+
+function fmtUzs(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function AdjRadio({ selected, onClick, label, danger }: {
+  selected: boolean; onClick: () => void; label: string; danger?: boolean;
+}) {
+  const [hov, setHov] = useState(false);
+  const activeColor = danger ? C.error : C.blue;
+  const activeBg = danger ? C.errorBg : C.blueLt;
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '10px 12px',
+        border: `1px solid ${selected ? activeColor : hov ? C.inputBorder : C.border}`,
+        borderRadius: '8px',
+        background: selected ? activeBg : hov ? '#F9FAFB' : C.surface,
+        cursor: 'pointer', transition: 'all 0.12s',
+        flex: 1,
+      }}
+    >
+      <div style={{
+        width: '18px', height: '18px', borderRadius: '50%',
+        border: `2px solid ${selected ? activeColor : '#D1D5DB'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+        transition: 'border-color 0.12s',
+      }}>
+        {selected && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: activeColor }} />}
+      </div>
+      <span style={{
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+        color: C.text1,
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function ManualAdjustmentModal({ open, onClose, onConfirm }: {
+  open: boolean; onClose: () => void; onConfirm: () => void;
+}) {
+  const [sellerName, setSellerName] = useState('');
+  const [op, setOp] = useState<'credit' | 'debit'>('credit');
+  const [amountStr, setAmountStr] = useState('');
+  const [reason, setReason] = useState('');
+  const [comment, setComment] = useState('');
+  const [sellerFocus, setSellerFocus] = useState(false);
+  const [amountFocus, setAmountFocus] = useState(false);
+  const [reasonFocus, setReasonFocus] = useState(false);
+  const [commentFocus, setCommentFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setSellerName(''); setOp('credit'); setAmountStr('');
+      setReason(''); setComment(''); return;
+    }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  // Reset reason when op changes
+  useEffect(() => { setReason(''); }, [op]);
+
+  if (!open) return null;
+
+  const seller = SELLER_OPTIONS.find(s => s.name === sellerName) ?? null;
+  const amount = parseInt(amountStr.replace(/\s/g, '')) || 0;
+  const newBalance = seller
+    ? op === 'credit' ? seller.balance + amount : seller.balance - amount
+    : 0;
+  const canConfirm = !!seller && amount > 0 && !!reason && comment.trim().length > 0
+    && (op !== 'debit' || newBalance >= 0);
+
+  const reasons = op === 'credit' ? CREDIT_REASONS : DEBIT_REASONS;
+  const accentColor = op === 'credit' ? C.blue : C.error;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '520px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: C.text1,
+          }}>
+            Ручная корректировка вознаграждения
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          {/* Seller select */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Продавец<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={sellerName}
+                onChange={e => setSellerName(e.target.value)}
+                onFocus={() => setSellerFocus(true)}
+                onBlur={() => setSellerFocus(false)}
+                style={{
+                  width: '100%', height: '40px', padding: '0 36px 0 12px',
+                  border: `1px solid ${sellerFocus ? C.blue : C.inputBorder}`,
+                  borderRadius: '8px', background: C.surface,
+                  fontFamily: F.inter, fontSize: '13px',
+                  color: sellerName ? C.text1 : C.text4,
+                  outline: 'none', appearance: 'none', cursor: 'pointer',
+                  boxShadow: sellerFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  transition: 'border-color 0.12s, box-shadow 0.12s',
+                }}
+              >
+                <option value="">Выберите продавца</option>
+                {SELLER_OPTIONS.map(s => (
+                  <option key={s.name} value={s.name}>{s.name} ({s.org})</option>
+                ))}
+              </select>
+              <ChevronDown size={14} color={C.text3} style={{
+                position: 'absolute', right: '12px', top: '50%',
+                transform: 'translateY(-50%)', pointerEvents: 'none',
+              }} />
+            </div>
+          </div>
+
+          {/* Seller info */}
+          {seller && (
+            <div style={{
+              background: '#F9FAFB', borderRadius: '8px', padding: '10px 12px',
+            }}>
+              <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1 }}>
+                Текущий баланс:{' '}
+                <span style={{ fontFamily: F.mono, color: C.blue, fontWeight: 600 }}>
+                  {fmtUzs(seller.balance)} UZS
+                </span>
+              </div>
+              <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '2px' }}>
+                Всего заработано:{' '}
+                <span style={{ fontFamily: F.mono, color: C.text2 }}>
+                  {fmtUzs(seller.earned)} UZS
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div style={{ height: '1px', background: C.border }} />
+
+          {/* Operation radio group */}
+          <div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Тип операции
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <AdjRadio
+                selected={op === 'credit'}
+                onClick={() => setOp('credit')}
+                label="Начисление"
+              />
+              <AdjRadio
+                selected={op === 'debit'}
+                onClick={() => setOp('debit')}
+                label="Списание"
+                danger
+              />
+            </div>
+          </div>
+
+          {/* Amount + UZS suffix */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Сумма<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                inputMode="numeric"
+                value={amountStr}
+                onChange={e => {
+                  const digits = e.target.value.replace(/\D/g, '');
+                  setAmountStr(digits ? fmtUzs(parseInt(digits)) : '');
+                }}
+                onFocus={() => setAmountFocus(true)}
+                onBlur={() => setAmountFocus(false)}
+                placeholder="10 000"
+                style={{
+                  width: '100%', height: '40px', padding: '0 52px 0 12px',
+                  border: `1px solid ${amountFocus ? C.blue : C.inputBorder}`,
+                  borderRadius: '8px', background: C.surface,
+                  fontFamily: F.mono, fontSize: '14px', color: C.text1,
+                  outline: 'none', boxSizing: 'border-box',
+                  boxShadow: amountFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  transition: 'border-color 0.12s, box-shadow 0.12s',
+                }}
+              />
+              <span style={{
+                position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                fontFamily: F.inter, fontSize: '12px', fontWeight: 500, color: C.text4,
+                pointerEvents: 'none',
+              }}>
+                UZS
+              </span>
+            </div>
+          </div>
+
+          {/* Reason select */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Причина<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                onFocus={() => setReasonFocus(true)}
+                onBlur={() => setReasonFocus(false)}
+                style={{
+                  width: '100%', height: '40px', padding: '0 36px 0 12px',
+                  border: `1px solid ${reasonFocus ? C.blue : C.inputBorder}`,
+                  borderRadius: '8px', background: C.surface,
+                  fontFamily: F.inter, fontSize: '13px',
+                  color: reason ? C.text1 : C.text4,
+                  outline: 'none', appearance: 'none', cursor: 'pointer',
+                  boxShadow: reasonFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  transition: 'border-color 0.12s, box-shadow 0.12s',
+                }}
+              >
+                <option value="">Выберите причину</option>
+                {reasons.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <ChevronDown size={14} color={C.text3} style={{
+                position: 'absolute', right: '12px', top: '50%',
+                transform: 'translateY(-50%)', pointerEvents: 'none',
+              }} />
+            </div>
+          </div>
+
+          {/* Comment */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Комментарий<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <textarea
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              onFocus={() => setCommentFocus(true)}
+              onBlur={() => setCommentFocus(false)}
+              placeholder="Опишите причину корректировки..."
+              style={{
+                width: '100%', minHeight: '72px', padding: '10px 12px',
+                border: `1px solid ${commentFocus ? C.blue : C.inputBorder}`,
+                borderRadius: '8px', background: C.surface,
+                fontFamily: F.inter, fontSize: '13px', color: C.text1,
+                outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+                boxShadow: commentFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                transition: 'border-color 0.12s, box-shadow 0.12s',
+              }}
+            />
+          </div>
+
+          {/* Preview card */}
+          {seller && amount > 0 && (
+            <div style={{
+              background: op === 'credit' ? C.blueLt : C.errorBg,
+              borderTop: `1px solid ${op === 'credit' ? C.blueTint : '#FECACA'}`,
+              borderRight: `1px solid ${op === 'credit' ? C.blueTint : '#FECACA'}`,
+              borderBottom: `1px solid ${op === 'credit' ? C.blueTint : '#FECACA'}`,
+              borderLeft: `3px solid ${accentColor}`,
+              borderRadius: '8px', padding: '12px',
+            }}>
+              <div style={{
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 600,
+                color: C.text1, marginBottom: '4px',
+              }}>
+                {seller.name}
+              </div>
+              <div style={{
+                fontFamily: F.inter, fontSize: '12px', color: C.text2, lineHeight: 1.5,
+              }}>
+                Баланс:{' '}
+                <span style={{ fontFamily: F.mono, color: C.text3 }}>{fmtUzs(seller.balance)}</span>
+                <span style={{ color: C.text4, margin: '0 6px' }}>→</span>
+                <span style={{ fontFamily: F.mono, fontWeight: 600, color: newBalance < 0 ? C.error : C.text1 }}>
+                  {fmtUzs(newBalance)}
+                </span>{' '}
+                UZS{' '}
+                <span style={{ fontFamily: F.mono, color: accentColor, fontWeight: 600 }}>
+                  ({op === 'credit' ? '+' : '−'}{fmtUzs(amount)})
+                </span>
+              </div>
+              {op === 'debit' && newBalance < 0 && (
+                <div style={{
+                  fontFamily: F.inter, fontSize: '11px', color: C.error,
+                  marginTop: '6px', fontWeight: 500,
+                }}>
+                  Списание превышает текущий баланс
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={() => { if (canConfirm) onConfirm(); }}
+            disabled={!canConfirm}
+            aria-label={op === 'credit' ? `Начислить ${fmtUzs(amount)} UZS` : `Списать ${fmtUzs(amount)} UZS`}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: !canConfirm
+                ? (op === 'credit' ? '#93C5FD' : '#FCA5A5')
+                : confirmHov
+                  ? (op === 'credit' ? C.blueHover : '#DC2626')
+                  : accentColor,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF',
+              cursor: canConfirm ? 'pointer' : 'not-allowed',
+              opacity: canConfirm ? 1 : 0.85,
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: canConfirm && confirmHov
+                ? (op === 'credit' ? '0 2px 8px rgba(37,99,235,0.28)' : '0 2px 8px rgba(239,68,68,0.32)')
+                : canConfirm
+                  ? (op === 'credit' ? '0 1px 3px rgba(37,99,235,0.16)' : '0 1px 3px rgba(239,68,68,0.20)')
+                  : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            {op === 'credit' ? <Plus size={14} strokeWidth={2} /> : <Minus size={14} strokeWidth={2} />}
+            {op === 'credit' ? 'Начислить' : 'Списать'} {amount > 0 ? `${fmtUzs(amount)} UZS` : 'UZS'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -653,6 +1098,8 @@ export default function RewardsFinancePage() {
   const [searchFocused, setSearchFocused] = useState(false);
 
   const [exportHover, setExportHover] = useState(false);
+  const [adjustHov, setAdjustHov] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
@@ -696,6 +1143,30 @@ export default function RewardsFinancePage() {
 
             <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
               <DateRangePicker value={dateRange} onChange={setDateRange} />
+              <button
+                onMouseEnter={() => setAdjustHov(true)}
+                onMouseLeave={() => setAdjustHov(false)}
+                onClick={() => setAdjustOpen(true)}
+                style={{
+                  height: '40px',
+                  padding: '0 18px',
+                  border: `1px solid ${adjustHov ? C.blue : C.border}`,
+                  borderRadius: '8px',
+                  background: adjustHov ? C.blueLt : C.surface,
+                  fontFamily: F.inter,
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: adjustHov ? C.blue : C.text2,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  transition: 'all 0.12s',
+                }}
+              >
+                <Plus size={16} strokeWidth={1.75} />
+                Ручная корректировка
+              </button>
               <button
                 onMouseEnter={() => setExportHover(true)}
                 onMouseLeave={() => setExportHover(false)}
@@ -868,6 +1339,12 @@ export default function RewardsFinancePage() {
           <div style={{ height: '48px' }} />
         </div>
       </div>
+
+      <ManualAdjustmentModal
+        open={adjustOpen}
+        onClose={() => setAdjustOpen(false)}
+        onConfirm={() => setAdjustOpen(false)}
+      />
     </div>
   );
 }
