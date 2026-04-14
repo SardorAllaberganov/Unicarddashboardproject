@@ -113,7 +113,9 @@ function GhostButton({
    ACTION DROPDOWN
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ActionDropdown({ onArchive, onDelete }: { onArchive: () => void; onDelete: () => void }) {
+function ActionDropdown({ onArchive, onDuplicate, onDelete }: {
+  onArchive: () => void; onDuplicate: () => void; onDelete: () => void;
+}) {
   const pop = usePopoverPosition();
   const [hov, setHov] = useState(false);
 
@@ -145,7 +147,7 @@ function ActionDropdown({ onArchive, onDelete }: { onArchive: () => void; onDele
           minWidth: '180px',
         }}>
           <MenuItem icon={Archive} label="Архивировать" onClick={() => { pop.close(); onArchive(); }} />
-          <MenuItem icon={Copy}    label="Дублировать"  onClick={pop.close} />
+          <MenuItem icon={Copy}    label="Дублировать"  onClick={() => { pop.close(); onDuplicate(); }} />
           <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
           <MenuItem icon={Trash2}  label="Удалить"      danger onClick={() => { pop.close(); onDelete(); }} />
         </div>
@@ -576,6 +578,247 @@ function MenuItem({ icon: Icon, label, danger, onClick }: {
       <Icon size={14} strokeWidth={1.75} />
       {label}
     </button>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DUPLICATE BATCH MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+const DUP_ORGS = ['Mysafar OOO', 'Unired Marketing', 'Express Finance', 'Digital Pay', 'SmartCard Group', 'CardPlus'];
+
+function DuplicateBatchModal({ open, onClose, onConfirm }: {
+  open: boolean; onClose: () => void; onConfirm: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [org, setOrg] = useState('Mysafar OOO');
+  const [nameFocus, setNameFocus] = useState(false);
+  const [orgFocus, setOrgFocus] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setName(''); setOrg('Mysafar OOO'); return; }
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const canConfirm = name.trim().length > 0;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <Copy size={22} color={C.blue} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Дублировать партию
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px',
+              border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '16px',
+        }}>
+          {/* Source batch card */}
+          <div style={{
+            background: '#F9FAFB', borderRadius: '8px', padding: '12px',
+          }}>
+            <div style={{
+              fontFamily: F.inter, fontSize: '14px', fontWeight: 600,
+              color: C.text1, marginBottom: '4px',
+            }}>
+              Партия Апрель 2026 — Mysafar OOO
+            </div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '12px', color: C.text3,
+            }}>
+              VISA SUM{' | '}
+              <span style={{ fontFamily: F.mono, color: C.text2 }}>498</span> карт{' | '}
+              <span style={{ fontFamily: F.mono, color: C.text2 }}>3</span> KPI этапа{' | '}
+              Срок <span style={{ fontFamily: F.mono, color: C.text2 }}>30</span> дней
+            </div>
+          </div>
+
+          {/* Outcome list */}
+          <div>
+            <div style={{
+              fontFamily: F.inter, fontSize: '13px', color: C.text2,
+              marginBottom: '8px',
+            }}>
+              Будет создана новая партия с:
+            </div>
+            <ul style={{
+              margin: 0, padding: 0, listStyle: 'none',
+              display: 'flex', flexDirection: 'column', gap: '6px',
+            }}>
+              {[
+                'Такой же KPI конфигурацией (3 этапа)',
+                'Без карт (потребуется новый импорт)',
+                'Новое название',
+              ].map((txt, i) => (
+                <li key={i} style={{
+                  display: 'flex', gap: '8px',
+                  fontFamily: F.inter, fontSize: '12px', color: C.text2, lineHeight: 1.5,
+                }}>
+                  <span style={{ color: C.text4, flexShrink: 0 }}>•</span>
+                  <span>{txt}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Name input */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Название новой партии<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+            </label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              onFocus={() => setNameFocus(true)}
+              onBlur={() => setNameFocus(false)}
+              placeholder="Партия Май 2026"
+              style={{
+                width: '100%', height: '40px', padding: '0 12px',
+                border: `1px solid ${nameFocus ? C.blue : C.inputBorder}`,
+                borderRadius: '8px', background: C.surface,
+                fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                outline: 'none', boxSizing: 'border-box',
+                boxShadow: nameFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                transition: 'border-color 0.12s, box-shadow 0.12s',
+              }}
+            />
+          </div>
+
+          {/* Org select */}
+          <div>
+            <label style={{
+              display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text2, marginBottom: '8px',
+            }}>
+              Организация
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select
+                value={org}
+                onChange={e => setOrg(e.target.value)}
+                onFocus={() => setOrgFocus(true)}
+                onBlur={() => setOrgFocus(false)}
+                style={{
+                  width: '100%', height: '40px', padding: '0 36px 0 12px',
+                  border: `1px solid ${orgFocus ? C.blue : C.inputBorder}`,
+                  borderRadius: '8px', background: C.surface,
+                  fontFamily: F.inter, fontSize: '13px', color: C.text1,
+                  outline: 'none', appearance: 'none', cursor: 'pointer',
+                  boxShadow: orgFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  transition: 'border-color 0.12s, box-shadow 0.12s',
+                }}
+              >
+                {DUP_ORGS.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+              <ChevronDown size={14} color={C.text3} style={{
+                position: 'absolute', right: '12px', top: '50%',
+                transform: 'translateY(-50%)', pointerEvents: 'none',
+              }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '10px', justifyContent: 'flex-end',
+          padding: '14px 20px',
+          borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 18px',
+              border: `1px solid ${C.border}`, borderRadius: '8px',
+              background: cancelHov ? '#F9FAFB' : C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'background 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={() => { if (canConfirm) onConfirm(); }}
+            disabled={!canConfirm}
+            aria-label="Создать копию"
+            style={{
+              height: '38px', padding: '0 18px',
+              border: 'none', borderRadius: '8px',
+              background: !canConfirm ? '#93C5FD' : confirmHov ? C.blueHover : C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF',
+              cursor: canConfirm ? 'pointer' : 'not-allowed',
+              opacity: canConfirm ? 1 : 0.85,
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: canConfirm && confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : canConfirm ? '0 1px 3px rgba(37,99,235,0.16)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            <Copy size={14} strokeWidth={2} />
+            Создать копию
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1342,6 +1585,7 @@ export default function CardBatchDetailPage() {
   const [tab, setTab] = useState<TabKey>('cards');
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [duplicateOpen, setDuplicateOpen] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -1409,7 +1653,11 @@ export default function CardBatchDetailPage() {
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
               <OutlineButton icon={Pencil}   onClick={() => navigate(`/card-batches/${id ?? 1}/edit`)}>Редактировать</OutlineButton>
               <OutlineButton icon={Download} onClick={() => { /* export */ }}>Экспорт</OutlineButton>
-              <ActionDropdown onArchive={() => setArchiveOpen(true)} onDelete={() => setDeleteOpen(true)} />
+              <ActionDropdown
+                onArchive={() => setArchiveOpen(true)}
+                onDuplicate={() => setDuplicateOpen(true)}
+                onDelete={() => setDeleteOpen(true)}
+              />
             </div>
           </div>
 
@@ -1449,6 +1697,12 @@ export default function CardBatchDetailPage() {
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => { setDeleteOpen(false); navigate('/card-batches'); }}
+      />
+
+      <DuplicateBatchModal
+        open={duplicateOpen}
+        onClose={() => setDuplicateOpen(false)}
+        onConfirm={() => { setDuplicateOpen(false); navigate('/card-batches'); }}
       />
     </div>
   );
