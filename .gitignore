@@ -16,3 +16,8 @@
 coverage/
 /logs
 /archive
+.claude
+/tasks
+/docs
+.guidelines
+/dist
