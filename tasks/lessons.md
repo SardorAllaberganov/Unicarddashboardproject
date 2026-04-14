@@ -56,6 +56,13 @@ Root cause: Each page creation had three-to-four separate edit points; easy to m
 Fix: Always touch [routes.tsx](src/app/routes.tsx), the relevant sidebar (BankAdmin or OrgAdmin in [Sidebar.tsx](src/app/components/Sidebar.tsx)), and [Navbar.tsx](src/app/components/Navbar.tsx) `ORG_PATHS` in the same turn as the new page.
 Rule: A new page isn't done until it's navigable. Route + sidebar + navbar role detection are part of "creating the page".
 
+## 2026-04-14 — Ad-hoc empty states duplicated across pages
+
+Mistake: Several pages had copy-pasted "Ничего не найдено" divs with inconsistent padding, typography, and action buttons.
+Root cause: No shared primitive; each page invented its own look for the zero-state.
+Fix: Added [EmptyState.tsx](src/app/components/EmptyState.tsx) implementing Prompt 0 §16 — 64px muted icon (stroke 1.25, color #D1D5DB), DM-Sans 18/700 title, Inter 13/muted subtitle, and up to three optional actions (primary / outline / ghost).
+Rule: Any page with a possible zero-rows view must import `<EmptyState />` with the right icon + title + subtitle + action for that context. Never inline a `div` with an icon and text. A showcase of all 6 canonical variants lives at `/empty-states`.
+
 ## 2026-04-14 — Export buttons without user feedback
 
 Mistake: Every "Экспорт" / "Скачать Excel" button across the app was a no-op with no visual feedback; clicking felt broken.

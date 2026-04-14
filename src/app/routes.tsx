@@ -32,6 +32,7 @@ import BulkCardAssignmentPage from './pages/BulkCardAssignmentPage';
 import ReportPreviewPage from './pages/ReportPreviewPage';
 import OverdueKpiReportPage from './pages/OverdueKpiReportPage';
 import NotificationsHistoryPage from './pages/NotificationsHistoryPage';
+import EmptyStatesShowcasePage from './pages/EmptyStatesShowcasePage';
 
 export const router = createBrowserRouter([
   {
@@ -121,6 +122,10 @@ export const router = createBrowserRouter([
   {
     path: '/notifications',
     Component: NotificationsHistoryPage,
+  },
+  {
+    path: '/empty-states',
+    Component: EmptyStatesShowcasePage,
   },
   {
     path: '/org-dashboard',
