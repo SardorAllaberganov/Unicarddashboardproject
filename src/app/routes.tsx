@@ -33,6 +33,8 @@ import ReportPreviewPage from './pages/ReportPreviewPage';
 import OverdueKpiReportPage from './pages/OverdueKpiReportPage';
 import NotificationsHistoryPage from './pages/NotificationsHistoryPage';
 import EmptyStatesShowcasePage from './pages/EmptyStatesShowcasePage';
+import NotificationRulesPage from './pages/NotificationRulesPage';
+import AnnouncementComposePage from './pages/AnnouncementComposePage';
 
 export const router = createBrowserRouter([
   {
@@ -126,6 +128,14 @@ export const router = createBrowserRouter([
   {
     path: '/empty-states',
     Component: EmptyStatesShowcasePage,
+  },
+  {
+    path: '/notification-rules',
+    Component: NotificationRulesPage,
+  },
+  {
+    path: '/announcements/new',
+    Component: AnnouncementComposePage,
   },
   {
     path: '/org-dashboard',

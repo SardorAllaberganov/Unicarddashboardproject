@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard, Building2, CreditCard, Settings2,
   Upload, Layers, Wallet, FileSpreadsheet, Users, Settings,
-  ClipboardCheck, ArrowDownToLine,
+  ClipboardCheck, ArrowDownToLine, BellRing, Megaphone,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
@@ -66,8 +66,10 @@ const BANK_NAV: NavGroupConfig[] = [
   {
     group: 'СИСТЕМА',
     items: [
-      { icon: Users,    label: 'Пользователи', path: '/users' },
-      { icon: Settings, label: 'Настройки',    path: '/settings' },
+      { icon: Users,     label: 'Пользователи',          path: '/users' },
+      { icon: BellRing,  label: 'Правила уведомлений',   path: '/notification-rules' },
+      { icon: Megaphone, label: 'Объявления',            path: '/announcements/new' },
+      { icon: Settings,  label: 'Настройки',             path: '/settings' },
     ],
   },
 ];
