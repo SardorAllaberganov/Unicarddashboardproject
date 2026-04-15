@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard, Building2, CreditCard, Settings2,
   Upload, Layers, Wallet, FileSpreadsheet, Users, Settings,
-  ClipboardCheck, ArrowDownToLine, BellRing, Megaphone,
+  ClipboardCheck, ArrowDownToLine, BellRing, Megaphone, Activity,
+  MessageSquare,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
@@ -68,7 +69,8 @@ const BANK_NAV: NavGroupConfig[] = [
     items: [
       { icon: Users,     label: 'Пользователи',          path: '/users' },
       { icon: BellRing,  label: 'Правила уведомлений',   path: '/notification-rules' },
-      { icon: Megaphone, label: 'Объявления',            path: '/announcements/new' },
+      { icon: Megaphone, label: 'Объявления',            path: '/announcements' },
+      { icon: Activity,  label: 'Лог доставки',          path: '/notification-log' },
       { icon: Settings,  label: 'Настройки',             path: '/settings' },
     ],
   },
@@ -87,6 +89,7 @@ const ORG_NAV: NavGroupConfig[] = [
       { icon: Users,          label: 'Продавцы',        path: '/sellers' },
       { icon: CreditCard,     label: 'Карты',           path: '/org-cards' },
       { icon: ClipboardCheck, label: 'Назначение карт', path: '/card-assignment' },
+      { icon: MessageSquare,  label: 'Сообщения',       path: '/seller-messages' },
     ],
   },
   {

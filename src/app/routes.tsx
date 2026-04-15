@@ -35,6 +35,12 @@ import NotificationsHistoryPage from './pages/NotificationsHistoryPage';
 import EmptyStatesShowcasePage from './pages/EmptyStatesShowcasePage';
 import NotificationRulesPage from './pages/NotificationRulesPage';
 import AnnouncementComposePage from './pages/AnnouncementComposePage';
+import AnnouncementHistoryPage from './pages/AnnouncementHistoryPage';
+import AnnouncementDetailPage from './pages/AnnouncementDetailPage';
+import NotificationDeliveryLogPage from './pages/NotificationDeliveryLogPage';
+import SellerMessageComposePage from './pages/SellerMessageComposePage';
+import SellerMessageHistoryPage from './pages/SellerMessageHistoryPage';
+import SellerMessageDetailPage from './pages/SellerMessageDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -134,8 +140,32 @@ export const router = createBrowserRouter([
     Component: NotificationRulesPage,
   },
   {
+    path: '/announcements',
+    Component: AnnouncementHistoryPage,
+  },
+  {
     path: '/announcements/new',
     Component: AnnouncementComposePage,
+  },
+  {
+    path: '/announcements/:id',
+    Component: AnnouncementDetailPage,
+  },
+  {
+    path: '/notification-log',
+    Component: NotificationDeliveryLogPage,
+  },
+  {
+    path: '/seller-messages',
+    Component: SellerMessageHistoryPage,
+  },
+  {
+    path: '/seller-messages/new',
+    Component: SellerMessageComposePage,
+  },
+  {
+    path: '/seller-messages/:id',
+    Component: SellerMessageDetailPage,
   },
   {
     path: '/org-dashboard',

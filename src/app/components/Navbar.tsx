@@ -49,7 +49,7 @@ const ROLE_CONFIG: Record<AdminRole, {
    HELPERS — detect current role from URL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const ORG_PATHS = ['/org-dashboard', '/sellers', '/org-cards', '/card-assignment', '/org-rewards', '/org-withdrawals', '/org-settings'];
+const ORG_PATHS = ['/org-dashboard', '/sellers', '/org-cards', '/card-assignment', '/org-rewards', '/org-withdrawals', '/org-settings', '/seller-messages'];
 
 function detectRole(pathname: string): AdminRole {
   if (ORG_PATHS.some(p => pathname.startsWith(p))) return 'org';
