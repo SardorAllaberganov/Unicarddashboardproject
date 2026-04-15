@@ -4,7 +4,7 @@ import {
   CheckCircle2, CreditCard, ArrowDown, Upload, AlertTriangle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { F, C } from './ds/tokens';
+import { F, C, D, theme } from './ds/tokens';
 import { usePopoverPosition } from './usePopoverPosition';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -64,6 +64,7 @@ function detectRole(pathname: string): AdminRole {
 export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [themeHov, setThemeHov] = useState(false);
+  const [themeSpinKey, setThemeSpinKey] = useState(0);
   const [logoutHov, setLogoutHov] = useState(false);
   const [switchHov, setSwitchHov] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -73,6 +74,11 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
   const cfg = ROLE_CONFIG[currentRole];
   const otherRole: AdminRole = currentRole === 'bank' ? 'org' : 'bank';
   const otherCfg = ROLE_CONFIG[otherRole];
+
+  const t = theme(darkMode);
+  const dark = darkMode;
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
+  const hoverBorder = dark ? '#3A3F50' : '#D1D5DB';
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -90,15 +96,16 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
   return (
     <div style={{
       position: 'sticky', top: 0, zIndex: 40,
-      background: C.surface, borderBottom: `1px solid ${C.border}`,
+      background: t.surface, borderBottom: `1px solid ${t.border}`,
       height: '60px', display: 'flex', alignItems: 'center',
       padding: '0 32px', flexShrink: 0,
+      transition: 'background 0.2s, border-color 0.2s',
     }}>
       {/* Left: branding */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
         <span style={{
           fontFamily: F.dm, fontSize: '15px', fontWeight: 700,
-          color: currentRole === 'org' ? C.blue : C.text1, whiteSpace: 'nowrap',
+          color: currentRole === 'org' ? t.blue : t.text1, whiteSpace: 'nowrap',
         }}>
           {currentRole === 'org' ? 'Mysafar OOO' : 'Moment KPI'}
         </span>
@@ -106,29 +113,44 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         {/* Notifications */}
-        <NotificationBell />
+        <NotificationBell dark={dark} />
 
         {/* Theme toggle */}
         <button
-          onClick={onDarkModeToggle}
+          onClick={() => { setThemeSpinKey(k => k + 1); onDarkModeToggle(); }}
           onMouseEnter={() => setThemeHov(true)}
           onMouseLeave={() => setThemeHov(false)}
           title={darkMode ? 'Светлая тема' : 'Тёмная тема'}
+          aria-label={darkMode ? 'Светлая тема' : 'Тёмная тема'}
           style={{
             width: '36px', height: '36px', borderRadius: '8px',
-            border: `1px solid ${themeHov ? '#D1D5DB' : C.border}`,
-            background: themeHov ? '#F9FAFB' : C.surface,
+            border: `1px solid ${themeHov ? hoverBorder : t.border}`,
+            background: themeHov ? hoverBg : t.surface,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
           }}
         >
-          {darkMode
-            ? <Sun size={15} color="#F59E0B" strokeWidth={1.75} />
-            : <Moon size={15} color={C.text3} strokeWidth={1.75} />}
+          <style>{`
+            @keyframes themeIconSpin {
+              from { transform: rotate(-180deg); }
+              to   { transform: rotate(0deg); }
+            }
+          `}</style>
+          <span
+            key={themeSpinKey}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              animation: themeSpinKey > 0 ? 'themeIconSpin 0.25s ease-out' : undefined,
+            }}
+          >
+            {darkMode
+              ? <Sun size={15} color="#F59E0B" strokeWidth={1.75} />
+              : <Moon size={15} color={t.text3} strokeWidth={1.75} />}
+          </span>
         </button>
 
         {/* Divider */}
-        <div style={{ width: '1px', height: '24px', background: C.border, margin: '0 6px', flexShrink: 0 }} />
+        <div style={{ width: '1px', height: '24px', background: t.border, margin: '0 6px', flexShrink: 0 }} />
 
         {/* User button */}
         <div ref={ref} style={{ position: 'relative' }}>
@@ -139,18 +161,18 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
               padding: '5px 10px 5px 6px',
               border: 'none',
               borderRadius: '10px',
-              background: menuOpen ? C.blueLt : C.surface,
+              background: menuOpen ? t.blueLt : t.surface,
               cursor: 'pointer', transition: 'all 0.12s',
-              boxShadow: menuOpen ? `0 0 0 3px ${C.blueTint}` : 'none',
+              boxShadow: menuOpen ? `0 0 0 3px ${t.blueTint}` : 'none',
             }}
           >
             {/* Avatar */}
             <div style={{
               width: '30px', height: '30px', borderRadius: '50%',
-              background: C.blueTint, border: `1.5px solid ${C.blue}`,
+              background: t.blueTint, border: `1.5px solid ${t.blue}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: C.blue }}>
+              <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: t.blue }}>
                 {cfg.initials}
               </span>
             </div>
@@ -159,20 +181,20 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
             <div style={{ textAlign: 'left' }}>
               <div style={{
                 fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                color: C.text1, whiteSpace: 'nowrap', lineHeight: 1.3,
+                color: t.text1, whiteSpace: 'nowrap', lineHeight: 1.3,
               }}>
                 {cfg.name}
               </div>
               <div style={{
                 fontFamily: F.inter, fontSize: '11px',
-                color: C.text4, lineHeight: '16px', whiteSpace: 'nowrap',
+                color: t.text4, lineHeight: '16px', whiteSpace: 'nowrap',
               }}>
                 {cfg.roleLabel}
               </div>
             </div>
 
             {/* Chevron */}
-            <ChevronDown size={14} color={C.text4} strokeWidth={1.75}
+            <ChevronDown size={14} color={t.text4} strokeWidth={1.75}
               style={{
                 transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                 transition: 'transform 0.15s', flexShrink: 0,
@@ -184,9 +206,10 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
           {menuOpen && (
             <div style={{
               position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-              background: C.surface, border: `1px solid ${C.border}`,
+              background: t.surface, border: `1px solid ${t.border}`,
               borderRadius: '10px', padding: '6px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.09)', zIndex: 60, minWidth: '220px',
+              boxShadow: dark ? '0 8px 24px rgba(0,0,0,0.45)' : '0 8px 24px rgba(0,0,0,0.09)',
+              zIndex: 60, minWidth: '220px',
             }}>
               {/* Profile row */}
               <button style={{
@@ -194,32 +217,32 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '8px 10px', borderRadius: '7px',
                 border: 'none', background: 'none', cursor: 'pointer',
-                fontFamily: F.inter, fontSize: '13px', color: C.text2,
+                fontFamily: F.inter, fontSize: '13px', color: t.text2,
                 transition: 'background 0.1s',
               }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#F9FAFB')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                onMouseEnter={e => (e.currentTarget.style.background = hoverBg)}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <div style={{
                   width: '28px', height: '28px', borderRadius: '50%',
-                  background: C.blueTint, border: `1.5px solid ${C.blue}`,
+                  background: t.blueTint, border: `1.5px solid ${t.blue}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <span style={{ fontFamily: F.inter, fontSize: '10px', fontWeight: 700, color: C.blue }}>
+                  <span style={{ fontFamily: F.inter, fontSize: '10px', fontWeight: 700, color: t.blue }}>
                     {cfg.initials}
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1 }}>
+                  <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text1 }}>
                     {cfg.name}
                   </div>
-                  <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>
+                  <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4 }}>
                     {cfg.email}
                   </div>
                 </div>
               </button>
 
-              <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+              <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />
 
               {/* Switch role */}
               <button
@@ -230,17 +253,17 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
                   width: '100%', textAlign: 'left',
                   display: 'flex', alignItems: 'center', gap: '8px',
                   padding: '8px 10px', borderRadius: '7px', border: 'none',
-                  background: switchHov ? C.blueLt : 'none',
+                  background: switchHov ? t.blueLt : 'transparent',
                   cursor: 'pointer',
                   fontFamily: F.inter, fontSize: '13px',
-                  color: switchHov ? C.blue : C.text2,
+                  color: switchHov ? t.blue : t.text2,
                   transition: 'all 0.1s',
                 }}
               >
                 <ArrowLeftRight size={14} strokeWidth={1.75} />
                 <div>
                   <div>Переключить на {otherCfg.roleLabel}</div>
-                  <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '1px' }}>
+                  <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4, marginTop: '1px' }}>
                     {otherCfg.name}
                   </div>
                 </div>
@@ -254,9 +277,11 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
                   width: '100%', textAlign: 'left',
                   display: 'flex', alignItems: 'center', gap: '8px',
                   padding: '8px 10px', borderRadius: '7px', border: 'none',
-                  background: logoutHov ? '#FEF2F2' : 'none', cursor: 'pointer',
+                  background: logoutHov ? (dark ? 'rgba(248,113,113,0.12)' : '#FEF2F2') : 'transparent',
+                  cursor: 'pointer',
                   fontFamily: F.inter, fontSize: '13px',
-                  color: logoutHov ? '#DC2626' : C.text3, transition: 'all 0.1s',
+                  color: logoutHov ? (dark ? '#F87171' : '#DC2626') : t.text3,
+                  transition: 'all 0.1s',
                 }}
               >
                 <LogOut size={14} strokeWidth={1.75} /> Выйти из системы
@@ -312,7 +337,10 @@ interface FlyoutItem {
   sub?: string;
 }
 
-function NotificationBell() {
+function NotificationBell({ dark }: { dark: boolean }) {
+  const t = theme(dark);
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
+  const hoverBorder = dark ? '#3A3F50' : '#D1D5DB';
   const pop = usePopoverPosition();
   const [hov, setHov] = useState(false);
   const [tab, setTab] = useState<'all' | 'unread'>('all');
@@ -427,13 +455,13 @@ function NotificationBell() {
         style={{
           position: 'relative',
           width: '36px', height: '36px', borderRadius: '8px',
-          border: `1px solid ${pop.open ? C.blue : hov ? '#D1D5DB' : C.border}`,
-          background: pop.open ? C.blueLt : hov ? '#F9FAFB' : C.surface,
+          border: `1px solid ${pop.open ? t.blue : hov ? hoverBorder : t.border}`,
+          background: pop.open ? t.blueLt : hov ? hoverBg : t.surface,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
         }}
       >
-        <Bell size={15} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
+        <Bell size={15} color={pop.open ? t.blue : t.text3} strokeWidth={1.75} />
         {unreadCount > 0 && (
           <span
             key={`badge-${pulseKey}-${bounceKey}`}
@@ -441,7 +469,7 @@ function NotificationBell() {
               position: 'absolute', top: '3px', right: '3px',
               minWidth: '16px', height: '16px', padding: '0 4px',
               borderRadius: '999px', background: C.error,
-              border: `2px solid ${C.surface}`,
+              border: `2px solid ${t.surface}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: F.inter, fontSize: '10px', fontWeight: 700,
               color: '#fff', lineHeight: 1,
@@ -461,6 +489,7 @@ function NotificationBell() {
       {flyout && !pop.open && (
         <BellFlyout
           item={flyout}
+          dark={dark}
           onOpen={() => { setFlyout(null); pop.toggle(); }}
           onClose={() => setFlyout(null)}
         />
@@ -488,10 +517,10 @@ function NotificationBell() {
         <div ref={pop.menuRef} style={{
           ...pop.menuStyle,
           width: '400px', maxHeight: '480px',
-          background: C.surface,
-          border: `1px solid ${C.border}`,
+          background: t.surface,
+          border: `1px solid ${t.border}`,
           borderRadius: '12px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.14)',
+          boxShadow: dark ? '0 20px 40px rgba(0,0,0,0.5)' : '0 20px 40px rgba(0,0,0,0.14)',
           display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
         }}>
@@ -499,11 +528,11 @@ function NotificationBell() {
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             gap: '10px', padding: '14px 16px',
-            borderBottom: `1px solid ${C.border}`,
+            borderBottom: `1px solid ${t.border}`,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{
-                fontFamily: F.dm, fontSize: '15px', fontWeight: 700, color: C.text1,
+                fontFamily: F.dm, fontSize: '15px', fontWeight: 700, color: t.text1,
               }}>
                 Уведомления
               </span>
@@ -512,8 +541,8 @@ function NotificationBell() {
                   display: 'inline-flex', alignItems: 'center',
                   fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                   padding: '2px 8px', borderRadius: '8px',
-                  background: C.blueLt, color: C.blue,
-                  border: `1px solid ${C.blueTint}`,
+                  background: t.blueLt, color: t.blue,
+                  border: `1px solid ${t.blueTint}`,
                 }}>
                   {unreadCount} новых
                 </span>
@@ -525,12 +554,12 @@ function NotificationBell() {
               style={{
                 border: 'none', background: 'none',
                 fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
-                color: unreadCount ? C.blue : C.text4,
+                color: unreadCount ? t.blue : t.text4,
                 padding: '4px 6px', borderRadius: '6px',
                 cursor: unreadCount ? 'pointer' : 'not-allowed',
                 transition: 'background 0.12s',
               }}
-              onMouseEnter={e => { if (unreadCount) e.currentTarget.style.background = C.blueLt; }}
+              onMouseEnter={e => { if (unreadCount) e.currentTarget.style.background = t.blueLt; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
             >
               Прочитать все
@@ -540,10 +569,10 @@ function NotificationBell() {
           {/* Tabs */}
           <div style={{
             display: 'flex', gap: '0', padding: '0 16px',
-            borderBottom: `1px solid ${C.border}`,
+            borderBottom: `1px solid ${t.border}`,
           }}>
-            <TabBtn active={tab === 'all'}      onClick={() => setTab('all')}>Все</TabBtn>
-            <TabBtn active={tab === 'unread'}   onClick={() => setTab('unread')}>
+            <TabBtn active={tab === 'all'} dark={dark} onClick={() => setTab('all')}>Все</TabBtn>
+            <TabBtn active={tab === 'unread'} dark={dark} onClick={() => setTab('unread')}>
               Непрочитанные{unreadCount ? ` (${unreadCount})` : ''}
             </TabBtn>
           </div>
@@ -557,24 +586,24 @@ function NotificationBell() {
               }}>
                 <div style={{
                   width: '44px', height: '44px', borderRadius: '50%',
-                  background: '#F3F4F6',
+                  background: dark ? D.tableAlt : '#F3F4F6',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   marginBottom: '4px',
                 }}>
-                  <BellOff size={20} color={C.text4} strokeWidth={1.75} />
+                  <BellOff size={20} color={t.text4} strokeWidth={1.75} />
                 </div>
                 <div style={{
-                  fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text2,
+                  fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text2,
                 }}>
                   Нет новых уведомлений
                 </div>
-                <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>
+                <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4 }}>
                   Здесь появятся новые события системы
                 </div>
               </div>
             ) : (
               visible.map((n, i) => (
-                <NotifRow key={n.id} notif={n} last={i === visible.length - 1} />
+                <NotifRow key={n.id} notif={n} dark={dark} last={i === visible.length - 1} />
               ))
             )}
           </div>
@@ -583,27 +612,28 @@ function NotificationBell() {
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             gap: '8px', padding: '8px 12px',
-            borderTop: `1px solid ${C.border}`, background: '#F9FAFB',
+            borderTop: `1px solid ${t.border}`,
+            background: dark ? D.tableAlt : '#F9FAFB',
           }}>
             <span style={{
               fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
-              color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+              color: t.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
             }}>
               Демо
             </span>
             <div style={{ display: 'flex', gap: '6px' }}>
-              <DemoGhostBtn onClick={simulateSingle}>+1 событие</DemoGhostBtn>
-              <DemoGhostBtn onClick={simulateBatch}>+5 пакетом</DemoGhostBtn>
+              <DemoGhostBtn dark={dark} onClick={simulateSingle}>+1 событие</DemoGhostBtn>
+              <DemoGhostBtn dark={dark} onClick={simulateBatch}>+5 пакетом</DemoGhostBtn>
             </div>
           </div>
 
           {/* Footer */}
           <div style={{
             padding: '10px 12px',
-            borderTop: `1px solid ${C.border}`,
-            background: C.surface,
+            borderTop: `1px solid ${t.border}`,
+            background: t.surface,
           }}>
-            <FooterLink onClick={pop.close} />
+            <FooterLink dark={dark} onClick={pop.close} />
           </div>
         </div>
       )}
@@ -611,9 +641,10 @@ function NotificationBell() {
   );
 }
 
-function TabBtn({ active, onClick, children }: {
-  active: boolean; onClick: () => void; children: React.ReactNode;
+function TabBtn({ active, dark, onClick, children }: {
+  active: boolean; dark: boolean; onClick: () => void; children: React.ReactNode;
 }) {
+  const t = theme(dark);
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -625,8 +656,8 @@ function TabBtn({ active, onClick, children }: {
         padding: '10px 14px',
         fontFamily: F.inter, fontSize: '13px',
         fontWeight: active ? 600 : 500,
-        color: active ? C.blue : hov ? C.text1 : C.text3,
-        borderBottom: `2px solid ${active ? C.blue : 'transparent'}`,
+        color: active ? t.blue : hov ? t.text1 : t.text3,
+        borderBottom: `2px solid ${active ? t.blue : 'transparent'}`,
         marginBottom: '-1px',
         cursor: 'pointer', transition: 'color 0.12s',
       }}
@@ -636,10 +667,15 @@ function TabBtn({ active, onClick, children }: {
   );
 }
 
-function NotifRow({ notif, last }: { notif: Notif; last: boolean }) {
+function NotifRow({ notif, dark, last }: { notif: Notif; dark: boolean; last: boolean }) {
+  const t = theme(dark);
   const [hov, setHov] = useState(false);
   const cfg = ICON_COLORS[notif.color];
   const Icon = notif.icon;
+
+  const readBg = dark ? D.tableAlt : '#F9FAFB';
+  const readHoverBg = dark ? D.tableHover : '#F3F4F6';
+  const unreadHoverBg = dark ? D.tableHover : '#F9FAFB';
 
   return (
     <div
@@ -649,10 +685,10 @@ function NotifRow({ notif, last }: { notif: Notif; last: boolean }) {
         position: 'relative',
         display: 'flex', gap: '10px', alignItems: 'flex-start',
         padding: '12px 16px 12px 20px',
-        borderBottom: last ? 'none' : `1px solid ${C.border}`,
+        borderBottom: last ? 'none' : `1px solid ${t.border}`,
         background: notif.unread
-          ? (hov ? '#F9FAFB' : C.surface)
-          : (hov ? '#F3F4F6' : '#F9FAFB'),
+          ? (hov ? unreadHoverBg : t.surface)
+          : (hov ? readHoverBg : readBg),
         cursor: 'pointer', transition: 'background 0.12s',
       }}
     >
@@ -660,7 +696,7 @@ function NotifRow({ notif, last }: { notif: Notif; last: boolean }) {
         <span style={{
           position: 'absolute', left: '8px', top: '18px',
           width: '6px', height: '6px', borderRadius: '50%',
-          background: C.blue, flexShrink: 0,
+          background: t.blue, flexShrink: 0,
         }} />
       )}
       <div style={{
@@ -674,7 +710,7 @@ function NotifRow({ notif, last }: { notif: Notif; last: boolean }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontFamily: F.inter, fontSize: '13px',
-          color: notif.unread ? C.text1 : C.text2,
+          color: notif.unread ? t.text1 : t.text2,
           fontWeight: notif.unread ? 500 : 400,
           lineHeight: 1.4,
         }}>
@@ -683,14 +719,14 @@ function NotifRow({ notif, last }: { notif: Notif; last: boolean }) {
         {notif.sub && (
           <div style={{
             fontFamily: F.inter, fontSize: '12px',
-            color: C.success, fontWeight: 500,
+            color: t.success, fontWeight: 500,
             marginTop: '2px',
           }}>
             {notif.sub}
           </div>
         )}
         <div style={{
-          fontFamily: F.inter, fontSize: '11px', color: C.text4,
+          fontFamily: F.inter, fontSize: '11px', color: t.text4,
           marginTop: '3px',
         }}>
           {notif.time}
@@ -700,11 +736,13 @@ function NotifRow({ notif, last }: { notif: Notif; last: boolean }) {
   );
 }
 
-function BellFlyout({ item, onOpen, onClose }: {
+function BellFlyout({ item, dark, onOpen, onClose }: {
   item: FlyoutItem;
+  dark: boolean;
   onOpen: () => void;
   onClose: () => void;
 }) {
+  const t = theme(dark);
   const cfg = ICON_COLORS[item.color];
 
   return (
@@ -716,13 +754,13 @@ function BellFlyout({ item, onOpen, onClose }: {
         top: 'calc(100% + 8px)',
         right: 0,
         width: '320px',
-        background: C.surface,
-        borderTop: `1px solid ${C.border}`,
-        borderRight: `1px solid ${C.border}`,
-        borderBottom: `1px solid ${C.border}`,
-        borderLeft: `3px solid ${C.blue}`,
+        background: t.surface,
+        borderTop: `1px solid ${t.border}`,
+        borderRight: `1px solid ${t.border}`,
+        borderBottom: `1px solid ${t.border}`,
+        borderLeft: `3px solid ${t.blue}`,
         borderRadius: '10px',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        boxShadow: dark ? '0 12px 32px rgba(0,0,0,0.5)' : '0 12px 32px rgba(0,0,0,0.12)',
         padding: '10px 12px',
         display: 'flex', alignItems: 'flex-start', gap: '10px',
         zIndex: 200,
@@ -746,7 +784,7 @@ function BellFlyout({ item, onOpen, onClose }: {
           onClick={onOpen}
           style={{
             fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-            color: C.text1, lineHeight: 1.4, cursor: 'pointer',
+            color: t.text1, lineHeight: 1.4, cursor: 'pointer',
             display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2,
             overflow: 'hidden',
           }}
@@ -755,7 +793,7 @@ function BellFlyout({ item, onOpen, onClose }: {
         </div>
         {item.sub && (
           <div style={{
-            fontFamily: F.inter, fontSize: '12px', color: C.text3,
+            fontFamily: F.inter, fontSize: '12px', color: t.text3,
             marginTop: '2px', lineHeight: 1.4,
           }}>
             {item.sub}
@@ -765,7 +803,7 @@ function BellFlyout({ item, onOpen, onClose }: {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginTop: '6px',
         }}>
-          <span style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>
+          <span style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4 }}>
             Только что
           </span>
           <button
@@ -774,7 +812,7 @@ function BellFlyout({ item, onOpen, onClose }: {
             style={{
               background: 'transparent', border: 'none', padding: 0,
               fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
-              color: C.blue, cursor: 'pointer',
+              color: t.blue, cursor: 'pointer',
             }}
           >
             Нажмите чтобы открыть →
@@ -788,7 +826,7 @@ function BellFlyout({ item, onOpen, onClose }: {
         aria-label="Закрыть"
         style={{
           background: 'transparent', border: 'none', padding: '2px',
-          color: C.text4, cursor: 'pointer', flexShrink: 0,
+          color: t.text4, cursor: 'pointer', flexShrink: 0,
           fontSize: '14px', lineHeight: 1,
         }}
       >
@@ -798,9 +836,10 @@ function BellFlyout({ item, onOpen, onClose }: {
   );
 }
 
-function DemoGhostBtn({ children, onClick }: {
-  children: React.ReactNode; onClick: () => void;
+function DemoGhostBtn({ children, dark, onClick }: {
+  children: React.ReactNode; dark: boolean; onClick: () => void;
 }) {
+  const t = theme(dark);
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -810,11 +849,11 @@ function DemoGhostBtn({ children, onClick }: {
       onClick={onClick}
       style={{
         height: '26px', padding: '0 10px',
-        border: `1px solid ${C.inputBorder}`,
+        border: `1px solid ${t.inputBorder}`,
         borderRadius: '6px',
-        background: hov ? C.surface : 'transparent',
+        background: hov ? t.surface : 'transparent',
         fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
-        color: C.text2, cursor: 'pointer',
+        color: t.text2, cursor: 'pointer',
         transition: 'all 0.12s',
       }}
     >
@@ -823,7 +862,8 @@ function DemoGhostBtn({ children, onClick }: {
   );
 }
 
-function FooterLink({ onClick }: { onClick: () => void }) {
+function FooterLink({ dark, onClick }: { dark: boolean; onClick: () => void }) {
+  const t = theme(dark);
   const [hov, setHov] = useState(false);
   const navigate = useNavigate();
   const role = detectRole(window.location.pathname);
@@ -835,9 +875,9 @@ function FooterLink({ onClick }: { onClick: () => void }) {
       style={{
         width: '100%', height: '36px',
         border: 'none', borderRadius: '8px',
-        background: hov ? C.blueLt : 'transparent',
+        background: hov ? t.blueLt : 'transparent',
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.blue, cursor: 'pointer',
+        color: t.blue, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
         transition: 'background 0.12s',
       }}
