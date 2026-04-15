@@ -4,7 +4,7 @@ import {
   Upload, Layers, Wallet, FileSpreadsheet, Users, Settings,
   ClipboardCheck, ArrowDownToLine, BellRing, Megaphone, Activity,
   MessageSquare,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Sun, Moon,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { F, C } from './ds/tokens';
@@ -207,6 +207,7 @@ export function Sidebar({
   collapsed = false,
   onToggle,
   darkMode = false,
+  onDarkModeToggle,
   orgName = 'Mysafar OOO',
 }: SidebarProps) {
   const dark = darkMode;
@@ -312,36 +313,100 @@ export function Sidebar({
         ))}
       </div>
 
-      {/* ── Bottom: collapse toggle ── */}
+      {/* ── Bottom: theme toggle + collapse ── */}
       <div style={{ flexShrink: 0, borderTop: `1px solid ${borderColor}` }}>
-        <button
-          onClick={onToggle}
-          onMouseEnter={() => setCollapseHovered(true)}
-          onMouseLeave={() => setCollapseHovered(false)}
-          title={collapsed ? 'Развернуть панель' : 'Свернуть панель'}
-          style={{
-            width: '100%', height: '44px',
-            background: collapseHovered ? (dark ? '#1F2937' : '#F9FAFB') : 'transparent',
-            border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: '10px', padding: collapsed ? '0' : '0 16px',
-            transition: 'background 0.12s',
-          }}
-        >
-          {collapsed ? (
-            <ChevronRight size={16} color={groupLabelColor} strokeWidth={1.75} />
-          ) : (
-            <>
-              <ChevronLeft size={16} color={groupLabelColor} strokeWidth={1.75} />
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: groupLabelColor, whiteSpace: 'nowrap' }}>
-                Свернуть панель
-              </span>
-            </>
-          )}
-        </button>
+        <ThemeToggleRow dark={dark} collapsed={collapsed} onToggle={onDarkModeToggle} />
+
+        <div style={{ borderTop: `1px solid ${borderColor}` }}>
+          <button
+            onClick={onToggle}
+            onMouseEnter={() => setCollapseHovered(true)}
+            onMouseLeave={() => setCollapseHovered(false)}
+            title={collapsed ? 'Развернуть панель' : 'Свернуть панель'}
+            style={{
+              width: '100%', height: '44px',
+              background: collapseHovered ? (dark ? '#1F2937' : '#F9FAFB') : 'transparent',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: '10px', padding: collapsed ? '0' : '0 16px',
+              transition: 'background 0.12s',
+            }}
+          >
+            {collapsed ? (
+              <ChevronRight size={16} color={groupLabelColor} strokeWidth={1.75} />
+            ) : (
+              <>
+                <ChevronLeft size={16} color={groupLabelColor} strokeWidth={1.75} />
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: groupLabelColor, whiteSpace: 'nowrap' }}>
+                  Свернуть панель
+                </span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEME TOGGLE (bottom sidebar row)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function ThemeToggleRow({ dark, collapsed, onToggle }: {
+  dark: boolean;
+  collapsed: boolean;
+  onToggle?: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  const [turns, setTurns] = useState(0);
+
+  const label = dark ? 'Светлая тема' : 'Тёмная тема';
+  const iconColor = dark ? '#93C5FD' : '#D97706';
+  const textColor = dark ? '#9CA3AF' : C.text3;
+
+  const handleClick = () => {
+    setTurns(t => t + 180);
+    onToggle?.();
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      title={label}
+      aria-label={label}
+      style={{
+        width: '100%', height: '44px',
+        background: hov ? (dark ? '#1F2937' : '#F9FAFB') : 'transparent',
+        border: 'none', cursor: 'pointer',
+        display: 'flex', alignItems: 'center',
+        justifyContent: collapsed ? 'center' : 'flex-start',
+        gap: '10px', padding: collapsed ? '0' : '0 16px',
+        transition: 'background 0.12s',
+      }}
+    >
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        transform: `rotate(${turns}deg)`,
+        transition: 'transform 0.2s ease-in-out',
+      }}>
+        {dark
+          ? <Moon size={20} color={iconColor} strokeWidth={1.75} />
+          : <Sun  size={20} color={iconColor} strokeWidth={1.75} />}
+      </span>
+      {!collapsed && (
+        <span style={{
+          fontFamily: F.inter, fontSize: '13px', color: textColor,
+          whiteSpace: 'nowrap',
+        }}>
+          {label}
+        </span>
+      )}
+    </button>
   );
 }
 

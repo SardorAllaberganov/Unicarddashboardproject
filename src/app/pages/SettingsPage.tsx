@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode, useThemePref, type ThemePref } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
@@ -87,7 +88,7 @@ function ProfileTab() {
   const [phone, setPhone] = useState('+998 90 100 00 01');
   const [email, setEmail] = useState('admin@ubank.uz');
   const [language, setLanguage] = useState('Русский');
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
+  const [themePref, , setThemePref] = useThemePref();
 
   const [saveHover, setSaveHover] = useState(false);
   const [cancelHover, setCancelHover] = useState(false);
@@ -194,35 +195,58 @@ function ProfileTab() {
       {/* Theme */}
       <div style={{ marginBottom: '32px' }}>
         <h3 style={{
-          fontFamily: F.dm,
-          fontSize: '16px',
-          fontWeight: 600,
-          color: C.text1,
-          margin: '0 0 16px',
+          fontFamily: F.dm, fontSize: '16px', fontWeight: 600,
+          color: C.text1, margin: '0 0 16px',
         }}>
           Тема оформления
         </h3>
 
-        <div style={{ display: 'flex', gap: '20px' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
           {(['light', 'dark', 'system'] as const).map(t => (
-            <label key={t} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <input
-                type="radio"
-                name="theme"
-                checked={theme === t}
-                onChange={() => setTheme(t)}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  accentColor: C.blue,
-                  cursor: 'pointer',
-                }}
-              />
-              <span style={{ fontFamily: F.inter, fontSize: '14px', color: C.text2 }}>
-                {t === 'light' ? 'Светлая' : t === 'dark' ? 'Тёмная' : 'Системная'}
-              </span>
-            </label>
+            <ThemeRadioCard
+              key={t}
+              value={t}
+              selected={themePref === t}
+              onSelect={() => setThemePref(t)}
+            />
           ))}
+        </div>
+
+        <div style={{
+          fontFamily: F.inter, fontSize: '12px', color: C.text3,
+          marginTop: '10px',
+        }}>
+          {themePref === 'system'
+            ? 'Определяется настройками ОС'
+            : <>Текущая: <span style={{ color: C.text1, fontWeight: 500 }}>{themePref === 'dark' ? 'Тёмная' : 'Светлая'}</span></>}
+        </div>
+
+        {/* Dev reference strip */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: '8px',
+          marginTop: '14px', padding: '10px 12px',
+          background: '#F9FAFB', border: `1px solid ${C.border}`, borderRadius: '8px',
+        }}>
+          <div style={{
+            fontFamily: F.mono, fontSize: '10px', fontWeight: 700,
+            padding: '2px 6px', borderRadius: '4px',
+            background: C.blueLt, color: C.blue,
+            flexShrink: 0, marginTop: '1px',
+          }}>
+            DEV
+          </div>
+          <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.5 }}>
+            Theme preference stored in localStorage key{' '}
+            <code style={{
+              fontFamily: F.mono, fontSize: '11px',
+              padding: '1px 6px', borderRadius: '4px',
+              background: C.surface, border: `1px solid ${C.border}`,
+              color: C.text1,
+            }}>moment-kpi-theme</code>. Values:{' '}
+            <code style={codeInline}>'light'</code>,{' '}
+            <code style={codeInline}>'dark'</code>,{' '}
+            <code style={codeInline}>'system'</code>. Applied on page load before first render to prevent flash.
+          </div>
         </div>
       </div>
 
@@ -1186,6 +1210,117 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
+const codeInline: React.CSSProperties = {
+  fontFamily: F.mono, fontSize: '11px',
+  padding: '1px 6px', borderRadius: '4px',
+  background: C.surface, border: `1px solid ${C.border}`,
+  color: C.text1,
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEME RADIO CARD (profile tab)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function ThemeRadioCard({ value, selected, onSelect }: {
+  value: ThemePref;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  const label = value === 'light' ? 'Светлая' : value === 'dark' ? 'Тёмная' : 'Системная';
+
+  return (
+    <label
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: '10px', padding: '12px 14px',
+        border: `1px solid ${selected ? C.blue : (hov ? C.text3 : C.inputBorder)}`,
+        borderRadius: '10px',
+        background: selected ? C.blueLt : C.surface,
+        cursor: 'pointer', minWidth: '128px',
+        transition: 'all 0.12s',
+      }}
+    >
+      <ThemeThumbnail variant={value} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <input
+          type="radio"
+          name="theme"
+          checked={selected}
+          onChange={onSelect}
+          style={{
+            width: '16px', height: '16px',
+            accentColor: C.blue, cursor: 'pointer',
+          }}
+        />
+        <span style={{
+          fontFamily: F.inter, fontSize: '13px', fontWeight: selected ? 600 : 500,
+          color: selected ? C.blue : C.text1,
+        }}>
+          {label}
+        </span>
+      </div>
+    </label>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THEME THUMBNAIL (48×32 mini preview)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function ThemeThumbnail({ variant }: { variant: ThemePref }) {
+  if (variant === 'light') {
+    return (
+      <svg width="48" height="32" viewBox="0 0 48 32" style={{ display: 'block' }}>
+        <rect width="48" height="32" rx="3" fill="#FFFFFF" stroke="#E5E7EB" />
+        <rect x="0" y="0" width="14" height="32" fill="#F9FAFB" />
+        <rect x="2" y="4"  width="10" height="2" rx="1" fill="#D1D5DB" />
+        <rect x="2" y="8"  width="10" height="2" rx="1" fill="#E5E7EB" />
+        <rect x="2" y="12" width="10" height="2" rx="1" fill="#E5E7EB" />
+        <rect x="18" y="4" width="26" height="3" rx="1" fill="#D1D5DB" />
+        <rect x="18" y="10" width="26" height="18" rx="2" fill="#F3F4F6" />
+      </svg>
+    );
+  }
+  if (variant === 'dark') {
+    return (
+      <svg width="48" height="32" viewBox="0 0 48 32" style={{ display: 'block' }}>
+        <rect width="48" height="32" rx="3" fill="#0B1220" stroke="#1F2937" />
+        <rect x="0" y="0" width="14" height="32" fill="#111827" />
+        <rect x="2" y="4"  width="10" height="2" rx="1" fill="#374151" />
+        <rect x="2" y="8"  width="10" height="2" rx="1" fill="#1F2937" />
+        <rect x="2" y="12" width="10" height="2" rx="1" fill="#1F2937" />
+        <rect x="18" y="4"  width="26" height="3"  rx="1" fill="#374151" />
+        <rect x="18" y="10" width="26" height="18" rx="2" fill="#1F2937" />
+      </svg>
+    );
+  }
+  // system — diagonal split
+  return (
+    <svg width="48" height="32" viewBox="0 0 48 32" style={{ display: 'block' }}>
+      <defs>
+        <clipPath id="systemSplit">
+          <polygon points="0,0 48,0 0,32" />
+        </clipPath>
+      </defs>
+      <rect width="48" height="32" rx="3" fill="#0B1220" stroke="#1F2937" />
+      <g clipPath="url(#systemSplit)">
+        <rect width="48" height="32" fill="#FFFFFF" />
+        <rect x="0" y="0" width="14" height="32" fill="#F9FAFB" />
+      </g>
+      <g clipPath="url(#systemSplit)">
+        <rect x="2" y="4"  width="10" height="2" rx="1" fill="#D1D5DB" />
+        <rect x="2" y="8"  width="10" height="2" rx="1" fill="#E5E7EB" />
+        <rect x="18" y="4" width="26" height="3" rx="1" fill="#D1D5DB" />
+      </g>
+      <rect x="0" y="0" width="14" height="32" fill="#111827" mask="url(#dark)" />
+      <line x1="0" y1="32" x2="48" y2="0" stroke="#E5E7EB" strokeWidth="0.5" />
+    </svg>
+  );
+}
+
 const labelStyle: React.CSSProperties = {
   display: 'block',
   fontFamily: F.inter,
@@ -1209,7 +1344,7 @@ const checkboxStyle: React.CSSProperties = {
 export default function SettingsPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
 
   return (
