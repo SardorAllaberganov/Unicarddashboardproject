@@ -37,6 +37,7 @@ import FirstUseEmptyStatesShowcasePage from './pages/FirstUseEmptyStatesShowcase
 import SkeletonStatesShowcasePage from './pages/SkeletonStatesShowcasePage';
 import PaginationShowcasePage from './pages/PaginationShowcasePage';
 import RadioCardShowcasePage from './pages/RadioCardShowcasePage';
+import MarkdownShowcasePage from './pages/MarkdownShowcasePage';
 import NotificationRulesPage from './pages/NotificationRulesPage';
 import NotificationRuleDetailPage from './pages/NotificationRuleDetailPage';
 import NotificationRuleEditorPage from './pages/NotificationRuleEditorPage';
@@ -157,6 +158,10 @@ export const router = createBrowserRouter([
   {
     path: '/radio-card-showcase',
     Component: RadioCardShowcasePage,
+  },
+  {
+    path: '/markdown-showcase',
+    Component: MarkdownShowcasePage,
   },
   {
     path: '/notification-rules',

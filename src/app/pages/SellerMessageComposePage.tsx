@@ -249,6 +249,7 @@ export default function SellerMessageComposePage() {
                   title={form.title || 'Тема сообщения'}
                   body={form.body || 'Текст сообщения для продавцов...'}
                   placeholder={form.title.trim() === ''}
+                  dark={darkMode}
                 />
                 <div style={{ height: '1px', background: C.border, margin: '14px 0' }} />
                 <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
@@ -418,7 +419,7 @@ function TemplateCard({ template, onUse }: { template: Template; onUse: () => vo
    PREVIEW CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function PreviewCard({ title, body, placeholder }: { title: string; body: string; placeholder: boolean }) {
+function PreviewCard({ title, body, placeholder, dark = false }: { title: string; body: string; placeholder: boolean; dark?: boolean }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: '12px',
@@ -447,7 +448,7 @@ function PreviewCard({ title, body, placeholder }: { title: string; body: string
                 Текст сообщения для продавцов...
               </div>
             )
-            : renderMarkdown(body)}
+            : renderMarkdown(body, dark)}
         </div>
         <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '6px' }}>
           Только что

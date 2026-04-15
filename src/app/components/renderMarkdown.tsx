@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bold, Italic, List } from 'lucide-react';
-import { F, C } from './ds/tokens';
+import { F, C, D, theme } from './ds/tokens';
+import { useDarkMode } from './useDarkMode';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    renderMarkdown — markdown-lite renderer for announcement / message bodies.
@@ -12,12 +13,23 @@ import { F, C } from './ds/tokens';
      blank line      → paragraph break
      single \n       → <br> within a block
    No dangerouslySetInnerHTML — output is pure React nodes.
+
+   Theming: pass `dark` as the 2nd argument to switch to dark tokens. Defaults
+   to light. Callers should forward their page's darkMode value.
 ═══════════════════════════════════════════════════════════════════════════ */
 
-export function renderMarkdown(text: string): React.ReactNode {
+export function renderMarkdown(text: string, dark = false): React.ReactNode {
+  const t = theme(dark);
+
+  // Colors per spec
+  const bodyColor   = dark ? D.text2 : C.text2; // Normal paragraph text (secondary)
+  const strongColor = dark ? D.text1 : C.text1; // Bold → primary text
+  const emColor     = dark ? D.text2 : C.text2; // Italic → secondary
+  const bulletColor = dark ? D.text4 : C.text4; // Bullet markers
+  const linkColor   = t.blue;
+
   const lines = text.split('\n');
 
-  // Group consecutive non-blank lines into blocks; bullet runs into their own block
   type Block =
     | { kind: 'list'; items: string[] }
     | { kind: 'para'; lines: string[] };
@@ -44,7 +56,6 @@ export function renderMarkdown(text: string): React.ReactNode {
     }
 
     if (bulletMatch) {
-      // Ensure the previous block is a list or open a new one
       flushPara();
       const last = blocks[blocks.length - 1];
       if (last && last.kind === 'list') {
@@ -59,6 +70,8 @@ export function renderMarkdown(text: string): React.ReactNode {
   }
   flushPara();
 
+  const inlineOpts = { strongColor, emColor, linkColor };
+
   return blocks.map((b, bi) => {
     if (b.kind === 'list') {
       return (
@@ -68,13 +81,15 @@ export function renderMarkdown(text: string): React.ReactNode {
             margin: bi === 0 ? '0 0 8px' : '8px 0',
             paddingLeft: '18px',
             listStyle: 'disc',
-            fontFamily: F.inter, fontSize: '13px', color: C.text2,
+            fontFamily: F.inter, fontSize: '13px', color: bodyColor,
             lineHeight: 1.5,
-          }}
+            // ::marker color applies to the bullet dot
+            ['--bullet-color' as string]: bulletColor,
+          } as React.CSSProperties}
         >
           {b.items.map((item, ii) => (
-            <li key={ii} style={{ marginBottom: '3px' }}>
-              {renderInline(item)}
+            <li key={ii} style={{ marginBottom: '3px', color: bodyColor }}>
+              <span style={{ color: bodyColor }}>{renderInline(item, inlineOpts)}</span>
             </li>
           ))}
         </ul>
@@ -86,14 +101,14 @@ export function renderMarkdown(text: string): React.ReactNode {
         key={bi}
         style={{
           margin: bi === 0 ? '0 0 8px' : '8px 0',
-          fontFamily: F.inter, fontSize: '13px', color: C.text2,
+          fontFamily: F.inter, fontSize: '13px', color: bodyColor,
           lineHeight: 1.5,
         }}
       >
         {b.lines.map((l, li) => (
           <React.Fragment key={li}>
             {li > 0 && <br />}
-            {renderInline(l)}
+            {renderInline(l, inlineOpts)}
           </React.Fragment>
         ))}
       </p>
@@ -101,11 +116,13 @@ export function renderMarkdown(text: string): React.ReactNode {
   });
 }
 
+interface InlineOpts { strongColor: string; emColor: string; linkColor: string; }
+
 /**
  * Tokenises `**bold**` + `_italic_` inside a single line. Plain text falls
  * through. Non-terminated delimiters are treated as literal characters.
  */
-function renderInline(text: string): React.ReactNode {
+function renderInline(text: string, opts: InlineOpts): React.ReactNode {
   const nodes: React.ReactNode[] = [];
   const re = /\*\*([^*\n]+?)\*\*|_([^_\n]+?)_/g;
   let lastIndex = 0;
@@ -121,9 +138,17 @@ function renderInline(text: string): React.ReactNode {
       );
     }
     if (match[1] !== undefined) {
-      nodes.push(<strong key={key++} style={{ fontWeight: 600 }}>{match[1]}</strong>);
+      nodes.push(
+        <strong key={key++} style={{ fontWeight: 600, color: opts.strongColor }}>
+          {match[1]}
+        </strong>
+      );
     } else if (match[2] !== undefined) {
-      nodes.push(<em key={key++} style={{ fontStyle: 'italic' }}>{match[2]}</em>);
+      nodes.push(
+        <em key={key++} style={{ fontStyle: 'italic', color: opts.emColor }}>
+          {match[2]}
+        </em>
+      );
     }
     lastIndex = re.lastIndex;
   }
@@ -143,9 +168,15 @@ export interface FormatToolbarProps {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   onChange: (next: string) => void;
+  /** Force theme variant. Omit to follow the global useDarkMode() store. */
+  dark?: boolean;
 }
 
-export function FormatToolbar({ textareaRef, value, onChange }: FormatToolbarProps) {
+export function FormatToolbar({ textareaRef, value, onChange, dark: darkProp }: FormatToolbarProps) {
+  const [globalDark] = useDarkMode();
+  const dark = darkProp ?? globalDark;
+  const t = theme(dark);
+
   const wrap = (before: string, after: string) => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -171,7 +202,6 @@ export function FormatToolbar({ textareaRef, value, onChange }: FormatToolbarPro
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
 
-    // Expand to full lines
     const lineStart = value.lastIndexOf('\n', start - 1) + 1;
     const lineEndRaw = value.indexOf('\n', end);
     const lineEnd = lineEndRaw === -1 ? value.length : lineEndRaw;
@@ -199,28 +229,42 @@ export function FormatToolbar({ textareaRef, value, onChange }: FormatToolbarPro
     }, 0);
   };
 
+  const containerBg     = dark ? D.tableAlt : C.surface;
+  const containerBorder = dark ? D.border   : C.border;
+  const separatorBg     = dark ? D.border   : C.border;
+
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: '2px',
       padding: '4px',
-      border: `1px solid ${C.border}`,
+      border: `1px solid ${containerBorder}`,
       borderRadius: '8px',
-      background: C.surface,
+      background: containerBg,
       marginBottom: '8px',
     }}>
-      <ToolbarBtn icon={Bold} label="Полужирный" onClick={() => wrap('**', '**')} />
-      <ToolbarBtn icon={Italic} label="Курсив" onClick={() => wrap('_', '_')} />
-      <div style={{ width: '1px', height: '18px', background: C.border, margin: '0 2px' }} />
-      <ToolbarBtn icon={List} label="Список" onClick={toggleBullets} />
+      <ToolbarBtn icon={Bold}   label="Полужирный" onClick={() => wrap('**', '**')} dark={dark} t={t} />
+      <ToolbarBtn icon={Italic} label="Курсив"     onClick={() => wrap('_', '_')}   dark={dark} t={t} />
+      <div style={{ width: '1px', height: '18px', background: separatorBg, margin: '0 2px' }} />
+      <ToolbarBtn icon={List}   label="Список"     onClick={toggleBullets}          dark={dark} t={t} />
     </div>
   );
 }
 
-function ToolbarBtn({ icon: Icon, label, onClick }: {
-  icon: React.ElementType; label: string; onClick: () => void;
+function ToolbarBtn({ icon: Icon, label, onClick, dark, t }: {
+  icon: React.ElementType;
+  label: string;
+  onClick: () => void;
+  dark: boolean;
+  t: ReturnType<typeof theme>;
 }) {
   const [hov, setHov] = useState(false);
   const [active, setActive] = useState(false);
+
+  const hoverBg   = dark ? D.tableHover : C.blueLt;
+  const activeBg  = dark ? D.blueLt     : C.blueTint;
+  const idleColor = dark ? D.text2      : C.text2;
+  const hotColor  = t.blue;
+
   return (
     <button
       type="button"
@@ -234,8 +278,8 @@ function ToolbarBtn({ icon: Icon, label, onClick }: {
       style={{
         width: '28px', height: '26px',
         border: 'none', borderRadius: '6px',
-        background: active ? C.blueTint : (hov ? C.blueLt : 'transparent'),
-        color: active || hov ? C.blue : C.text3,
+        background: active ? activeBg : (hov ? hoverBg : 'transparent'),
+        color: active || hov ? hotColor : idleColor,
         cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.1s',
