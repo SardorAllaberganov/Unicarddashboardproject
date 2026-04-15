@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import { F, C } from './ds/tokens';
+import { F, C, D, theme } from './ds/tokens';
+import { useDarkMode } from './useDarkMode';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -102,11 +105,12 @@ function matchPreset(range: DateRange): Preset | null {
    CALENDAR MONTH
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function CalendarMonth({ year, month, from, to, onDayClick, onDayHover }: {
+function CalendarMonth({ year, month, from, to, onDayClick, onDayHover, t }: {
   year: number; month: number;
   from: string | null; to: string | null;
   onDayClick: (date: string) => void;
   onDayHover: (date: string | null) => void;
+  t: T;
 }) {
   const firstDow = (new Date(year, month, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -125,7 +129,7 @@ function CalendarMonth({ year, month, from, to, onDayClick, onDayHover }: {
         {DAY_LABELS.map(d => (
           <div key={d} style={{
             textAlign: 'center', fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-            color: C.text4, padding: '4px 0',
+            color: t.text4, padding: '4px 0',
           }}>
             {d}
           </div>
@@ -144,17 +148,17 @@ function CalendarMonth({ year, month, from, to, onDayClick, onDayHover }: {
           const isToday = dateStr === today;
 
           let bg = 'transparent';
-          let color = C.text1;
+          let color = t.text1;
           let radius = '50%';
           let fontWeight = 400;
 
           if (isSelected) {
-            bg = C.blue;
+            bg = t.blue;
             color = '#FFFFFF';
             fontWeight = 600;
           } else if (inRange) {
-            bg = C.blueLt;
-            color = C.blue;
+            bg = t.blueLt;
+            color = t.blue;
             radius = '0';
           }
 
@@ -188,7 +192,7 @@ function CalendarMonth({ year, month, from, to, onDayClick, onDayHover }: {
                 <div style={{
                   position: 'absolute', bottom: '3px',
                   width: '4px', height: '4px', borderRadius: '50%',
-                  background: C.blue,
+                  background: t.blue,
                 }} />
               )}
             </div>
@@ -204,6 +208,11 @@ function CalendarMonth({ year, month, from, to, onDayClick, onDayHover }: {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
+  const [darkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
+  const footerBg = dark ? D.tableAlt : C.pageBg;
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<'start' | 'end'>('start');
   const [draftFrom, setDraftFrom] = useState<string | null>(value.from);
@@ -326,7 +335,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
 
   const NAV_BTN: React.CSSProperties = {
     width: '28px', height: '28px', borderRadius: '8px',
-    border: `1px solid ${C.border}`, background: C.surface,
+    border: `1px solid ${t.border}`, background: t.surface,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', flexShrink: 0,
   };
@@ -340,31 +349,31 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
         onClick={handleTriggerClick}
         style={{
           height: '40px', padding: '0 14px', borderRadius: '8px', cursor: 'pointer',
-          border: `1px solid ${open ? C.blue : C.inputBorder}`,
-          background: C.surface,
+          border: `1px solid ${open ? t.blue : t.inputBorder}`,
+          background: t.surface,
           display: 'flex', alignItems: 'center', gap: '8px',
-          boxShadow: open ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: open ? `0 0 0 3px ${t.blueTint}` : 'none',
           outline: 'none', whiteSpace: 'nowrap',
           transition: 'border-color 0.15s, box-shadow 0.15s',
         }}
       >
-        <Calendar size={14} color={open ? C.blue : C.text3} style={{ flexShrink: 0 }} />
+        <Calendar size={14} color={open ? t.blue : t.text3} style={{ flexShrink: 0 }} />
         {hasApplied ? (
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {appliedPreset && (
               <>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1 }}>{appliedPreset}</span>
-                <span style={{ color: C.border, fontSize: '13px' }}>·</span>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text1 }}>{appliedPreset}</span>
+                <span style={{ color: t.border, fontSize: '13px' }}>·</span>
               </>
             )}
-            <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text3 }}>
+            <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text3 }}>
               {fmtDisplay(parseDate(value.from))} – {fmtDisplay(parseDate(value.to))}
             </span>
           </span>
         ) : (
-          <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text4 }}>Выберите период</span>
+          <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text4 }}>Выберите период</span>
         )}
-        <ChevronDown size={12} color={C.text3} style={{
+        <ChevronDown size={12} color={t.text3} style={{
           marginLeft: '2px', flexShrink: 0,
           transform: open ? 'rotate(180deg)' : 'none',
           transition: 'transform 0.15s',
@@ -379,9 +388,11 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
             position: 'absolute', top: 'calc(100% + 8px)',
             ...(popAlign === 'left' ? { left: 0 } : { right: 0 }),
             zIndex: 9999, width: '700px',
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '16px',
-            boxShadow: '0 24px 64px rgba(0,0,0,0.13), 0 4px 16px rgba(0,0,0,0.07)',
+            boxShadow: dark
+              ? '0 24px 64px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35)'
+              : '0 24px 64px rgba(0,0,0,0.13), 0 4px 16px rgba(0,0,0,0.07)',
             overflow: 'hidden',
           }}
         >
@@ -390,13 +401,13 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
             {/* ── LEFT: Preset list ── */}
             <div style={{
               flexShrink: 0,
-              borderRight: `1px solid ${C.border}`,
+              borderRight: `1px solid ${t.border}`,
               padding: '14px 8px',
               display: 'flex', flexDirection: 'column',
             }}>
               <div style={{
                 fontFamily: F.inter, fontSize: '10px', fontWeight: 700,
-                color: C.text4, letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: t.text4, letterSpacing: '0.08em', textTransform: 'uppercase',
                 padding: '0 10px 10px',
               }}>
                 Быстрый выбор
@@ -411,16 +422,16 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                       width: '100%', height: '36px', padding: '0 10px',
                       borderRadius: '8px', border: 'none', cursor: 'pointer',
                       textAlign: 'left', display: 'flex', alignItems: 'center', gap: '9px',
-                      background: isActive ? C.blueLt : 'transparent',
+                      background: isActive ? t.blueLt : 'transparent',
                       transition: 'background 0.1s',
                     }}
-                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#F9FAFB'; }}
-                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = isActive ? C.blueLt : 'transparent'; }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = hoverBg; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = isActive ? t.blueLt : 'transparent'; }}
                   >
                     <div style={{
                       width: '15px', height: '15px', borderRadius: '50%', flexShrink: 0,
-                      border: `2px solid ${isActive ? C.blue : C.border}`,
-                      background: isActive ? C.blue : 'transparent',
+                      border: `2px solid ${isActive ? t.blue : t.border}`,
+                      background: isActive ? t.blue : 'transparent',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       transition: 'all 0.1s',
                     }}>
@@ -428,7 +439,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                     </div>
                     <span style={{
                       fontFamily: F.inter, fontSize: '13px',
-                      color: isActive ? C.blue : C.text2,
+                      color: isActive ? t.blue : t.text2,
                       fontWeight: isActive ? 500 : 400,
                     }}>
                       {preset}
@@ -444,26 +455,26 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
               <div style={{
                 display: 'flex', alignItems: 'center',
                 padding: '12px 16px 10px',
-                borderBottom: `1px solid ${C.border}`, gap: '8px',
+                borderBottom: `1px solid ${t.border}`, gap: '8px',
               }}>
                 <button onClick={navBack} style={NAV_BTN}>
-                  <ChevronLeft size={14} color={C.text3} />
+                  <ChevronLeft size={14} color={t.text3} />
                 </button>
                 <div style={{
                   flex: 1, textAlign: 'center',
-                  fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.text2,
+                  fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: t.text2,
                 }}>
                   {MONTH_NAMES[leftMonth]} {leftYear}
                 </div>
-                <div style={{ width: '1px', height: '16px', background: C.border, flexShrink: 0 }} />
+                <div style={{ width: '1px', height: '16px', background: t.border, flexShrink: 0 }} />
                 <div style={{
                   flex: 1, textAlign: 'center',
-                  fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.text2,
+                  fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: t.text2,
                 }}>
                   {MONTH_NAMES[rightMonth]} {rightYear}
                 </div>
                 <button onClick={navForward} style={NAV_BTN}>
-                  <ChevronRight size={14} color={C.text3} />
+                  <ChevronRight size={14} color={t.text3} />
                 </button>
               </div>
 
@@ -474,14 +485,16 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                     year={leftYear} month={leftMonth}
                     from={dispFrom} to={dispTo}
                     onDayClick={handleDayClick} onDayHover={setHoverDay}
+                    t={t}
                   />
                 </div>
-                <div style={{ width: '1px', background: C.border, flexShrink: 0, margin: '28px 0 0' }} />
+                <div style={{ width: '1px', background: t.border, flexShrink: 0, margin: '28px 0 0' }} />
                 <div style={{ flex: 1 }}>
                   <CalendarMonth
                     year={rightYear} month={rightMonth}
                     from={dispFrom} to={dispTo}
                     onDayClick={handleDayClick} onDayHover={setHoverDay}
+                    t={t}
                   />
                 </div>
               </div>
@@ -490,21 +503,24 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
 
           {/* ── Bottom bar ── */}
           <div style={{
-            borderTop: `1px solid ${C.border}`,
+            borderTop: `1px solid ${t.border}`,
             padding: '10px 16px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: C.pageBg,
+            background: footerBg,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Calendar size={13} color={C.text4} />
-              <span style={{ fontFamily: F.mono, fontSize: '12.5px', color: C.text1, fontWeight: 500 }}>
+              <Calendar size={13} color={t.text4} />
+              <span style={{ fontFamily: F.mono, fontSize: '12.5px', color: t.text1, fontWeight: 500 }}>
                 {bottomText}
               </span>
               {phase === 'end' && (
                 <span style={{
                   padding: '1px 7px', borderRadius: '4px',
-                  background: '#FEF3C7', border: '1px solid #FDE68A',
-                  fontFamily: F.inter, fontSize: '11px', color: '#B45309', fontWeight: 500,
+                  background: dark ? 'rgba(251,191,36,0.12)' : '#FEF3C7',
+                  border: `1px solid ${dark ? 'rgba(251,191,36,0.35)' : '#FDE68A'}`,
+                  fontFamily: F.inter, fontSize: '11px',
+                  color: dark ? '#FBBF24' : '#B45309',
+                  fontWeight: 500,
                 }}>
                   Выберите конечную дату
                 </span>
@@ -515,9 +531,9 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                 onClick={handleCancel}
                 style={{
                   height: '34px', padding: '0 16px', borderRadius: '8px',
-                  border: `1px solid ${C.border}`, background: C.surface,
+                  border: `1px solid ${t.border}`, background: t.surface,
                   cursor: 'pointer', fontFamily: F.inter, fontSize: '13px',
-                  color: C.text2, fontWeight: 500,
+                  color: t.text2, fontWeight: 500,
                 }}
               >
                 Отмена
@@ -528,7 +544,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
                 style={{
                   height: '34px', padding: '0 18px', borderRadius: '8px',
                   border: 'none',
-                  background: canApply ? C.blue : C.border,
+                  background: canApply ? t.blue : t.border,
                   cursor: canApply ? 'pointer' : 'not-allowed',
                   fontFamily: F.inter, fontSize: '13px', color: '#fff', fontWeight: 600,
                   transition: 'background 0.15s',
