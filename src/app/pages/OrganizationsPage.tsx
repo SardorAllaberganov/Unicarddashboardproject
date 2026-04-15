@@ -4,10 +4,12 @@ import {
   Plus, Building2,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -38,18 +40,23 @@ const ORG_DATA: OrgRow[] = [
   { id: 8, name: 'CardPlus',         contact: 'Жавлон Турсунов',  phone: '+998 93 890 12 34', issued: 450, sold: 210, kpiDone: 52, rewarded: '1 790 000', status: 'Активна' },
 ];
 
-const STATUS_STYLE: Record<StatusKey, { bg: string; color: string; dot: string }> = {
+const STATUS_STYLE_LIGHT: Record<StatusKey, { bg: string; color: string; dot: string }> = {
   'Активна':    { bg: '#F0FDF4', color: '#15803D', dot: '#16A34A' },
   'На паузе':   { bg: '#FFFBEB', color: '#B45309', dot: '#D97706' },
   'Неактивна':  { bg: '#FEF2F2', color: '#DC2626', dot: '#EF4444' },
+};
+const STATUS_STYLE_DARK: Record<StatusKey, { bg: string; color: string; dot: string }> = {
+  'Активна':    { bg: 'rgba(52,211,153,0.12)',  color: '#34D399', dot: '#34D399' },
+  'На паузе':   { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24', dot: '#FBBF24' },
+  'Неактивна':  { bg: 'rgba(248,113,113,0.12)', color: '#F87171', dot: '#F87171' },
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STATUS BADGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatusBadge({ status }: { status: StatusKey }) {
-  const s = STATUS_STYLE[status];
+function StatusBadge({ status, dark }: { status: StatusKey; dark: boolean }) {
+  const s = (dark ? STATUS_STYLE_DARK : STATUS_STYLE_LIGHT)[status];
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -67,8 +74,8 @@ function StatusBadge({ status }: { status: StatusKey }) {
    SELECT COMPONENT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options, value, onChange }: {
-  label: string; options: string[]; value: string; onChange: (v: string) => void;
+function FilterSelect({ label, options, value, onChange, t }: {
+  label: string; options: string[]; value: string; onChange: (v: string) => void; t: T;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -80,11 +87,11 @@ function FilterSelect({ label, options, value, onChange }: {
         onBlur={() => setFocused(false)}
         style={{
           height: '40px', padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
-          fontFamily: F.inter, fontSize: '14px', color: C.text2,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
+          fontFamily: F.inter, fontSize: '14px', color: t.text2,
           outline: 'none', appearance: 'none', cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.blueTint}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
           minWidth: '148px',
         }}
@@ -92,7 +99,7 @@ function FilterSelect({ label, options, value, onChange }: {
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={14} color={C.text3} style={{
+      <ChevronDown size={14} color={t.text3} style={{
         position: 'absolute', right: '10px', top: '50%',
         transform: 'translateY(-50%)', pointerEvents: 'none',
       }} />
@@ -104,11 +111,14 @@ function FilterSelect({ label, options, value, onChange }: {
    SORT INDICATOR
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SortIcons({ col, sortKey, sortDir }: { col: string; sortKey: string; sortDir: 'asc' | 'desc' }) {
+function SortIcons({ col, sortKey, sortDir, t, dark }: {
+  col: string; sortKey: string; sortDir: 'asc' | 'desc'; t: T; dark: boolean;
+}) {
+  const inactive = dark ? '#3A3F50' : '#D1D5DB';
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', gap: '1px', marginLeft: '3px', verticalAlign: 'middle' }}>
-      <ChevronUp size={10} color={sortKey === col && sortDir === 'asc' ? C.blue : '#D1D5DB'} strokeWidth={2} />
-      <ChevronDown size={10} color={sortKey === col && sortDir === 'desc' ? C.blue : '#D1D5DB'} strokeWidth={2} />
+      <ChevronUp size={10} color={sortKey === col && sortDir === 'asc' ? t.blue : inactive} strokeWidth={2} />
+      <ChevronDown size={10} color={sortKey === col && sortDir === 'desc' ? t.blue : inactive} strokeWidth={2} />
     </span>
   );
 }
@@ -117,7 +127,10 @@ function SortIcons({ col, sortKey, sortDir }: { col: string; sortKey: string; so
    ORGANIZATIONS TABLE
 ══════════════════════════════════════════════════════════════════════════ */
 
-function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
+function OrgTable({ onRowClick, t, dark }: { onRowClick: (row: OrgRow) => void; t: T; dark: boolean }) {
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
+  const chipHoverBg = dark ? D.tableHover : '#F3F4F6';
+  const headerBg = dark ? D.tableAlt : C.pageBg;
   const [sortKey, setSortKey]   = useState<string>('id');
   const [sortDir, setSortDir]   = useState<'asc' | 'desc'>('asc');
   const [search, setSearch]     = useState('');
@@ -165,7 +178,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', marginBottom: '16px' }}>
         {/* Search */}
         <div style={{ position: 'relative', width: '280px', flexShrink: 0 }}>
-          <Search size={16} color={searchFocused ? C.blue : C.text4} style={{
+          <Search size={16} color={searchFocused ? t.blue : t.text4} style={{
             position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
             transition: 'color 0.12s', pointerEvents: 'none',
           }} />
@@ -177,11 +190,11 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
             placeholder="Поиск по названию..."
             style={{
               width: '100%', height: '40px', paddingLeft: '38px', paddingRight: '12px',
-              border: `1px solid ${searchFocused ? C.blue : C.inputBorder}`,
-              borderRadius: '8px', background: C.surface,
-              fontFamily: F.inter, fontSize: '14px', color: C.text1,
+              border: `1px solid ${searchFocused ? t.blue : t.inputBorder}`,
+              borderRadius: '8px', background: t.surface,
+              fontFamily: F.inter, fontSize: '14px', color: t.text1,
               outline: 'none', boxSizing: 'border-box',
-              boxShadow: searchFocused ? `0 0 0 3px ${C.blueTint}` : 'none',
+              boxShadow: searchFocused ? `0 0 0 3px ${t.blueTint}` : 'none',
               transition: 'border-color 0.12s, box-shadow 0.12s',
             }}
           />
@@ -192,6 +205,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
           options={['Активна', 'Неактивна', 'На паузе']}
           value={statusFilter}
           onChange={setStatus}
+          t={t}
         />
 
         <FilterSelect
@@ -199,6 +213,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
           options={['По названию', 'По дате', 'По кол-ву карт']}
           value={sortFilter}
           onChange={setSortFilter}
+          t={t}
         />
 
         {/* Clear filters */}
@@ -207,13 +222,13 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
             onClick={() => { setSearch(''); setStatus(''); setSortFilter(''); }}
             style={{
               border: 'none', background: 'none',
-              fontFamily: F.inter, fontSize: '13px', color: C.text3,
+              fontFamily: F.inter, fontSize: '13px', color: t.text3,
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
               padding: '4px 8px', borderRadius: '6px',
               transition: 'color 0.12s, background 0.12s',
             }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text1; (e.currentTarget as HTMLButtonElement).style.background = '#F3F4F6'; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = C.text3; (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = t.text1; (e.currentTarget as HTMLButtonElement).style.background = chipHoverBg; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = t.text3; (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
           >
             <span style={{ fontSize: '16px', lineHeight: 1, marginTop: '-1px' }}>×</span>
             Сбросить
@@ -223,8 +238,8 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
 
       {/* ── Table card ─────────────────────────────────────────── */}
       <div style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
+        background: t.surface,
+        border: `1px solid ${t.border}`,
         borderRadius: '12px',
         overflow: 'hidden',
       }}>
@@ -238,7 +253,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
             {/* ── Head ── */}
             <thead>
-              <tr style={{ background: C.pageBg, borderBottom: `1px solid ${C.border}` }}>
+              <tr style={{ background: headerBg, borderBottom: `1px solid ${t.border}` }}>
                 {cols.map(col => (
                   <th
                     key={col.key}
@@ -248,7 +263,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
                       padding: col.key === 'id' ? '12px 12px 12px 20px' : '12px 16px',
                       textAlign: col.align === 'right' ? 'right' : 'left',
                       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-                      color: sortKey === col.key ? C.blue : C.text4,
+                      color: sortKey === col.key ? t.blue : t.text4,
                       textTransform: 'uppercase', letterSpacing: '0.06em',
                       whiteSpace: 'nowrap',
                       cursor: col.sortable ? 'pointer' : 'default',
@@ -259,7 +274,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
                     {col.sortable ? (
                       <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                         {col.label}
-                        <SortIcons col={col.key} sortKey={sortKey} sortDir={sortDir} />
+                        <SortIcons col={col.key} sortKey={sortKey} sortDir={sortDir} t={t} dark={dark} />
                       </span>
                     ) : col.label}
                   </th>
@@ -272,7 +287,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
               {sorted.length === 0 ? (
                 <tr>
                   <td colSpan={cols.length} style={{ padding: '48px 24px', textAlign: 'center' }}>
-                    <div style={{ fontFamily: F.inter, fontSize: '14px', color: C.text4 }}>
+                    <div style={{ fontFamily: F.inter, fontSize: '14px', color: t.text4 }}>
                       Ничего не найдено
                     </div>
                   </td>
@@ -286,15 +301,15 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
                     onMouseLeave={() => setHovRow(null)}
                     onClick={() => onRowClick(row)}
                     style={{
-                      borderBottom: i < sorted.length - 1 ? `1px solid ${C.border}` : 'none',
-                      background: hov ? '#F9FAFB' : C.surface,
+                      borderBottom: i < sorted.length - 1 ? `1px solid ${t.border}` : 'none',
+                      background: hov ? hoverBg : t.surface,
                       cursor: 'pointer',
                       transition: 'background 0.1s',
                     }}
                   >
                     {/* # */}
                     <td style={{ padding: '14px 12px 14px 20px' }}>
-                      <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text4 }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text4 }}>
                         {row.id}
                       </span>
                     </td>
@@ -304,17 +319,17 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '32px', height: '32px', borderRadius: '8px',
-                          background: C.blueLt, border: `1px solid ${C.blueTint}`,
+                          background: t.blueLt, border: `1px solid ${t.blueTint}`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           flexShrink: 0,
                         }}>
-                          <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: C.blue }}>
+                          <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: t.blue }}>
                             {row.name.slice(0, 2).toUpperCase()}
                           </span>
                         </div>
                         <span style={{
                           fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                          color: hov ? C.blue : C.text1,
+                          color: hov ? t.blue : t.text1,
                           transition: 'color 0.12s', cursor: 'pointer',
                         }}>
                           {row.name}
@@ -324,28 +339,28 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
 
                     {/* Контактное лицо */}
                     <td className="org-col-tablet" style={{ padding: '14px 16px' }}>
-                      <span style={{ fontFamily: F.inter, fontSize: '14px', color: C.text2 }}>
+                      <span style={{ fontFamily: F.inter, fontSize: '14px', color: t.text2 }}>
                         {row.contact}
                       </span>
                     </td>
 
                     {/* Телефон */}
                     <td className="org-col-tablet" style={{ padding: '14px 16px' }}>
-                      <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text3 }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text3 }}>
                         {row.phone}
                       </span>
                     </td>
 
                     {/* Карт выдано */}
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                      <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 500, color: t.text1 }}>
                         {row.issued}
                       </span>
                     </td>
 
                     {/* Продано */}
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                      <span style={{ fontFamily: F.mono, fontSize: '14px', color: C.text2 }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '14px', color: t.text2 }}>
                         {row.sold}
                       </span>
                     </td>
@@ -354,7 +369,7 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                       <span style={{
                         fontFamily: F.mono, fontSize: '14px', fontWeight: 600,
-                        color: row.kpiDone >= 60 ? '#15803D' : row.kpiDone >= 30 ? C.blue : C.warning,
+                        color: row.kpiDone >= 60 ? (dark ? '#34D399' : '#15803D') : row.kpiDone >= 30 ? t.blue : t.warning,
                       }}>
                         {row.kpiDone}
                       </span>
@@ -362,17 +377,17 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
 
                     {/* Начислено */}
                     <td style={{ padding: '14px 16px', textAlign: 'right' }}>
-                      <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: C.text1 }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: t.text1 }}>
                         {row.rewarded}
                       </span>
-                      <span style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginLeft: '4px' }}>
+                      <span style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4, marginLeft: '4px' }}>
                         UZS
                       </span>
                     </td>
 
                     {/* Статус */}
                     <td style={{ padding: '14px 16px' }}>
-                      <StatusBadge status={row.status} />
+                      <StatusBadge status={row.status} dark={dark} />
                     </td>
 
                   </tr>
@@ -385,21 +400,21 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
         {/* ── Pagination ── */}
         <div style={{
           padding: '14px 20px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: C.pageBg,
+          background: headerBg,
         }}>
-          <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+          <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
             Показано{' '}
-            <span style={{ fontWeight: 600, color: C.text1 }}>1–{sorted.length}</span>
+            <span style={{ fontWeight: 600, color: t.text1 }}>1–{sorted.length}</span>
             {' '}из{' '}
-            <span style={{ fontWeight: 600, color: C.text1 }}>{sorted.length}</span>
+            <span style={{ fontWeight: 600, color: t.text1 }}>{sorted.length}</span>
           </span>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <PaginationBtn label="←" disabled />
-            <PaginationBtn label="1" active />
-            <PaginationBtn label="→" disabled />
+            <PaginationBtn label="←" disabled t={t} dark={dark} />
+            <PaginationBtn label="1" active t={t} dark={dark} />
+            <PaginationBtn label="→" disabled t={t} dark={dark} />
           </div>
         </div>
       </div>
@@ -407,8 +422,11 @@ function OrgTable({ onRowClick }: { onRowClick: (row: OrgRow) => void }) {
   );
 }
 
-function PaginationBtn({ label, active, disabled }: { label: string; active?: boolean; disabled?: boolean }) {
+function PaginationBtn({ label, active, disabled, t, dark }: {
+  label: string; active?: boolean; disabled?: boolean; t: T; dark: boolean;
+}) {
   const [hov, setHov] = useState(false);
+  const hoverBg = dark ? D.tableHover : '#F3F4F6';
   return (
     <button
       disabled={disabled}
@@ -417,9 +435,9 @@ function PaginationBtn({ label, active, disabled }: { label: string; active?: bo
       style={{
         minWidth: '32px', height: '32px', padding: '0 6px',
         borderRadius: '7px',
-        border: `1px solid ${active ? C.blue : C.border}`,
-        background: active ? C.blueLt : hov && !disabled ? '#F3F4F6' : C.surface,
-        color: active ? C.blue : disabled ? C.textDisabled : C.text2,
+        border: `1px solid ${active ? t.blue : t.border}`,
+        background: active ? t.blueLt : hov && !disabled ? hoverBg : t.surface,
+        color: active ? t.blue : disabled ? t.textDisabled : t.text2,
         fontFamily: F.inter, fontSize: '13px', fontWeight: active ? 600 : 400,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -438,11 +456,12 @@ function PaginationBtn({ label, active, disabled }: { label: string; active?: bo
 export default function OrganizationsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
-  const [darkMode, setDarkMode]                 = useState(false);
-
+  const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
 
       {/* Responsive sidebar */}
       <style>{`
@@ -469,11 +488,11 @@ export default function OrganizationsPage() {
 
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>
               Главная
             </span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
               Организации
             </span>
           </div>
@@ -485,18 +504,18 @@ export default function OrganizationsPage() {
             marginBottom: '28px', flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Организации
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Управление организациями-партнёрами
               </p>
             </div>
-            <PrimaryButton />
+            <PrimaryButton t={t} />
           </div>
 
           {/* Table */}
-          <OrgTable onRowClick={row => navigate(`/organizations/${row.id}`)} />
+          <OrgTable onRowClick={row => navigate(`/organizations/${row.id}`)} t={t} dark={dark} />
 
           <div style={{ height: '40px' }} />
         </div>
@@ -505,7 +524,7 @@ export default function OrganizationsPage() {
   );
 }
 
-function PrimaryButton() {
+function PrimaryButton({ t }: { t: T }) {
   const [hov, setHov] = useState(false);
   const navigate = useNavigate();
   return (
@@ -515,7 +534,7 @@ function PrimaryButton() {
       onClick={() => navigate('/organizations/new')}
       style={{
         height: '40px', padding: '0 18px',
-        background: hov ? C.blueHover : C.blue,
+        background: hov ? t.blueHover : t.blue,
         border: 'none', borderRadius: '8px',
         fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
         color: '#FFFFFF',
