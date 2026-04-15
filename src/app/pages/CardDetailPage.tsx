@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate, useSearchParams } from 'react-router';
 import { Navbar } from '../components/Navbar';
 
@@ -695,7 +696,7 @@ function BlockCardModal({ open, onClose, onConfirm }: {
 
 export default function CardDetailPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [closeHover, setCloseHover] = useState(false);
   const [blockHov, setBlockHov] = useState(false);
   const [blockOpen, setBlockOpen] = useState(false);

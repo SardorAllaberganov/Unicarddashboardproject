@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
@@ -1102,7 +1103,7 @@ function PreviewCheckItem({ label, checked }: { label: string; checked: boolean 
 
 export default function KPIConfigurationPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
 

@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
 
@@ -520,7 +521,7 @@ const dataCellStyle: React.CSSProperties = {
 
 export default function AllCardsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
 
   const [search, setSearch] = useState('');
   const [orgFilter, setOrgFilter] = useState('');

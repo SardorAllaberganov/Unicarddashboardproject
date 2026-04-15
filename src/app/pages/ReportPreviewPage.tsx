@@ -3,6 +3,7 @@ import { ChevronRight, Download, X } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useExportToast } from '../components/useExportToast';
 
@@ -87,7 +88,7 @@ const tdMono: React.CSSProperties = {
 
 export default function ReportPreviewPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [closeHov, setCloseHov] = useState(false);
   const [cancelHov, setCancelHov] = useState(false);
   const [dlPrimaryHov, setDlPrimaryHov] = useState(false);

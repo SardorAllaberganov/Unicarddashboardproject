@@ -6,6 +6,7 @@ import {
 import { Sidebar } from '../components/Sidebar';
 import { useNavigate } from 'react-router';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -561,7 +562,7 @@ function SuccessView({ validCount, errorCount, batchName, onViewBatch, onImportM
 export default function CardImportPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
 
   const [selectedBatch, setSelectedBatch] = useState('');
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);

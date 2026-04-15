@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -723,7 +724,7 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
 export default function OrgWithdrawalsPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
 
   const [search, setSearch] = useState('');

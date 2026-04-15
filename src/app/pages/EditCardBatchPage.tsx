@@ -3,6 +3,7 @@ import { ChevronRight, ChevronDown, Lock, AlertTriangle, Upload, Info } from 'lu
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate, useParams } from 'react-router';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -260,7 +261,7 @@ const STATUS_WARNINGS: Partial<Record<BatchStatus, string>> = {
 
 export default function EditCardBatchPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const navigate = useNavigate();
   const { id } = useParams();
 

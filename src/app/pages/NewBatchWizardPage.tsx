@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
@@ -611,7 +612,7 @@ function SuccessState({ batchName, org, cardType, kpiCount, navigate }: {
 export default function NewBatchWizardPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
 
   const [step, setStep] = useState(0);
   const [success, setSuccess] = useState(false);

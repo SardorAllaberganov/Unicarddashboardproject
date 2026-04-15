@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -62,7 +63,7 @@ const DETAIL: MessageDetail = {
 
 export default function SellerMessageDetailPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const navigate = useNavigate();
   const { id } = useParams();
 

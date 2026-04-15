@@ -7,6 +7,7 @@ import {
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -275,7 +276,7 @@ function NotifRow({ notif, onRead, onDelete }: {
 
 export default function NotificationsHistoryPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateRange, setDateRange] = useState({ from: '2026-04-10', to: '2026-04-14' });

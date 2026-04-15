@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
@@ -158,7 +159,7 @@ function FormNumberInput({ label, placeholder, value, onChange }: {
 export default function NewOrganizationPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
 
   // Section 1
   const [orgName, setOrgName] = useState('');

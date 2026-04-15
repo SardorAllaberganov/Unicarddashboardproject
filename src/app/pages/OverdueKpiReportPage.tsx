@@ -6,6 +6,7 @@ import {
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { useExportToast } from '../components/useExportToast';
 
@@ -163,7 +164,7 @@ function BadgeSuccess({ children }: { children: React.ReactNode }) {
 
 export default function OverdueKpiReportPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [org, setOrg] = useState('');
   const [kpiStage, setKpiStage] = useState('');
   const [overdueRange, setOverdueRange] = useState('');

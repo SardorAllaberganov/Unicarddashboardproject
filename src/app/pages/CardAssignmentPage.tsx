@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
 
@@ -138,7 +139,7 @@ function Radio({ checked, onClick }: { checked: boolean; onClick: () => void }) 
 export default function CardAssignmentPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
 
   const [selectedSellerId, setSelectedSellerId] = useState<number | null>(null);
   const [sellerSelectFocused, setSellerSelectFocused] = useState(false);

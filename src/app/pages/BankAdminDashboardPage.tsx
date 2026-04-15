@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C, D, theme } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -399,7 +400,7 @@ function OrgTable({ t }: { t: ReturnType<typeof theme> }) {
 export default function BankAdminDashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
 
   const t = theme(darkMode);

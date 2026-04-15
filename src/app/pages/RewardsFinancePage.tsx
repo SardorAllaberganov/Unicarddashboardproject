@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -1087,7 +1088,7 @@ function ManualAdjustmentModal({ open, onClose, onConfirm }: {
 
 export default function RewardsFinancePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
   const navigate = useNavigate();
 

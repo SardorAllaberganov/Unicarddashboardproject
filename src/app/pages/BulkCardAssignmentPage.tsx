@@ -3,6 +3,7 @@ import { ChevronRight, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -128,7 +129,7 @@ function SellerSelect({ value, onChange, options }: {
 
 export default function BulkCardAssignmentPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [rows, setRows] = useState<Row[]>(INITIAL_ROWS);
   const [nextId, setNextId] = useState(100);
   const [cancelHov, setCancelHov] = useState(false);

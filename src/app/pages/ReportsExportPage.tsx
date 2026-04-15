@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -295,7 +296,7 @@ function ReportCardComponent({ report, onExport }: {
 
 export default function ReportsExportPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const navigate = useNavigate();
   const exportToast = useExportToast();
 

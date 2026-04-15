@@ -5,6 +5,7 @@ import {
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { EmptyState } from '../components/EmptyState';
 import { useNavigate } from 'react-router';
 
@@ -39,7 +40,7 @@ function ContextFrame({ context, children }: { context: string; children: React.
 
 export default function EmptyStatesShowcasePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const navigate = useNavigate();
 
   return (

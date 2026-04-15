@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -459,7 +460,7 @@ function ActivityTimeline({ activities }: { activities: Activity[] }) {
 export default function OrgAdminDashboardPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
   const [sellersHover, setSellersHover] = useState(false);
   const [activityHover, setActivityHover] = useState(false);

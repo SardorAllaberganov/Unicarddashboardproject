@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sidebar, OrgAdminSidebarDemo } from '../components/Sidebar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 
 const inter = F.inter;
 const dm    = F.dm;

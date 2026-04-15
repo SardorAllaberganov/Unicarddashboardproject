@@ -7,6 +7,7 @@ import {
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -722,7 +723,7 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
 export default function OrgDetailPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [activeTab, setActiveTab] = useState<TabId>('summary');
   const [closeHov, setCloseHov] = useState(false);
   const [editHov, setEditHov] = useState(false);
