@@ -70,6 +70,13 @@ Root cause: Each page wired its own download button but none of them triggered a
 Fix: Added [useExportToast.tsx](src/app/components/useExportToast.tsx) — a shared hook that manages a single top-right toast through three phases: Processing (spinner, no close) → Success (file name + size, Ghost "Скачать" action, 8s auto-dismiss) → Error (Ghost "Повторить", manual close). Pages wire `start({ subtitle, fileName, fileSize, shouldError? })` and render `node` once.
 Rule: Every export button must route through `useExportToast`. Never attach a plain `onClick` that silently "downloads". Call `start()` with at minimum a subtitle describing what's being exported; the hook handles the rest. Stack multiple exports is prevented because the hook holds one flow at a time.
 
+## 2026-04-15 — Row action menu actions must also appear on the detail page
+
+Mistake: Individual detail pages (`/announcements/:id`, `/seller-messages/:id`, …) only exposed "Дублировать" in the header while the list row's ⋯ menu offered richer status-gated actions (Редактировать / Удалить / Отменить отправку). Users who arrived via direct link or breadcrumb couldn't run those actions without bouncing back to the list.
+Root cause: Detail pages were built as read-only views. Row-level actions were assumed to live only next to the row.
+Fix: Every `:id` detail page now renders the same status-gated action group that its list row offers. For announcements: sent → Дублировать; scheduled → Дублировать + Отменить отправку; draft → Редактировать + Дублировать + Удалить. For seller messages (single status): Дублировать + Удалить. Destructive actions open the same confirmation modals used on the list; confirming navigates back to the list.
+Rule: When a detail page exists for a list row, its header action group must **mirror** the row's ⋯ menu and use the same confirmation modals. If the list has status-gated actions, the detail page must read the status (from params, state, or the detail payload) and gate the buttons the same way. The detail page is a first-class editing surface, not a read-only pane.
+
 ## 2026-04-15 — Radio card swallowed clicks on its own label text
 
 Mistake: On the announcement composer's Расписание and Получатели radio cards, clicking the title/sub-label text did not select the card. Only clicking the empty gutter or the radio dot worked.

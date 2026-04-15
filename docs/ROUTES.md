@@ -31,7 +31,9 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/reports/preview/:reportId` | bank | [ReportPreviewPage](../src/app/pages/ReportPreviewPage.tsx) | Query: `?from=YYYY-MM-DD&to=YYYY-MM-DD` |
 | `/reports/overdue-kpi` | bank | [OverdueKpiReportPage](../src/app/pages/OverdueKpiReportPage.tsx) | Row click → `/card-detail/:id` |
 | `/users` | bank | [UsersManagementPage](../src/app/pages/UsersManagementPage.tsx) | Edit role / Block-Unblock / Reset password modals |
-| `/notification-rules` | bank | [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) | 4 tabs × 14 rules + create/edit modal |
+| `/notification-rules` | bank | [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) | 4 tabs × 14 rules, delete + duplicate confirmation modals |
+| `/notification-rules/new` | bank | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) | Create a rule; two-column form + preview + summary |
+| `/notification-rules/:id/edit` | bank | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) | Edit existing rule; hydrates from `location.state.preFilled` or from `INITIAL_RULES` by `:id` |
 | `/announcements` | bank | [AnnouncementHistoryPage](../src/app/pages/AnnouncementHistoryPage.tsx) | Filter bar + table + action menu gated by status |
 | `/announcements/new` | bank | [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) | Two-column composer, preview, masked HH:MM time |
 | `/announcements/:id` | bank | [AnnouncementDetailPage](../src/app/pages/AnnouncementDetailPage.tsx) | Delivery stats + per-recipient table (mock ignores `:id`) |
@@ -127,7 +129,7 @@ const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } = usePopo
 </div>
 ```
 
-Handles fixed positioning, auto-flip via layout-effect measurement, outside-click, scroll/resize auto-close. **Default `alignRight: true`** — override for left-anchored triggers.
+Handles fixed positioning, auto-flip via layout-effect measurement, outside-click, and scroll/resize **re-anchoring** (the popover follows its trigger as the container scrolls; it only closes if the trigger leaves the viewport). **Default `alignRight: true`** — override for left-anchored triggers.
 
 ### `useExportToast()`
 File: [useExportToast.tsx](../src/app/components/useExportToast.tsx)

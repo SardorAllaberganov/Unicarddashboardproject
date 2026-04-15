@@ -1,6 +1,6 @@
 # AI Context — Moment Card KPI Platform
 
-Last synced: 2026-04-15
+Last synced: 2026-04-15 (pm)
 
 ## Current state
 
@@ -45,7 +45,9 @@ There is no backend. All data is mock TypeScript arrays inside each page file. R
 | `/reports/preview/:reportId` | [ReportPreviewPage](../src/app/pages/ReportPreviewPage.tsx) |
 | `/reports/overdue-kpi` | [OverdueKpiReportPage](../src/app/pages/OverdueKpiReportPage.tsx) |
 | `/users` | [UsersManagementPage](../src/app/pages/UsersManagementPage.tsx) |
-| `/notification-rules` | [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) — 14 rules × 4 tabs + editor modal |
+| `/notification-rules` | [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) — 14 rules × 4 tabs, delete + duplicate modals |
+| `/notification-rules/new` | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) — create a rule (two-column form + live preview + summary) |
+| `/notification-rules/:id/edit` | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) — edit an existing rule |
 | `/announcements` | [AnnouncementHistoryPage](../src/app/pages/AnnouncementHistoryPage.tsx) |
 | `/announcements/new` | [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) — two-column composer with preview |
 | `/announcements/:id` | [AnnouncementDetailPage](../src/app/pages/AnnouncementDetailPage.tsx) — delivery stats + per-recipient table |
@@ -102,5 +104,8 @@ The full interface catalogue is in [DATA_MODELS.md](./DATA_MODELS.md). Each page
 - **Every export button must route through `useExportToast`.** Never attach a plain `onClick` that silently "downloads".
 - **Empty state views use `<EmptyState />`, not inline divs.** 6 canonical variants showcased at `/empty-states`.
 - **Radio cards inside a row container use `flex: 1; min-width: 0`.** Gives equal widths and lets them shrink. Nested inputs should `stopPropagation` on their wrapper so the radio card doesn't swallow the click — but label/sub-label text must stay bubble-up so clicking the title selects the card.
-- **Detail pages ignore `:id`.** Every `/.../:id` detail page in the notifications/messages area returns the same mock payload regardless of the URL param. This is intentional for the prototype; a real backend wiring would key off `useParams().id`.
+- **Detail pages ignore `:id`.** Every `/.../:id` detail page in the notifications/messages area returns the same mock payload regardless of the URL param. This is intentional for the prototype; a real backend wiring would key off `useParams().id`. Announcement detail is the one partial exception — `:id` is used to pick a demo *status* (`4` → scheduled, `5` → draft, else sent) so the action-button surface can be shown in each variant.
+- **Detail pages must mirror their list row's ⋯ menu.** Every `/.../:id` detail page exposes the same actions the list row offers, using the same confirmation modals. If the list is status-gated, the detail page gates the same way. See [tasks/lessons.md](../tasks/lessons.md).
+- **Custom `<label>` wrappers need an explicit `onClick`.** A `<label>` that wraps two `<span>` elements (visual checkbox + text) has no native input to forward to, so clicks on the text do nothing unless the `onClick` lives on the `<label>` itself. Applies to `CheckboxRow` primitives across the codebase — see [tasks/lessons.md](../tasks/lessons.md).
+- **`usePopoverPosition` re-anchors on scroll.** Previously it closed on any scroll event, which broke popovers inside scrollable modals (e.g. the rule editor's trigger dropdown). The hook now re-runs positioning on scroll/resize and only closes when the trigger scrolls out of the viewport.
 - **Figma & `ImageWithFallback` are protected.** Do not modify [`ImageWithFallback.tsx`](../src/app/components/figma/ImageWithFallback.tsx) or `pnpm-lock.yaml`.

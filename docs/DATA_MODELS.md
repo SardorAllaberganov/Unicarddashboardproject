@@ -179,7 +179,7 @@ interface Notif {
 ```
 
 ### Notification rules — `Rule`
-Defined in [NotificationRulesPage.tsx](../src/app/pages/NotificationRulesPage.tsx).
+Defined and **exported** from [NotificationRulesPage.tsx](../src/app/pages/NotificationRulesPage.tsx). Consumed by [NotificationRuleEditorPage.tsx](../src/app/pages/NotificationRuleEditorPage.tsx), which imports `Rule` + `INITIAL_RULES` to hydrate the form from `location.state.preFilled` or from the id param.
 
 ```ts
 type RuleTab = 'kpi' | 'finance' | 'cards' | 'system';
@@ -201,7 +201,7 @@ interface Rule {
 }
 ```
 
-Companion `FormState` in the same file is the modal's working shape — keep `ruleToForm(Rule) → FormState` in sync if either changes.
+Companion `FormState` now lives in [NotificationRuleEditorPage.tsx](../src/app/pages/NotificationRuleEditorPage.tsx) (the editor moved from a modal into a standalone page). Keep `ruleToForm(Rule) → FormState` in sync if either shape changes.
 
 ### Notification delivery log — `LogRow`
 Defined in [NotificationDeliveryLogPage.tsx](../src/app/pages/NotificationDeliveryLogPage.tsx).

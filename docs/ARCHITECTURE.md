@@ -74,7 +74,7 @@ The `detectRole()` helper in [Navbar.tsx](../src/app/components/Navbar.tsx) is t
 
 Three in-house hooks/components exist to prevent copy-paste drift:
 
-1. **[usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts)** — any ⋯ action menu anchored to a table row uses this. It handles `position: fixed`, measure-before-paint auto-flip, outside-click, and scroll/resize auto-close.
+1. **[usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts)** — any ⋯ action menu, filter select, or form dropdown anchored to a trigger uses this. It handles `position: fixed`, measure-before-paint auto-flip, outside-click, and **re-anchoring on scroll/resize** (the popover follows its trigger as the container scrolls; it only closes if the trigger leaves the viewport). Important for dropdowns hosted inside scrollable modals.
 2. **[useExportToast.tsx](../src/app/components/useExportToast.tsx)** — every "Экспорт" / "Скачать Excel" button hooks through this. Three-phase toast (processing → success/error), single-flight, 8s auto-dismiss on success.
 3. **[EmptyState.tsx](../src/app/components/EmptyState.tsx)** — every empty table/list/card view renders `<EmptyState />`, not an ad-hoc div. 6 canonical variants demoed at `/empty-states`.
 
