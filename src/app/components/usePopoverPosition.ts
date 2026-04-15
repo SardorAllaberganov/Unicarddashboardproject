@@ -11,6 +11,10 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
  * flips above the trigger. Measurement is done after mount via layout effect,
  * with the menu kept `visibility: hidden` on the first render so there's
  * no visible jump from bottom to top.
+ *
+ * On scroll/resize the popover re-anchors to its trigger instead of closing.
+ * It only closes when the trigger leaves the viewport entirely (e.g. the
+ * user scrolled past it).
  */
 export function usePopoverPosition(options?: { alignRight?: boolean }) {
   const alignRight = options?.alignRight ?? true;
@@ -28,6 +32,28 @@ export function usePopoverPosition(options?: { alignRight?: boolean }) {
     setMeasured(false);
   }, []);
 
+  const place = useCallback(() => {
+    const t = triggerRef.current;
+    const m = menuRef.current;
+    if (!t || !m) return;
+    const rect = t.getBoundingClientRect();
+
+    // If the trigger scrolled out of view, dismiss the popover.
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      close();
+      return;
+    }
+
+    const h = m.offsetHeight;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < h + 16;
+    const top = openUp ? Math.max(8, rect.top - h - 6) : rect.bottom + 6;
+    const next: { top: number; left?: number; right?: number } = { top };
+    if (alignRight) next.right = window.innerWidth - rect.right;
+    else next.left = rect.left;
+    setPos(next);
+  }, [alignRight, close]);
+
   const toggle = useCallback(() => {
     if (open) { close(); return; }
     const t = triggerRef.current;
@@ -44,20 +70,9 @@ export function usePopoverPosition(options?: { alignRight?: boolean }) {
   // Measure after the menu mounts, then flip if needed — before browser paint.
   useLayoutEffect(() => {
     if (!open) return;
-    const t = triggerRef.current;
-    const m = menuRef.current;
-    if (!t || !m) return;
-    const rect = t.getBoundingClientRect();
-    const h = m.offsetHeight;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const openUp = spaceBelow < h + 16;
-    const top = openUp ? Math.max(8, rect.top - h - 6) : rect.bottom + 6;
-    const next: { top: number; left?: number; right?: number } = { top };
-    if (alignRight) next.right = window.innerWidth - rect.right;
-    else next.left = rect.left;
-    setPos(next);
+    place();
     setMeasured(true);
-  }, [open, alignRight]);
+  }, [open, place]);
 
   // Click outside
   useEffect(() => {
@@ -72,17 +87,17 @@ export function usePopoverPosition(options?: { alignRight?: boolean }) {
     return () => document.removeEventListener('mousedown', h);
   }, [open, close]);
 
-  // Close on scroll/resize to avoid stale fixed position
+  // Re-anchor on scroll/resize; close only if the trigger left the viewport.
   useEffect(() => {
     if (!open) return;
-    const onMove = () => close();
+    const onMove = () => place();
     window.addEventListener('scroll', onMove, true);
     window.addEventListener('resize', onMove);
     return () => {
       window.removeEventListener('scroll', onMove, true);
       window.removeEventListener('resize', onMove);
     };
-  }, [open, close]);
+  }, [open, place]);
 
   const menuStyle: React.CSSProperties = pos
     ? {
