@@ -2,11 +2,13 @@ import React, { useMemo, useState } from 'react';
 import {
   ChevronRight, ChevronLeft, ChevronDown, Search, Download, Check,
   Bell, CheckCircle2, Clock, XCircle, Inbox, AlertTriangle,
+  RefreshCw, Info,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { EmptyState } from '../components/EmptyState';
@@ -24,6 +26,15 @@ type TypeFilter = 'all' | EventType;
 type ChannelFilter = 'all' | Channel;
 type StatusFilter = 'all' | Delivery;
 
+interface ErrorDetail {
+  title: string;
+  device?: string;
+  lastPushAt?: string;
+  attempts: [number, number];
+  nextAttempt: string;
+  recommendation?: string;
+}
+
 interface LogRow {
   id: number;
   date: string;
@@ -35,9 +46,10 @@ interface LogRow {
   status: Delivery;
   readAt: string | null;
   error?: string;
+  errorDetail?: ErrorDetail;
 }
 
-const ROWS: LogRow[] = [
+const SEED_ROWS: LogRow[] = [
   { id: 1,  date: '13.04 14:32', type: 'KPI',        event: 'KPI 3 выполнен: ...4521',             recipient: 'Абдуллох Р.',           initials: 'АР', channel: 'Push',   status: 'delivered', readAt: '14:35' },
   { id: 2,  date: '13.04 14:32', type: 'KPI',        event: 'KPI 3 выполнен: ...4521',             recipient: 'Абдуллох Р.',           initials: 'АР', channel: 'In-app', status: 'delivered', readAt: '14:33' },
   { id: 3,  date: '13.04 14:32', type: 'KPI',        event: 'KPI 3 выполнен: ...4521',             recipient: 'Рустам Алиев (менеджер)', initials: 'РА', channel: 'In-app', status: 'delivered', readAt: null },
@@ -47,13 +59,30 @@ const ROWS: LogRow[] = [
   { id: 7,  date: '13.04 09:00', type: 'Финансы',    event: 'Вывод 120 000 UZS',                    recipient: 'Абдуллох Р.',           initials: 'АР', channel: 'SMS',    status: 'delivered', readAt: null },
   { id: 8,  date: '13.04 09:00', type: 'Финансы',    event: 'Запрос на вывод 50 000',               recipient: 'Рустам Алиев',          initials: 'РА', channel: 'In-app', status: 'delivered', readAt: null },
   { id: 9,  date: '12.04 18:45', type: 'KPI',        event: 'KPI 3 выполнен: ...1010',             recipient: 'Нодира У.',             initials: 'НУ', channel: 'Push',   status: 'error',     readAt: null,
-    error: 'Push token expired. Устройство: iPhone 13. Последний push: 10.04.2026. Рекомендация: пользователь должен повторно авторизоваться в приложении.' },
+    error: 'Push token expired',
+    errorDetail: {
+      title: 'Push token expired',
+      device: 'iPhone 13',
+      lastPushAt: '10.04.2026',
+      attempts: [1, 3],
+      nextAttempt: 'Не запланирована (макс. попыток)',
+      recommendation: 'Пользователь должен повторно авторизоваться в приложении для обновления push-токена.',
+    },
+  },
   { id: 10, date: '12.04 18:45', type: 'KPI',        event: 'KPI 3 выполнен: ...1010',             recipient: 'Нодира У.',             initials: 'НУ', channel: 'In-app', status: 'delivered', readAt: '19:00' },
   { id: 11, date: '12.04 16:20', type: 'Карты',      event: 'Карта продана: ...2105',              recipient: 'Мухаммад Н.',           initials: 'МН', channel: 'In-app', status: 'delivered', readAt: '16:42' },
   { id: 12, date: '12.04 15:10', type: 'Система',    event: 'Вход с нового устройства',             recipient: 'Админ Камолов',         initials: 'АК', channel: 'Email',  status: 'queued',    readAt: null },
   { id: 13, date: '12.04 14:08', type: 'Финансы',    event: 'Вознаграждение начислено: 10 000',     recipient: 'Санжар М.',             initials: 'СМ', channel: 'Push',   status: 'delivered', readAt: '14:10' },
   { id: 14, date: '12.04 11:55', type: 'Система',    event: 'Ошибка интеграции: UCOIN timeout',     recipient: 'Админ Камолов',         initials: 'АК', channel: 'Email',  status: 'error',     readAt: null,
-    error: 'SMTP-сервер вернул 554: Relay access denied. Повторная отправка через 30 минут не удалась. Рекомендация: проверить настройки SPF/DKIM домена ubank.uz.' },
+    error: 'SMTP 554: Relay access denied',
+    errorDetail: {
+      title: 'SMTP 554: Relay access denied',
+      lastPushAt: '12.04.2026',
+      attempts: [2, 3],
+      nextAttempt: 'Через 30 минут',
+      recommendation: 'Проверить настройки SPF/DKIM домена ubank.uz.',
+    },
+  },
   { id: 15, date: '12.04 10:30', type: 'KPI',        event: 'KPI срок истекает через 3 дня',         recipient: 'Дарья Нам',             initials: 'ДН', channel: 'Push',   status: 'delivered', readAt: null },
 ];
 
@@ -265,7 +294,7 @@ function FilterSelect<T extends string>({ label, value, options, onChange }: {
 
 export default function NotificationDeliveryLogPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all');
@@ -273,19 +302,28 @@ export default function NotificationDeliveryLogPage() {
   const [dateRange, setDateRange] = useState({ from: '2026-04-10', to: '2026-04-15' });
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
+  const [rows, setRows] = useState<LogRow[]>(SEED_ROWS);
   const navigate = useNavigate();
   const exportToast = useExportToast();
 
+  const retryRow = (id: number) => {
+    setRows(prev => prev.map(r => r.id === id
+      ? { ...r, status: 'delivered' as const, readAt: nowHHMM(), error: undefined, errorDetail: undefined }
+      : r
+    ));
+    setExpandedId(null);
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ROWS.filter(r => {
+    return rows.filter(r => {
       if (typeFilter !== 'all' && r.type !== typeFilter) return false;
       if (channelFilter !== 'all' && r.channel !== channelFilter) return false;
       if (statusFilter !== 'all' && r.status !== statusFilter) return false;
       if (q && !r.event.toLowerCase().includes(q) && !r.recipient.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [query, typeFilter, channelFilter, statusFilter]);
+  }, [rows, query, typeFilter, channelFilter, statusFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageSafe = Math.min(page, pageCount);
@@ -404,7 +442,7 @@ export default function NotificationDeliveryLogPage() {
                         }}
                       />
                       {r.status === 'error' && expandedId === r.id && (
-                        <ErrorDetailRow error={r.error ?? ''} />
+                        <ErrorDetailRow row={r} onRetry={() => retryRow(r.id)} />
                       )}
                     </React.Fragment>
                   ))}
@@ -441,6 +479,7 @@ export default function NotificationDeliveryLogPage() {
         <style>{`
           @media (max-width: 1100px) { .ndl-stats { grid-template-columns: repeat(2, 1fr) !important; } }
           @media (max-width: 640px)  { .ndl-stats { grid-template-columns: 1fr !important; } }
+          @media (max-width: 800px)  { .ndl-detail-grid { grid-template-columns: 1fr !important; } }
         `}</style>
       </div>
 
@@ -492,39 +531,236 @@ function LogRowView({ row, expanded, onToggle }: {
       <Td><ChannelBadge label={row.channel} /></Td>
       <Td><DeliveryBadge status={row.status} /></Td>
       <Td>
-        {row.readAt
-          ? (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '5px',
-              fontFamily: F.inter, fontSize: '12px', color: C.text1,
-            }}>
-              <Check size={12} strokeWidth={2.5} color={C.success} />
-              <span style={{ fontFamily: F.mono }}>{row.readAt}</span>
-            </span>
-          )
-          : <span style={{ color: C.text4 }}>—</span>}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          {row.readAt
+            ? (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                fontFamily: F.inter, fontSize: '12px', color: C.text1,
+              }}>
+                <Check size={12} strokeWidth={2.5} color={C.success} />
+                <span style={{ fontFamily: F.mono }}>{row.readAt}</span>
+              </span>
+            )
+            : <span style={{ color: C.text4 }}>—</span>}
+          {isError && (
+            <ChevronDown
+              size={14}
+              color={C.text3}
+              strokeWidth={1.75}
+              style={{
+                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.18s',
+                flexShrink: 0,
+              }}
+            />
+          )}
+        </div>
       </Td>
     </tr>
   );
 }
 
-function ErrorDetailRow({ error }: { error: string }) {
+function ErrorDetailRow({ row, onRetry }: { row: LogRow; onRetry: () => void }) {
+  const d = row.errorDetail;
+  const fallbackTitle = row.error ?? 'Не удалось доставить';
+  const title = d?.title ?? fallbackTitle;
+
   return (
-    <tr style={{
-      background: C.errorBg,
-      borderBottom: `1px solid ${C.border}`,
-      boxShadow: `inset 3px 0 0 ${C.error}`,
-    }}>
-      <td colSpan={7} style={{ padding: '12px 16px 14px 20px' }}>
+    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+      <td colSpan={7} style={{ padding: '0 20px 16px 24px', background: C.surface }}>
         <div style={{
-          display: 'flex', alignItems: 'flex-start', gap: '8px',
-          fontFamily: F.inter, fontSize: '12px', color: '#DC2626', lineHeight: 1.5,
+          border: `1px solid ${C.border}`,
+          borderLeft: `3px solid ${C.error}`,
+          background: '#FEF7F7',
+          borderRadius: '10px',
+          padding: '16px',
         }}>
-          <AlertTriangle size={14} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '2px' }} />
-          <span>{error}</span>
+          <div className="ndl-detail-grid" style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px',
+          }}>
+            {/* LEFT — details */}
+            <div style={{ minWidth: 0 }}>
+              <DetailHeading>Детали ошибки</DetailHeading>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <KVPair label="Ошибка">
+                  <span style={{
+                    fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+                    color: C.error, lineHeight: 1.4,
+                  }}>
+                    {title}
+                  </span>
+                </KVPair>
+                {d?.device && <KVPair label="Устройство"><PlainValue>{d.device}</PlainValue></KVPair>}
+                {d?.lastPushAt && (
+                  <KVPair label={row.channel === 'Push' ? 'Последний push' : 'Последняя отправка'}>
+                    <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text2 }}>
+                      {d.lastPushAt}
+                    </span>
+                  </KVPair>
+                )}
+                {d && (
+                  <KVPair label="Попыток">
+                    <PlainValue>{d.attempts[0]} из {d.attempts[1]}</PlainValue>
+                  </KVPair>
+                )}
+                {d && (
+                  <KVPair label="Следующая попытка">
+                    <PlainValue>{d.nextAttempt}</PlainValue>
+                  </KVPair>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT — actions */}
+            <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <DetailHeading>Действия</DetailHeading>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                <OutlineButton icon={RefreshCw} onClick={onRetry}>
+                  Повторить отправку
+                </OutlineButton>
+                <AltChannelDropdown
+                  channel={row.channel}
+                  onPick={() => onRetry()}
+                />
+              </div>
+
+              {d?.recommendation && (
+                <>
+                  <div style={{ height: '1px', background: '#FECACA', margin: '4px 0' }} />
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '8px',
+                    fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.5,
+                  }}>
+                    <Info size={14} color={C.info} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <span>
+                      <span style={{ fontWeight: 500, color: C.text2 }}>Рекомендация: </span>
+                      {d.recommendation}
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </td>
     </tr>
+  );
+}
+
+function KVPair({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: '140px 1fr', gap: '12px',
+      alignItems: 'baseline',
+    }}>
+      <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+        {label}
+      </span>
+      <div style={{ minWidth: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+function PlainValue({ children }: { children: React.ReactNode }) {
+  return (
+    <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text2 }}>
+      {children}
+    </span>
+  );
+}
+
+function DetailHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
+      color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+      marginBottom: '10px',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function AltChannelDropdown({ channel, onPick }: {
+  channel: Channel;
+  onPick: (alt: Channel) => void;
+}) {
+  const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
+    usePopoverPosition({ alignRight: false });
+  const [hov, setHov] = useState(false);
+  const [hovItem, setHovItem] = useState<string | null>(null);
+
+  // Alt channels that make sense based on the failing channel
+  const alts: Channel[] = channel === 'Push'
+    ? ['Email', 'SMS']
+    : channel === 'Email'
+      ? ['SMS', 'In-app']
+      : ['Email', 'SMS'];
+
+  return (
+    <div ref={rootRef} style={{ position: 'relative' }}>
+      <button
+        ref={triggerRef as React.Ref<HTMLButtonElement>}
+        type="button"
+        onClick={toggle}
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          height: '38px', padding: '0 14px',
+          border: 'none', borderRadius: '8px',
+          background: hov || open ? C.blueLt : 'transparent',
+          fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+          color: C.blue, cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center', gap: '6px',
+          transition: 'background 0.12s',
+        }}
+      >
+        Отправить через другой канал
+        <ChevronDown size={14} strokeWidth={1.75}
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+        />
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          style={{
+            ...menuStyle,
+            minWidth: '220px',
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(17,24,39,0.08)',
+            padding: '4px 0',
+          }}
+        >
+          {alts.map(alt => {
+            const key = `${alt}-vs-${channel}`;
+            return (
+              <button
+                key={alt}
+                type="button"
+                onMouseEnter={() => setHovItem(key)}
+                onMouseLeave={() => setHovItem(null)}
+                onClick={() => { close(); onPick(alt); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  width: '100%', padding: '9px 12px',
+                  background: hovItem === key ? C.blueLt : 'transparent',
+                  border: 'none', cursor: 'pointer',
+                  fontFamily: F.inter, fontSize: '13px',
+                  color: C.text2, textAlign: 'left',
+                  transition: 'background 0.1s',
+                }}
+              >
+                <ChannelBadge label={alt} />
+                <span>вместо {channel}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -639,6 +875,11 @@ const crumbLink: React.CSSProperties = {
 
 function fmtNum(n: number) {
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function nowHHMM() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 function pctStr(part: number, total: number) {

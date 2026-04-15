@@ -3,12 +3,13 @@ import {
   CheckCircle2, Clock, XCircle, Trophy, Wallet, ArrowDown,
   CreditCard, Upload, Users, AlertTriangle, ShieldAlert, Calendar,
   Plus, MoreVertical, Pencil, Copy, Trash2, ChevronRight,
-  X, Check, ChevronDown,
+  X, Check, ChevronDown, Eye,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -217,8 +218,8 @@ function Switch({ checked, onChange, ariaLabel }: {
    ACTION MENU
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function RuleActionMenu({ onEdit, onDuplicate, onDelete }: {
-  onEdit: () => void; onDuplicate: () => void; onDelete: () => void;
+function RuleActionMenu({ onDetail, onEdit, onDuplicate, onDelete }: {
+  onDetail: () => void; onEdit: () => void; onDuplicate: () => void; onDelete: () => void;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } = usePopoverPosition();
   const [hov, setHov] = useState<string | null>(null);
@@ -272,6 +273,7 @@ function RuleActionMenu({ onEdit, onDuplicate, onDelete }: {
             overflow: 'hidden',
           }}
         >
+          {item('Подробнее', Eye, onDetail)}
           {item('Редактировать', Pencil, onEdit)}
           {item('Дублировать', Copy, onDuplicate)}
           <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
@@ -286,24 +288,32 @@ function RuleActionMenu({ onEdit, onDuplicate, onDelete }: {
    RULE CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete, onConfigure }: {
+function RuleCard({ rule, onToggle, onDetail, onEdit, onDuplicate, onDelete, onConfigure }: {
   rule: Rule;
   onToggle: () => void;
+  onDetail: () => void;
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onConfigure?: () => void;
 }) {
+  const [hov, setHov] = useState(false);
   return (
-    <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
-      borderRadius: '12px',
-      padding: '16px',
-      display: 'flex', alignItems: 'flex-start', gap: '14px',
-      opacity: rule.enabled ? 1 : 0.65,
-      transition: 'opacity 0.15s',
-    }}>
+    <div
+      onClick={onDetail}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: C.surface,
+        border: `1px solid ${hov ? C.text4 : C.border}`,
+        borderRadius: '12px',
+        padding: '16px',
+        display: 'flex', alignItems: 'flex-start', gap: '14px',
+        opacity: rule.enabled ? 1 : 0.65,
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+      }}
+    >
       <IconCircle Icon={rule.icon} tone={rule.iconTone} enabled={rule.enabled} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -352,7 +362,7 @@ function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete, onConfigure }
             )}
             {rule.configLabel && (
               <button
-                onClick={onConfigure}
+                onClick={e => { e.stopPropagation(); onConfigure?.(); }}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
                   padding: '4px 0', border: 'none', background: 'transparent',
@@ -368,9 +378,17 @@ function RuleCard({ rule, onToggle, onEdit, onDuplicate, onDelete, onConfigure }
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}
+      >
         <Switch checked={rule.enabled} onChange={onToggle} ariaLabel={`Переключить правило "${rule.title}"`} />
-        <RuleActionMenu onEdit={onEdit} onDuplicate={onDuplicate} onDelete={onDelete} />
+        <RuleActionMenu
+          onDetail={onDetail}
+          onEdit={onEdit}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+        />
       </div>
     </div>
   );
@@ -1682,7 +1700,7 @@ function DuplicateSuccessToast({ toast, onDismiss, onOpen }: {
 
 export default function NotificationRulesPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [tab, setTab] = useState<RuleTab>('kpi');
   const [rules, setRules] = useState<Rule[]>(INITIAL_RULES);
   const [deletingRule, setDeletingRule] = useState<Rule | null>(null);
@@ -1759,6 +1777,7 @@ export default function NotificationRulesPage() {
                 key={r.id}
                 rule={r}
                 onToggle={() => toggle(r.id)}
+                onDetail={() => navigate(`/notification-rules/${r.id}`)}
                 onEdit={() => openEdit(r)}
                 onDuplicate={() => setDuplicatingRule(r)}
                 onDelete={() => setDeletingRule(r)}
