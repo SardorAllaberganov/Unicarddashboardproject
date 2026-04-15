@@ -70,6 +70,13 @@ Root cause: Each page wired its own download button but none of them triggered a
 Fix: Added [useExportToast.tsx](src/app/components/useExportToast.tsx) — a shared hook that manages a single top-right toast through three phases: Processing (spinner, no close) → Success (file name + size, Ghost "Скачать" action, 8s auto-dismiss) → Error (Ghost "Повторить", manual close). Pages wire `start({ subtitle, fileName, fileSize, shouldError? })` and render `node` once.
 Rule: Every export button must route through `useExportToast`. Never attach a plain `onClick` that silently "downloads". Call `start()` with at minimum a subtitle describing what's being exported; the hook handles the rest. Stack multiple exports is prevented because the hook holds one flow at a time.
 
+## 2026-04-15 — Radio card swallowed clicks on its own label text
+
+Mistake: On the announcement composer's Расписание and Получатели radio cards, clicking the title/sub-label text did not select the card. Only clicking the empty gutter or the radio dot worked.
+Root cause: The inner content wrapper had `onClick={e => { if (children) e.stopPropagation(); }}` — a catch-all meant to stop nested inputs from re-triggering the card's `onSelect`. But that wrapper also contained the `<div>{label}</div>` and `<div>{sub}</div>` text, so text clicks were stopped too.
+Fix: Keep the outer radio-card div as the single `onClick={onSelect}` surface. Wrap **only** `{children}` (the nested inputs) in a separate `<div onClick={e => e.stopPropagation()}>`. Label and sub stay bubble-up.
+Rule: When a clickable card contains both text (should select the card) and inputs (should not re-select), scope `stopPropagation` to the inputs — never to the whole content area. Measure twice: any nested interactive region needs its own stop-wrapper; text labels should always bubble.
+
 ## 2026-04-14 — Monetary input left unformatted while typing
 
 Mistake: The amount field in the manual reward adjustment modal accepted raw digits; the preview ("Баланс: 155 000 → 165 000") used thousand-space formatting but the input itself showed `10000` with no separators, breaking visual consistency.

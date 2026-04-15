@@ -55,7 +55,7 @@ tasks/
 There's no auth state; role is inferred from the URL:
 
 - Paths under `/dashboard`, `/organizations`, `/card-batches`, `/kpi-config`, `/card-import`, `/all-cards`, `/rewards`, `/reports`, `/users`, `/settings` → **Bank Admin**.
-- Paths in `ORG_PATHS` (declared at module level in [Navbar.tsx](../src/app/components/Navbar.tsx) — `/org-dashboard`, `/sellers`, `/org-cards`, `/card-assignment`, `/org-rewards`, `/org-withdrawals`, `/org-settings`) → **Organization Admin**.
+- Paths in `ORG_PATHS` (declared at module level in [Navbar.tsx](../src/app/components/Navbar.tsx) — `/org-dashboard`, `/sellers`, `/org-cards`, `/card-assignment`, `/org-rewards`, `/org-withdrawals`, `/org-settings`, `/seller-messages`) → **Organization Admin**.
 - Shared pages (`/notifications`, `/card-detail/:id`) accept `?from=org` to flip the detected role. Navbar checks `window.location.search` for this flag.
 
 The `detectRole()` helper in [Navbar.tsx](../src/app/components/Navbar.tsx) is the single source of truth. If you add a new org-only route, **append it to `ORG_PATHS`**, or the navbar will render the wrong avatar and switch target.

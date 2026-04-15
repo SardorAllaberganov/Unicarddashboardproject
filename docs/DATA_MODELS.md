@@ -178,6 +178,122 @@ interface Notif {
 }
 ```
 
+### Notification rules — `Rule`
+Defined in [NotificationRulesPage.tsx](../src/app/pages/NotificationRulesPage.tsx).
+
+```ts
+type RuleTab = 'kpi' | 'finance' | 'cards' | 'system';
+type IconTone = 'green' | 'amber' | 'red' | 'blue' | 'gray';
+type Channel = 'Push' | 'In-app' | 'Email' | 'SMS';
+
+interface Rule {
+  id: string;
+  tab: RuleTab;
+  icon: React.ElementType;
+  iconTone: IconTone;
+  title: string;
+  description: string;
+  channels: Channel[];
+  recipients: string[];
+  timing?: string;
+  configLabel?: string;
+  enabled: boolean;
+}
+```
+
+Companion `FormState` in the same file is the modal's working shape — keep `ruleToForm(Rule) → FormState` in sync if either changes.
+
+### Notification delivery log — `LogRow`
+Defined in [NotificationDeliveryLogPage.tsx](../src/app/pages/NotificationDeliveryLogPage.tsx).
+
+```ts
+type EventType = 'KPI' | 'Финансы' | 'Карты' | 'Система' | 'Объявление';
+type Channel = 'In-app' | 'Push' | 'Email' | 'SMS';
+type Delivery = 'delivered' | 'queued' | 'error';
+
+interface LogRow {
+  id: number;
+  date: string;              // '13.04 14:32'
+  type: EventType;
+  event: string;
+  recipient: string;
+  initials: string;
+  channel: Channel;
+  status: Delivery;
+  readAt: string | null;     // 'HH:MM' or null
+  error?: string;            // present when status === 'error'
+}
+```
+
+Error rows render with a 3px `C.error` left inset and are clickable to expand an inline detail row with the `error` string.
+
+### Announcements — history + detail
+
+**`AnnouncementRow`** — [AnnouncementHistoryPage.tsx](../src/app/pages/AnnouncementHistoryPage.tsx).
+
+```ts
+type Status = 'sent' | 'scheduled' | 'draft';
+type Channel = 'In-app' | 'Email' | 'SMS';
+
+interface AnnouncementRow {
+  id: number;
+  date: string | null;
+  title: string;
+  recipientsLabel: string;
+  channels: Channel[];
+  delivered: [number, number] | null;
+  read:      [number, number] | null;
+  status: Status;
+}
+```
+
+**`AnnouncementDetail` + `DeliveryRow`** — [AnnouncementDetailPage.tsx](../src/app/pages/AnnouncementDetailPage.tsx).
+
+```ts
+interface DeliveryRow {
+  id: number; initials: string; name: string; org: string;
+  channels: Channel[];
+  deliveredAt: string | null;  // 'DD.MM HH:MM' or null
+  readAt: string | null;
+}
+
+interface AnnouncementDetail {
+  id: number; title: string; body: string;
+  sentAt: string; from: string;
+  recipientsLabel: string; channels: Channel[];
+  stats: {
+    sent:      [number, number];
+    delivered: [number, number];
+    read:      [number, number];
+  };
+  rows: DeliveryRow[];
+}
+```
+
+`AnnouncementComposePage.tsx` has its own `FormState` shape for the composer; it does not round-trip through `AnnouncementRow` — composing a new announcement does not currently append to the history seed array.
+
+### Seller messages — history + detail
+
+**`MessageRow`** — [SellerMessageHistoryPage.tsx](../src/app/pages/SellerMessageHistoryPage.tsx).
+
+```ts
+type Channel = 'In-app' | 'Push';
+
+interface MessageRow {
+  id: number; date: string; title: string;
+  recipientsLabel: string;
+  channels: Channel[];
+  delivered: [number, number];
+  read:      [number, number];
+}
+```
+
+**`MessageDetail` + `DeliveryRow`** — [SellerMessageDetailPage.tsx](../src/app/pages/SellerMessageDetailPage.tsx). Same shape as the announcement detail but without `org` on each recipient and with the narrower `Channel = 'In-app' | 'Push'` union.
+
+**`SellerOption` (compose variant)** — [SellerMessageComposePage.tsx](../src/app/pages/SellerMessageComposePage.tsx): `{ id: number; name: string; cardsSold: number }`. Distinct from the `SellerOption` used by `CardAssignmentPage` and `RewardsFinancePage` — see the earlier "People" section.
+
+`Template` in the same file is the shape for the Quick Templates panel: `{ id, emoji, title, body }`.
+
 ### `OverdueRow` — overdue KPI report
 Defined in [OverdueKpiReportPage.tsx](../src/app/pages/OverdueKpiReportPage.tsx).
 

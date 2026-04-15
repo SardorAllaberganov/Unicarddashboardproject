@@ -4,6 +4,30 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
+## 2026-04-15 — Notifications & messaging build-out
+
+**Module:** notifications
+**Commits:** uncommitted (working tree). Session builds on `a428f43`.
+**Files touched:** 9 — 6 new pages + Navbar/Sidebar/routes wiring.
+
+**What changed:**
+
+- **Announcements (Bank Admin).** Added full history/detail pair around the existing composer. `/announcements` lists every message with a filter bar (status, channel, date-range), a progress-bar cell for delivered/read counts, and status-gated row actions (sent → Подробнее/Дублировать; scheduled → + Отменить; draft → Редактировать/Дублировать/Удалить). `/announcements/:id` shows 3 stat cards (Отправлено / Доставлено / Прочитано, green at 100% / amber below), a read-only message card, and a per-recipient delivery table.
+- **Notification Delivery Log (Bank Admin).** New `/notification-log` with 4 stat cards (Bell blue / CheckCircle2 green / Clock amber / XCircle red), 4-way filter bar (type, channel, status, date-range), 15 seeded rows, and an inline-expand error detail row with a 3px red inset border. Wired to shared `useExportToast`.
+- **Seller messaging (Org Admin).** New `/seller-messages` (list with action menu), `/seller-messages/new` (two-column composer with recipient radios, seller checkbox list, quick templates, send confirmation), `/seller-messages/:id` (55/45 message + compact stat stack + delivery table).
+- **Routing.** 5 new routes in [routes.tsx](../src/app/routes.tsx). Sidebar gained 4 entries (`Правила уведомлений`, `Объявления`, `Лог доставки` under Bank `СИСТЕМА`; `Сообщения` under Org `УПРАВЛЕНИЕ`). `Сообщения` now points at the list route; the composer is reachable from its header button. Navbar `ORG_PATHS` appended `/seller-messages`.
+- **Date/time patterns.** [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) now hosts a single-date popover calendar (`DatePickerField`) and a masked HH:MM input (`TimeField`) — both reusable patterns worth lifting to shared if a second page needs them.
+- **Docs.** AI_CONTEXT / DATA_MODELS / ROUTES / ARCHITECTURE refreshed to reflect the 6 new pages and the `Rule`, `LogRow`, `AnnouncementRow`, `AnnouncementDetail`, `MessageRow`, `MessageDetail` interfaces.
+
+**Follow-ups (known-incomplete):**
+- Rule editor `onSave` is a no-op — the form doesn't write back to the rules array.
+- Action menus that should delete or cancel (rule Удалить, announcement Отменить/Удалить, message Удалить) are placeholders without confirmation dialogs.
+- Compose → History doesn't persist — each page owns an isolated seed array; a shared in-memory store would unify flows.
+- Every `/.../:id` detail page returns the same mock payload regardless of the param. Keyed-off-useParams lookup is a dev handoff item.
+- Navbar bell dropdown seed is frozen; it doesn't reflect rule fires or message sends.
+
+---
+
 ## 2026-04-14 — Batch workflows, modals, shared primitives, and initial docs
 
 **Module:** all

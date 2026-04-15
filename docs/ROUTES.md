@@ -31,6 +31,11 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/reports/preview/:reportId` | bank | [ReportPreviewPage](../src/app/pages/ReportPreviewPage.tsx) | Query: `?from=YYYY-MM-DD&to=YYYY-MM-DD` |
 | `/reports/overdue-kpi` | bank | [OverdueKpiReportPage](../src/app/pages/OverdueKpiReportPage.tsx) | Row click → `/card-detail/:id` |
 | `/users` | bank | [UsersManagementPage](../src/app/pages/UsersManagementPage.tsx) | Edit role / Block-Unblock / Reset password modals |
+| `/notification-rules` | bank | [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) | 4 tabs × 14 rules + create/edit modal |
+| `/announcements` | bank | [AnnouncementHistoryPage](../src/app/pages/AnnouncementHistoryPage.tsx) | Filter bar + table + action menu gated by status |
+| `/announcements/new` | bank | [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) | Two-column composer, preview, masked HH:MM time |
+| `/announcements/:id` | bank | [AnnouncementDetailPage](../src/app/pages/AnnouncementDetailPage.tsx) | Delivery stats + per-recipient table (mock ignores `:id`) |
+| `/notification-log` | bank | [NotificationDeliveryLogPage](../src/app/pages/NotificationDeliveryLogPage.tsx) | 4 stat cards, filter bar, inline error expand |
 | `/settings` | bank | [SettingsPage](../src/app/pages/SettingsPage.tsx) | 6 tabs |
 
 ### Organization Admin
@@ -43,6 +48,9 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/org-cards` | org | [OrgCardsPage](../src/app/pages/OrgCardsPage.tsx) | Inline "Зафиксировать" sale flow |
 | `/card-assignment` | org | [CardAssignmentPage](../src/app/pages/CardAssignmentPage.tsx) | |
 | `/card-assignment/bulk` | org | [BulkCardAssignmentPage](../src/app/pages/BulkCardAssignmentPage.tsx) | Capacity-capped distribution table |
+| `/seller-messages` | org | [SellerMessageHistoryPage](../src/app/pages/SellerMessageHistoryPage.tsx) | Sent-messages history |
+| `/seller-messages/new` | org | [SellerMessageComposePage](../src/app/pages/SellerMessageComposePage.tsx) | Compose + quick templates + send confirm |
+| `/seller-messages/:id` | org | [SellerMessageDetailPage](../src/app/pages/SellerMessageDetailPage.tsx) | 55/45 message + stats + delivery table (mock ignores `:id`) |
 | `/org-rewards` | org | [OrgFinancePage](../src/app/pages/OrgFinancePage.tsx) | |
 | `/org-withdrawals` | org | [OrgWithdrawalsPage](../src/app/pages/OrgWithdrawalsPage.tsx) | Approve / Reject modals |
 | `/org-settings` | org | [OrgSettingsPage](../src/app/pages/OrgSettingsPage.tsx) | |
@@ -94,7 +102,7 @@ interface NavbarProps {
 }
 ```
 
-Self-detects role via `detectRole(pathname)` against the module-level `ORG_PATHS` array. **Add new org routes to that array** or the navbar will show the wrong avatar and "switch to other role" target.
+Self-detects role via `detectRole(pathname)` against the module-level `ORG_PATHS` array. Current membership: `/org-dashboard`, `/sellers`, `/org-cards`, `/card-assignment`, `/org-rewards`, `/org-withdrawals`, `/org-settings`, `/seller-messages`. **Add new org routes to that array** or the navbar will show the wrong avatar and "switch to other role" target.
 
 ### `usePopoverPosition()`
 File: [usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts)
