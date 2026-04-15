@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ChevronRight, ChevronDown, ChevronLeft, Search, Plus, MoreVertical,
-  Eye, Copy, XCircle, Trash2, Pencil, Check, Inbox,
+  Eye, Copy, XCircle, Trash2, Pencil, Check, Inbox, X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
@@ -275,6 +275,9 @@ const PAGE_SIZE = 10;
 export default function AnnouncementHistoryPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [rows, setRows] = useState<AnnouncementRow[]>(ROWS);
+  const [cancellingRow, setCancellingRow] = useState<AnnouncementRow | null>(null);
+  const [deletingRow, setDeletingRow] = useState<AnnouncementRow | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [channel, setChannel] = useState<ChannelFilter>('all');
@@ -282,15 +285,29 @@ export default function AnnouncementHistoryPage() {
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
 
+  const confirmCancel = () => {
+    if (!cancellingRow) return;
+    setRows(prev => prev.map(r =>
+      r.id === cancellingRow.id ? { ...r, status: 'draft' as const, date: null } : r
+    ));
+    setCancellingRow(null);
+  };
+
+  const confirmDelete = () => {
+    if (!deletingRow) return;
+    setRows(prev => prev.filter(r => r.id !== deletingRow.id));
+    setDeletingRow(null);
+  };
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return ROWS.filter(r => {
+    return rows.filter(r => {
       if (status !== 'all' && r.status !== status) return false;
       if (channel !== 'all' && !r.channels.includes(channel)) return false;
       if (q && !r.title.toLowerCase().includes(q) && !r.recipientsLabel.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [query, status, channel]);
+  }, [rows, query, status, channel]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageSafe = Math.min(page, pageCount);
@@ -387,6 +404,8 @@ export default function AnnouncementHistoryPage() {
                       onOpen={() => navigate(`/announcements/${r.id}`)}
                       onDuplicate={() => navigate('/announcements/new')}
                       onEdit={() => navigate('/announcements/new')}
+                      onCancel={() => setCancellingRow(r)}
+                      onDelete={() => setDeletingRow(r)}
                     />
                   ))}
                 </tbody>
@@ -419,7 +438,331 @@ export default function AnnouncementHistoryPage() {
           </div>
         </div>
       </div>
+
+      <CancelScheduledModal
+        row={cancellingRow}
+        onClose={() => setCancellingRow(null)}
+        onConfirm={confirmCancel}
+      />
+
+      <DeleteDraftModal
+        row={deletingRow}
+        onClose={() => setDeletingRow(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CANCEL SCHEDULED MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function CancelScheduledModal({ row, onClose, onConfirm }: {
+  row: AnnouncementRow | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!row) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [row, onClose]);
+
+  if (!row) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+          maxHeight: 'calc(100vh - 40px)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+        }}>
+          <XCircle size={20} color={C.warning} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Отменить отправку
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px', border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: '14px',
+        }}>
+          {/* Announcement card */}
+          <div style={{
+            background: C.warningBg,
+            borderTop: `1px solid ${C.border}`,
+            borderRight: `1px solid ${C.border}`,
+            borderBottom: `1px solid ${C.border}`,
+            borderLeft: `3px solid ${C.warning}`,
+            borderRadius: '8px', padding: '12px',
+            display: 'flex', flexDirection: 'column', gap: '6px',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: '10px', flexWrap: 'wrap',
+            }}>
+              <span style={{
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1,
+              }}>
+                {row.title}
+              </span>
+              <StatusBadge status="scheduled" />
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+              Получатели: <span style={{ color: C.text2 }}>{row.recipientsLabel}</span>
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+              Запланировано на: <span style={{ fontFamily: F.mono, color: C.text2 }}>
+                {row.date ?? '—'}
+              </span>
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+              Каналы: <span style={{ color: C.text2 }}>
+                {row.channels.length ? row.channels.join(', ') : '—'}
+              </span>
+            </div>
+          </div>
+
+          <p style={{
+            margin: 0, fontFamily: F.inter, fontSize: '14px',
+            color: C.text1, lineHeight: 1.5,
+          }}>
+            Объявление будет отменено и перемещено в черновики.
+            Вы сможете отредактировать и отправить его позже.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: '8px',
+          padding: '16px 20px', borderTop: `1px solid ${C.border}`, flexShrink: 0,
+        }}>
+          <OutlineButton onClick={onClose}>Назад</OutlineButton>
+          <PrimaryButtonDialog onClick={onConfirm} icon={XCircle}>
+            Отменить отправку
+          </PrimaryButtonDialog>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OutlineButton({ children, onClick }: {
+  children: React.ReactNode; onClick?: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        height: '38px', padding: '0 18px',
+        border: `1px solid ${hov ? C.text3 : C.inputBorder}`,
+        borderRadius: '8px', background: C.surface,
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+        color: C.text1, cursor: 'pointer',
+        transition: 'all 0.12s', flexShrink: 0,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PrimaryButtonDialog({ children, onClick, icon: Icon }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        height: '38px', padding: '0 18px',
+        border: 'none', borderRadius: '8px',
+        background: hov ? C.blueHover : C.blue,
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+        color: '#FFFFFF', cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: '6px',
+        boxShadow: hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+        transition: 'all 0.15s', flexShrink: 0,
+      }}
+    >
+      {Icon && <Icon size={14} strokeWidth={1.75} />}
+      {children}
+    </button>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DELETE DRAFT MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function DeleteDraftModal({ row, onClose, onConfirm }: {
+  row: AnnouncementRow | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!row) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [row, onClose]);
+
+  if (!row) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '440px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <Trash2 size={20} color={C.error} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Удалить черновик
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px', border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px',
+          display: 'flex', flexDirection: 'column', gap: '8px',
+        }}>
+          <p style={{
+            margin: 0, fontFamily: F.inter, fontSize: '14px',
+            color: C.text1, lineHeight: 1.5,
+          }}>
+            Удалить черновик «<span style={{ fontWeight: 500 }}>{row.title}</span>»?
+          </p>
+          <p style={{
+            margin: 0, fontFamily: F.inter, fontSize: '12px',
+            color: C.text3, lineHeight: 1.5,
+          }}>
+            Черновик будет удалён навсегда. Это действие нельзя отменить.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: '8px',
+          padding: '16px 20px', borderTop: `1px solid ${C.border}`,
+        }}>
+          <OutlineButton onClick={onClose}>Отмена</OutlineButton>
+          <DestructiveButton onClick={onConfirm} icon={Trash2}>Удалить</DestructiveButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DestructiveButton({ children, onClick, icon: Icon }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        height: '38px', padding: '0 18px',
+        border: 'none', borderRadius: '8px',
+        background: hov ? '#DC2626' : C.error,
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+        color: '#FFFFFF', cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: '6px',
+        boxShadow: hov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)',
+        transition: 'all 0.15s', flexShrink: 0,
+      }}
+    >
+      {Icon && <Icon size={14} strokeWidth={1.75} />}
+      {children}
+    </button>
   );
 }
 
@@ -427,11 +770,13 @@ export default function AnnouncementHistoryPage() {
    ROW
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Row({ row, onOpen, onDuplicate, onEdit }: {
+function Row({ row, onOpen, onDuplicate, onEdit, onCancel, onDelete }: {
   row: AnnouncementRow;
   onOpen: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -472,8 +817,8 @@ function Row({ row, onOpen, onDuplicate, onEdit }: {
           onDetail={onOpen}
           onDuplicate={onDuplicate}
           onEdit={onEdit}
-          onCancel={() => {}}
-          onDelete={() => {}}
+          onCancel={onCancel}
+          onDelete={onDelete}
         />
       </Td>
     </tr>
