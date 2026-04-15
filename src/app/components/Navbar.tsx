@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  ChevronDown, Moon, Sun, LogOut, ArrowLeftRight, Bell,
+  ChevronDown, Moon, Sun, LogOut, ArrowLeftRight, Bell, BellOff,
   CheckCircle2, CreditCard, ArrowDown, Upload, AlertTriangle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
@@ -305,16 +305,116 @@ const ICON_COLORS: Record<NotifIconColor, { color: string; bg: string; border: s
   red:   { color: C.error,   bg: C.errorBg,   border: '#FECACA' },
 };
 
+interface FlyoutItem {
+  id: number;
+  color: NotifIconColor;
+  title: string;
+  sub?: string;
+}
+
 function NotificationBell() {
   const pop = usePopoverPosition();
   const [hov, setHov] = useState(false);
   const [tab, setTab] = useState<'all' | 'unread'>('all');
   const [notifs, setNotifs] = useState(NOTIFS);
+  const [pulseKey, setPulseKey] = useState(0);
+  const [bounceKey, setBounceKey] = useState(0);
+  const [flyout, setFlyout] = useState<FlyoutItem | null>(null);
 
   const unreadCount = notifs.filter(n => n.unread).length;
   const visible = tab === 'unread' ? notifs.filter(n => n.unread) : notifs;
 
   const markAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, unread: false })));
+
+  // Detect increases in unreadCount to fire pulse (State 2)
+  const prevUnreadRef = useRef(unreadCount);
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current) {
+      setPulseKey(k => k + 1);
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount]);
+
+  // Subscribe to cross-page custom events (State 3 + 4)
+  useEffect(() => {
+    const pickIcon = (color: NotifIconColor): React.ElementType => {
+      if (color === 'green') return CheckCircle2;
+      if (color === 'blue')  return CreditCard;
+      if (color === 'amber') return ArrowDown;
+      return AlertTriangle;
+    };
+
+    const onNew = (e: Event) => {
+      const detail = (e as CustomEvent).detail ?? {};
+      const color: NotifIconColor = detail.color ?? 'green';
+      const title: string = detail.title ?? 'KPI 3 выполнен: карта •••• 4521 (Абдуллох)';
+      const sub: string | undefined = detail.sub;
+
+      setNotifs(ns => [{
+        id: Date.now(),
+        icon: pickIcon(color),
+        color,
+        title,
+        sub,
+        time: 'только что',
+        unread: true,
+      }, ...ns]);
+
+      setFlyout({ id: Date.now(), color, title, sub });
+    };
+
+    const onBatch = (e: Event) => {
+      const detail = (e as CustomEvent).detail ?? {};
+      const count: number = Math.max(1, Number(detail.count ?? 5));
+      const color: NotifIconColor = detail.color ?? 'blue';
+      const title: string = detail.title ?? 'Массовое событие системы';
+
+      setNotifs(ns => {
+        const fresh = Array.from({ length: count }, (_, i) => ({
+          id: Date.now() + i,
+          icon: pickIcon(color),
+          color,
+          title: count > 1 ? `${title} (${i + 1}/${count})` : title,
+          time: 'только что',
+          unread: true,
+        }));
+        return [...fresh, ...ns];
+      });
+
+      setBounceKey(k => k + 1);
+    };
+
+    window.addEventListener('app:notif:new', onNew);
+    window.addEventListener('app:notif:batch', onBatch);
+    return () => {
+      window.removeEventListener('app:notif:new', onNew);
+      window.removeEventListener('app:notif:batch', onBatch);
+    };
+  }, []);
+
+  // Auto-dismiss the flyout after 4s
+  useEffect(() => {
+    if (!flyout) return;
+    const t = window.setTimeout(() => setFlyout(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [flyout]);
+
+  const simulateSingle = () => {
+    const samples: { color: NotifIconColor; title: string; sub?: string }[] = [
+      { color: 'green', title: 'KPI 3 выполнен: карта •••• 4521 (Абдуллох Р.)', sub: '10 000 UZS начислено' },
+      { color: 'blue',  title: 'Новая продажа: карта •••• 7102 → Мухаммад Н.' },
+      { color: 'amber', title: 'Запрос на вывод: Камола Р. — 85 000 UZS' },
+      { color: 'red',   title: 'KPI просрочен: 1 карта в Unired Marketing' },
+    ];
+    const s = samples[Math.floor(Math.random() * samples.length)];
+    window.dispatchEvent(new CustomEvent('app:notif:new', { detail: s }));
+  };
+
+  const simulateBatch = () => {
+    window.dispatchEvent(new CustomEvent('app:notif:batch', {
+      detail: { count: 5, title: 'Импорт карт', color: 'blue' },
+    }));
+  };
 
   return (
     <div ref={pop.rootRef} style={{ position: 'relative' }}>
@@ -335,19 +435,54 @@ function NotificationBell() {
       >
         <Bell size={15} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span style={{
-            position: 'absolute', top: '5px', right: '5px',
-            minWidth: '14px', height: '14px', padding: '0 3px',
-            borderRadius: '999px', background: C.error,
-            border: `2px solid ${C.surface}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: F.inter, fontSize: '9px', fontWeight: 700,
-            color: '#fff', lineHeight: 1,
-          }}>
-            {unreadCount}
+          <span
+            key={`badge-${pulseKey}-${bounceKey}`}
+            style={{
+              position: 'absolute', top: '3px', right: '3px',
+              minWidth: '16px', height: '16px', padding: '0 4px',
+              borderRadius: '999px', background: C.error,
+              border: `2px solid ${C.surface}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: F.inter, fontSize: '10px', fontWeight: 700,
+              color: '#fff', lineHeight: 1,
+              animation: bounceKey > 0 && bounceKey >= pulseKey
+                ? 'bellBounce 400ms ease-out 1'
+                : pulseKey > 0
+                  ? 'bellPulse 450ms ease-out 1'
+                  : undefined,
+            }}
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
+
+      {/* Arrival flyout (State 3) */}
+      {flyout && !pop.open && (
+        <BellFlyout
+          item={flyout}
+          onOpen={() => { setFlyout(null); pop.toggle(); }}
+          onClose={() => setFlyout(null)}
+        />
+      )}
+
+      <style>{`
+        @keyframes bellPulse {
+          0%   { transform: scale(1);    }
+          45%  { transform: scale(1.35); }
+          100% { transform: scale(1);    }
+        }
+        @keyframes bellBounce {
+          0%   { transform: scale(1);    }
+          40%  { transform: scale(1.3);  }
+          70%  { transform: scale(0.95); }
+          100% { transform: scale(1);    }
+        }
+        @keyframes bellFlyoutIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
+      `}</style>
 
       {pop.open && (
         <div ref={pop.menuRef} style={{
@@ -418,15 +553,48 @@ function NotificationBell() {
             {visible.length === 0 ? (
               <div style={{
                 padding: '40px 16px', textAlign: 'center',
-                fontFamily: F.inter, fontSize: '13px', color: C.text4,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
               }}>
-                Непрочитанных уведомлений нет
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '50%',
+                  background: '#F3F4F6',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: '4px',
+                }}>
+                  <BellOff size={20} color={C.text4} strokeWidth={1.75} />
+                </div>
+                <div style={{
+                  fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text2,
+                }}>
+                  Нет новых уведомлений
+                </div>
+                <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>
+                  Здесь появятся новые события системы
+                </div>
               </div>
             ) : (
               visible.map((n, i) => (
                 <NotifRow key={n.id} notif={n} last={i === visible.length - 1} />
               ))
             )}
+          </div>
+
+          {/* Demo controls */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: '8px', padding: '8px 12px',
+            borderTop: `1px solid ${C.border}`, background: '#F9FAFB',
+          }}>
+            <span style={{
+              fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+              color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+            }}>
+              Демо
+            </span>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <DemoGhostBtn onClick={simulateSingle}>+1 событие</DemoGhostBtn>
+              <DemoGhostBtn onClick={simulateBatch}>+5 пакетом</DemoGhostBtn>
+            </div>
           </div>
 
           {/* Footer */}
@@ -529,6 +697,129 @@ function NotifRow({ notif, last }: { notif: Notif; last: boolean }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function BellFlyout({ item, onOpen, onClose }: {
+  item: FlyoutItem;
+  onOpen: () => void;
+  onClose: () => void;
+}) {
+  const cfg = ICON_COLORS[item.color];
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'absolute',
+        top: 'calc(100% + 8px)',
+        right: 0,
+        width: '320px',
+        background: C.surface,
+        borderTop: `1px solid ${C.border}`,
+        borderRight: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${C.border}`,
+        borderLeft: `3px solid ${C.blue}`,
+        borderRadius: '10px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        padding: '10px 12px',
+        display: 'flex', alignItems: 'flex-start', gap: '10px',
+        zIndex: 200,
+        animation: 'bellFlyoutIn 0.18s ease-out',
+      }}
+    >
+      {/* Color dot */}
+      <div style={{
+        width: '24px', height: '24px', borderRadius: '50%',
+        background: cfg.bg, border: `1px solid ${cfg.border}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, marginTop: '1px',
+      }}>
+        <span style={{
+          width: '10px', height: '10px', borderRadius: '50%', background: cfg.color,
+        }} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          onClick={onOpen}
+          style={{
+            fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+            color: C.text1, lineHeight: 1.4, cursor: 'pointer',
+            display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2,
+            overflow: 'hidden',
+          }}
+        >
+          {item.title}
+        </div>
+        {item.sub && (
+          <div style={{
+            fontFamily: F.inter, fontSize: '12px', color: C.text3,
+            marginTop: '2px', lineHeight: 1.4,
+          }}>
+            {item.sub}
+          </div>
+        )}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginTop: '6px',
+        }}>
+          <span style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>
+            Только что
+          </span>
+          <button
+            type="button"
+            onClick={onOpen}
+            style={{
+              background: 'transparent', border: 'none', padding: 0,
+              fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
+              color: C.blue, cursor: 'pointer',
+            }}
+          >
+            Нажмите чтобы открыть →
+          </button>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Закрыть"
+        style={{
+          background: 'transparent', border: 'none', padding: '2px',
+          color: C.text4, cursor: 'pointer', flexShrink: 0,
+          fontSize: '14px', lineHeight: 1,
+        }}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+function DemoGhostBtn({ children, onClick }: {
+  children: React.ReactNode; onClick: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        height: '26px', padding: '0 10px',
+        border: `1px solid ${C.inputBorder}`,
+        borderRadius: '6px',
+        background: hov ? C.surface : 'transparent',
+        fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+        color: C.text2, cursor: 'pointer',
+        transition: 'all 0.12s',
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
