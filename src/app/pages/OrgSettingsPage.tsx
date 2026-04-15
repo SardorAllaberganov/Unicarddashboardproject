@@ -128,17 +128,17 @@ function OutlineButton({ label, onClick }: { label: string; onClick?: () => void
 
 function CheckboxRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '6px 0' }}>
-      <div
-        onClick={onChange}
-        style={{
-          width: '16px', height: '16px', borderRadius: '4px',
-          border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
-          background: checked ? C.blue : C.surface,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, transition: 'all 0.12s',
-        }}
-      >
+    <label
+      onClick={onChange}
+      style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '6px 0' }}
+    >
+      <div style={{
+        width: '16px', height: '16px', borderRadius: '4px',
+        border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
+        background: checked ? C.blue : C.surface,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, transition: 'all 0.12s',
+      }}>
         {checked && (
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
             <path d="M2 5L4.5 7.5L8 3" stroke="#fff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />

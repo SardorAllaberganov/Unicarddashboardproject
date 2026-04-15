@@ -574,22 +574,23 @@ function TextArea({ value, placeholder, onChange, height }: {
 function CheckboxRow({ label, checked, onChange, disabled }: {
   label: string; checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean;
 }) {
+  const toggle = () => { if (!disabled && onChange) onChange(!checked); };
   return (
-    <label style={{
-      display: 'inline-flex', alignItems: 'center', gap: '8px',
-      cursor: disabled ? 'not-allowed' : 'pointer',
-      opacity: disabled ? 0.6 : 1, userSelect: 'none',
-    }}>
-      <span
-        onClick={() => !disabled && onChange && onChange(!checked)}
-        style={{
-          width: '18px', height: '18px', borderRadius: '4px',
-          border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
-          background: checked ? C.blue : C.surface,
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.12s', flexShrink: 0,
-        }}
-      >
+    <label
+      onClick={toggle}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: '8px',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.6 : 1, userSelect: 'none',
+      }}
+    >
+      <span style={{
+        width: '18px', height: '18px', borderRadius: '4px',
+        border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
+        background: checked ? C.blue : C.surface,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.12s', flexShrink: 0,
+      }}>
         {checked && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
       </span>
       <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>{label}</span>
