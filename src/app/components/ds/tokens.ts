@@ -31,6 +31,18 @@ export const C = {
   errorBg: '#FEF2F2',
   info: '#0891B2',
   infoBg: '#ECFEFF',
+  // Surfaces specific
+  sidebarBg: '#FFFFFF',
+  sidebarBorder: '#E5E7EB',
+  tableHeaderBg: '#F9FAFB',
+  tableHover: '#F9FAFB',
+  tableAlt: '#FAFBFC',
+  // Skeleton / overlay / focus
+  focusRing: '#DBEAFE',
+  skeletonBase: '#E5E7EB',
+  skeletonShimmer: '#F3F4F6',
+  overlay: 'rgba(0,0,0,0.2)',
+  progressTrack: '#EFF6FF',
 };
 
 /* ── Dark theme overrides ────────────────────────────────────────────── */
@@ -44,22 +56,31 @@ export const D = {
   text1: '#F1F2F6',
   text2: '#A0A5B8',
   text3: '#6B7280',
-  text4: '#4B5060',
+  text4: '#4A4F63',
   textDisabled: '#3A3F50',
   blue: '#3B82F6',
   blueHover: '#2563EB',
   blueLt: '#1E2A4A',
   blueTint: '#1E3A5F',
   success: '#34D399',
-  successBg: 'rgba(52,211,153,0.12)',
+  successBg: 'rgba(52,211,153,0.10)',
   warning: '#FBBF24',
-  warningBg: 'rgba(251,191,36,0.12)',
+  warningBg: 'rgba(251,191,36,0.10)',
   error: '#F87171',
-  errorBg: 'rgba(248,113,113,0.12)',
+  errorBg: 'rgba(248,113,113,0.10)',
   info: '#22D3EE',
-  infoBg: 'rgba(34,211,238,0.12)',
+  infoBg: 'rgba(8,145,178,0.10)',
+  // Surfaces specific
+  sidebarBg: '#12141C',
+  sidebarBorder: '#2D3148',
+  tableHeaderBg: '#161822',
   tableHover: '#1E2130',
   tableAlt: '#161822',
+  // Skeleton / overlay / focus
+  focusRing: '#1E3A5F',
+  skeletonBase: '#2D3148',
+  skeletonShimmer: '#363B52',
+  overlay: 'rgba(0,0,0,0.4)',
   progressTrack: '#2D3148',
 };
 
