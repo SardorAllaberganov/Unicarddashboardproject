@@ -33,11 +33,17 @@ import ReportPreviewPage from './pages/ReportPreviewPage';
 import OverdueKpiReportPage from './pages/OverdueKpiReportPage';
 import NotificationsHistoryPage from './pages/NotificationsHistoryPage';
 import EmptyStatesShowcasePage from './pages/EmptyStatesShowcasePage';
+import FirstUseEmptyStatesShowcasePage from './pages/FirstUseEmptyStatesShowcasePage';
+import SkeletonStatesShowcasePage from './pages/SkeletonStatesShowcasePage';
+import PaginationShowcasePage from './pages/PaginationShowcasePage';
+import RadioCardShowcasePage from './pages/RadioCardShowcasePage';
 import NotificationRulesPage from './pages/NotificationRulesPage';
+import NotificationRuleDetailPage from './pages/NotificationRuleDetailPage';
 import NotificationRuleEditorPage from './pages/NotificationRuleEditorPage';
 import AnnouncementComposePage from './pages/AnnouncementComposePage';
 import AnnouncementHistoryPage from './pages/AnnouncementHistoryPage';
 import AnnouncementDetailPage from './pages/AnnouncementDetailPage';
+import AnnouncementFlowPage from './pages/AnnouncementFlowPage';
 import NotificationDeliveryLogPage from './pages/NotificationDeliveryLogPage';
 import SellerMessageComposePage from './pages/SellerMessageComposePage';
 import SellerMessageHistoryPage from './pages/SellerMessageHistoryPage';
@@ -137,12 +143,32 @@ export const router = createBrowserRouter([
     Component: EmptyStatesShowcasePage,
   },
   {
+    path: '/empty-states-first-use',
+    Component: FirstUseEmptyStatesShowcasePage,
+  },
+  {
+    path: '/skeleton-states',
+    Component: SkeletonStatesShowcasePage,
+  },
+  {
+    path: '/pagination-showcase',
+    Component: PaginationShowcasePage,
+  },
+  {
+    path: '/radio-card-showcase',
+    Component: RadioCardShowcasePage,
+  },
+  {
     path: '/notification-rules',
     Component: NotificationRulesPage,
   },
   {
     path: '/notification-rules/new',
     Component: NotificationRuleEditorPage,
+  },
+  {
+    path: '/notification-rules/:id',
+    Component: NotificationRuleDetailPage,
   },
   {
     path: '/notification-rules/:id/edit',
@@ -159,6 +185,10 @@ export const router = createBrowserRouter([
   {
     path: '/announcements/:id',
     Component: AnnouncementDetailPage,
+  },
+  {
+    path: '/flow/announcements',
+    Component: AnnouncementFlowPage,
   },
   {
     path: '/notification-log',
