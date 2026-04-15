@@ -34,6 +34,7 @@ import OverdueKpiReportPage from './pages/OverdueKpiReportPage';
 import NotificationsHistoryPage from './pages/NotificationsHistoryPage';
 import EmptyStatesShowcasePage from './pages/EmptyStatesShowcasePage';
 import NotificationRulesPage from './pages/NotificationRulesPage';
+import NotificationRuleEditorPage from './pages/NotificationRuleEditorPage';
 import AnnouncementComposePage from './pages/AnnouncementComposePage';
 import AnnouncementHistoryPage from './pages/AnnouncementHistoryPage';
 import AnnouncementDetailPage from './pages/AnnouncementDetailPage';
@@ -138,6 +139,14 @@ export const router = createBrowserRouter([
   {
     path: '/notification-rules',
     Component: NotificationRulesPage,
+  },
+  {
+    path: '/notification-rules/new',
+    Component: NotificationRuleEditorPage,
+  },
+  {
+    path: '/notification-rules/:id/edit',
+    Component: NotificationRuleEditorPage,
   },
   {
     path: '/announcements',
