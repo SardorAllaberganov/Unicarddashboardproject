@@ -4,10 +4,12 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { EmptyState } from '../components/EmptyState';
 import { useNavigate } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SHOWCASE
@@ -15,19 +17,19 @@ import { useNavigate } from 'react-router';
    each wrapped in a context-labeled frame.
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ContextFrame({ context, children }: { context: string; children: React.ReactNode }) {
+function ContextFrame({ context, children, t }: { context: string; children: React.ReactNode; t: T }) {
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
     }}>
       <div style={{
         padding: '10px 16px',
-        borderBottom: `1px solid ${C.border}`,
-        background: '#F9FAFB',
+        borderBottom: `1px solid ${t.border}`,
+        background: t.tableHeaderBg,
         fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-        color: C.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
+        color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
       }}>
         {context}
       </div>
@@ -41,10 +43,11 @@ function ContextFrame({ context, children }: { context: string; children: React.
 export default function EmptyStatesShowcasePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
   const navigate = useNavigate();
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -58,23 +61,23 @@ export default function EmptyStatesShowcasePage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-            <span onClick={() => navigate('/design-system')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>
+            <span onClick={() => navigate('/design-system')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>
               Design System
             </span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
               Empty States
             </span>
           </div>
 
           {/* Title */}
-          <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
             Empty States
           </h1>
-          <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 24px' }}>
+          <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 24px' }}>
             Prompt 0 §16 — 6 variants for different contexts. All use the shared <code style={{
               fontFamily: F.mono, fontSize: '12px', padding: '1px 6px',
-              background: C.blueLt, color: C.blue, borderRadius: '4px',
+              background: t.blueLt, color: t.blue, borderRadius: '4px',
             }}>{'<EmptyState />'}</code> component.
           </p>
 
@@ -84,7 +87,7 @@ export default function EmptyStatesShowcasePage() {
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: '16px',
           }}>
-            <ContextFrame context="1. Filtered table (no results)">
+            <ContextFrame context="1. Filtered table (no results)" t={t}>
               <EmptyState
                 icon={CreditCard}
                 title="Карты не найдены"
@@ -93,7 +96,7 @@ export default function EmptyStatesShowcasePage() {
               />
             </ContextFrame>
 
-            <ContextFrame context="2. New organization (no sellers)">
+            <ContextFrame context="2. New organization (no sellers)" t={t}>
               <EmptyState
                 icon={Users}
                 title="Нет продавцов"
@@ -105,7 +108,7 @@ export default function EmptyStatesShowcasePage() {
               />
             </ContextFrame>
 
-            <ContextFrame context="3. Empty card batch (no imports)">
+            <ContextFrame context="3. Empty card batch (no imports)" t={t}>
               <EmptyState
                 icon={Upload}
                 title="Карты не импортированы"
@@ -115,7 +118,7 @@ export default function EmptyStatesShowcasePage() {
               />
             </ContextFrame>
 
-            <ContextFrame context="4. Finance page (no transactions)">
+            <ContextFrame context="4. Finance page (no transactions)" t={t}>
               <EmptyState
                 icon={Receipt}
                 title="Нет операций за период"
@@ -124,7 +127,7 @@ export default function EmptyStatesShowcasePage() {
               />
             </ContextFrame>
 
-            <ContextFrame context="5. Notifications">
+            <ContextFrame context="5. Notifications" t={t}>
               <EmptyState
                 icon={Bell}
                 title="Нет уведомлений"
@@ -132,7 +135,7 @@ export default function EmptyStatesShowcasePage() {
               />
             </ContextFrame>
 
-            <ContextFrame context="6. Search (no results)">
+            <ContextFrame context="6. Search (no results)" t={t}>
               <EmptyState
                 icon={SearchX}
                 title="Ничего не найдено"
