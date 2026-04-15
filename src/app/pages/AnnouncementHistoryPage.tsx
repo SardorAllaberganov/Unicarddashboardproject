@@ -1,12 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronRight, ChevronDown, ChevronLeft, Search, Plus, MoreVertical,
-  Eye, Copy, XCircle, Trash2, Pencil, Check, Inbox, X,
+  Eye, Copy, XCircle, Trash2, Pencil, Check, Inbox, X, CheckCircle2,
 } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { EmptyState } from '../components/EmptyState';
@@ -274,7 +275,7 @@ const PAGE_SIZE = 10;
 
 export default function AnnouncementHistoryPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [rows, setRows] = useState<AnnouncementRow[]>(ROWS);
   const [cancellingRow, setCancellingRow] = useState<AnnouncementRow | null>(null);
   const [deletingRow, setDeletingRow] = useState<AnnouncementRow | null>(null);
@@ -283,7 +284,40 @@ export default function AnnouncementHistoryPage() {
   const [channel, setChannel] = useState<ChannelFilter>('all');
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-15' });
   const [page, setPage] = useState(1);
+  const [highlightId, setHighlightId] = useState<number | null>(null);
+  const [sentToast, setSentToast] = useState<{ title: string; summary: string } | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Consume nav-state handoff from compose → history
+  const consumedRef = useRef(false);
+  useEffect(() => {
+    if (consumedRef.current) return;
+    const s = location.state as
+      | { newRow?: AnnouncementRow; toast?: { title: string; summary: string } }
+      | null;
+    if (!s?.newRow) return;
+    consumedRef.current = true;
+
+    setRows(prev => [s.newRow!, ...prev]);
+    setHighlightId(s.newRow.id);
+    if (s.toast) setSentToast(s.toast);
+    setPage(1);
+    setStatus('all');
+    setChannel('all');
+    setQuery('');
+
+    navigate(location.pathname, { replace: true, state: null });
+
+    const t = window.setTimeout(() => setHighlightId(null), 2500);
+    return () => window.clearTimeout(t);
+  }, [location, navigate]);
+
+  const scrollToHighlighted = () => {
+    if (highlightId == null) return;
+    const el = document.getElementById(`anno-row-${highlightId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   const confirmCancel = () => {
     if (!cancellingRow) return;
@@ -401,9 +435,16 @@ export default function AnnouncementHistoryPage() {
                     <Row
                       key={r.id}
                       row={r}
-                      onOpen={() => navigate(`/announcements/${r.id}`)}
+                      highlight={r.id === highlightId}
+                      onOpen={() => {
+                        if (r.status === 'draft') {
+                          navigate('/announcements/new', { state: { draft: r } });
+                        } else {
+                          navigate(`/announcements/${r.id}`);
+                        }
+                      }}
                       onDuplicate={() => navigate('/announcements/new')}
-                      onEdit={() => navigate('/announcements/new')}
+                      onEdit={() => navigate('/announcements/new', { state: { draft: r } })}
                       onCancel={() => setCancellingRow(r)}
                       onDelete={() => setDeletingRow(r)}
                     />
@@ -450,6 +491,30 @@ export default function AnnouncementHistoryPage() {
         onClose={() => setDeletingRow(null)}
         onConfirm={confirmDelete}
       />
+
+      {sentToast && (
+        <SentAnnouncementToast
+          title={sentToast.title}
+          summary={sentToast.summary}
+          onOpen={() => { scrollToHighlighted(); setSentToast(null); }}
+          onClose={() => setSentToast(null)}
+        />
+      )}
+
+      <style>{`
+        @keyframes annoRowPulseBg {
+          0%   { background-color: ${C.blueLt}; }
+          60%  { background-color: ${C.blueLt}; }
+          100% { background-color: transparent; }
+        }
+        @keyframes annoRowPulseBorder {
+          0%   { box-shadow: inset 3px 0 0 ${C.blue}; }
+          60%  { box-shadow: inset 3px 0 0 ${C.blue}; }
+          100% { box-shadow: inset 3px 0 0 transparent; }
+        }
+        .anno-row-pulse { animation: annoRowPulseBg 2s ease-out 1; }
+        .anno-row-pulse > td:first-child { animation: annoRowPulseBorder 2s ease-out 1; }
+      `}</style>
     </div>
   );
 }
@@ -770,8 +835,9 @@ function DestructiveButton({ children, onClick, icon: Icon }: {
    ROW
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Row({ row, onOpen, onDuplicate, onEdit, onCancel, onDelete }: {
+function Row({ row, highlight, onOpen, onDuplicate, onEdit, onCancel, onDelete }: {
   row: AnnouncementRow;
+  highlight?: boolean;
   onOpen: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
@@ -779,22 +845,27 @@ function Row({ row, onOpen, onDuplicate, onEdit, onCancel, onDelete }: {
   onDelete: () => void;
 }) {
   const [hov, setHov] = useState(false);
+  const isFresh = row.date === 'Только что';
   return (
     <tr
+      id={`anno-row-${row.id}`}
+      className={highlight ? 'anno-row-pulse' : undefined}
       onClick={onOpen}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
         borderBottom: `1px solid ${C.border}`,
         cursor: 'pointer',
-        background: hov ? '#F9FAFB' : 'transparent',
+        background: hov && !highlight ? '#F9FAFB' : undefined,
         transition: 'background 0.1s',
       }}
     >
       <Td><span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text3 }}>{row.id}</span></Td>
       <Td>
         {row.date
-          ? <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>{row.date}</span>
+          ? isFresh
+            ? <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.blue, fontWeight: 500 }}>{row.date}</span>
+            : <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>{row.date}</span>
           : <span style={{ color: C.text4 }}>—</span>}
       </Td>
       <Td><span style={{ color: C.text1, fontWeight: 500 }}>{row.title}</span></Td>
@@ -822,6 +893,102 @@ function Row({ row, onOpen, onDuplicate, onEdit, onCancel, onDelete }: {
         />
       </Td>
     </tr>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SENT TOAST (post-send handoff)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function SentAnnouncementToast({ title, summary, onOpen, onClose }: {
+  title: string;
+  summary: string;
+  onOpen: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const t = window.setTimeout(onClose, 6000);
+    return () => window.clearTimeout(t);
+  }, [onClose]);
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'fixed', top: '24px', right: '24px',
+        width: '400px', maxWidth: 'calc(100vw - 48px)',
+        background: C.surface,
+        borderTop: `1px solid ${C.border}`,
+        borderRight: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${C.border}`,
+        borderLeft: `3px solid ${C.success}`,
+        borderRadius: '10px',
+        padding: '12px 14px',
+        display: 'flex', alignItems: 'flex-start', gap: '10px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        zIndex: 300,
+        animation: 'sentToastIn 0.2s ease-out',
+      }}
+    >
+      <style>{`
+        @keyframes sentToastIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      <div style={{
+        width: '24px', height: '24px', borderRadius: '50%',
+        background: C.successBg, border: '1px solid #A7F3D0',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, marginTop: '1px',
+      }}>
+        <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
+          color: C.text1, lineHeight: 1.4,
+        }}>
+          Объявление отправлено
+        </div>
+        <div style={{
+          fontFamily: F.inter, fontSize: '12px', color: C.text3,
+          marginTop: '3px', lineHeight: 1.45,
+        }}>
+          «{title}» → {summary}
+        </div>
+        <button
+          type="button"
+          onClick={onOpen}
+          style={{
+            marginTop: '8px',
+            background: 'transparent', border: 'none', padding: 0,
+            fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+            color: C.blue, cursor: 'pointer',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = C.blueHover)}
+          onMouseLeave={e => (e.currentTarget.style.color = C.blue)}
+        >
+          Открыть в истории →
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Закрыть"
+        style={{
+          background: 'transparent', border: 'none', padding: '2px',
+          color: C.text3, cursor: 'pointer', flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <X size={14} strokeWidth={1.75} />
+      </button>
+    </div>
   );
 }
 

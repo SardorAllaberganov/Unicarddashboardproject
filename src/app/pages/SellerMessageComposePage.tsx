@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell, ChevronRight, Check,
 } from 'lucide-react';
@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
+import { renderMarkdown, FormatToolbar } from '../components/renderMarkdown';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MOCK DATA
@@ -82,9 +84,10 @@ const EMPTY_FORM: FormState = {
 
 export default function SellerMessageComposePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const navigate = useNavigate();
 
   const patch = (p: Partial<FormState>) => setForm(s => ({ ...s, ...p }));
@@ -150,12 +153,21 @@ export default function SellerMessageComposePage() {
                 />
 
                 <FieldLabel required style={{ marginTop: '14px' }}>Текст</FieldLabel>
+                <FormatToolbar
+                  textareaRef={bodyRef}
+                  value={form.body}
+                  onChange={v => patch({ body: v })}
+                />
                 <TextArea
+                  ref={bodyRef}
                   value={form.body}
                   placeholder="Текст сообщения для продавцов..."
                   onChange={v => patch({ body: v })}
                   height={120}
                 />
+                <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '6px' }}>
+                  Поддерживается простое форматирование: **жирный**, _курсив_, • списки
+                </div>
               </FormSection>
 
               <Divider />
@@ -262,7 +274,38 @@ export default function SellerMessageComposePage() {
         recipientsCount={recipientsCount}
         channels={form.channels}
         onClose={() => setConfirmOpen(false)}
-        onConfirm={() => { setConfirmOpen(false); navigate('/org-dashboard'); }}
+        onConfirm={() => {
+          const channels: ('In-app' | 'Push')[] = [
+            'In-app',
+            ...(form.channels.push ? (['Push'] as const) : []),
+          ];
+          const recipientsLabel = form.mode === 'all'
+            ? `Все продавцы (${SELLERS.length})`
+            : (() => {
+                const picked = SELLERS.filter(s => form.selectedIds.includes(s.id));
+                const names = picked.slice(0, 2).map(s => s.name.split(' ')[0]).join(', ');
+                const more = picked.length > 2 ? ` и ещё ${picked.length - 2}` : '';
+                return `${names}${more} (${picked.length})`;
+              })();
+
+          const total = recipientsCount;
+          const newRow = {
+            id: Date.now(),
+            date: 'Только что',
+            title: form.title.trim() || 'Без заголовка',
+            recipientsLabel,
+            channels,
+            delivered: [0, total] as [number, number],
+            read: [0, total] as [number, number],
+          };
+
+          const summary = `${total} ${plural(total, 'продавец', 'продавца', 'продавцов')}`;
+
+          setConfirmOpen(false);
+          navigate('/seller-messages', {
+            state: { newRow, toast: { title: newRow.title, summary } },
+          });
+        }}
       />
 
       <style>{`
@@ -397,13 +440,14 @@ function PreviewCard({ title, body, placeholder }: { title: string; body: string
         }}>
           📢 {title}
         </div>
-        <div style={{
-          fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '4px',
-          lineHeight: 1.45,
-          display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2,
-          overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {body}
+        <div style={{ marginTop: '6px' }}>
+          {body.trim() === ''
+            ? (
+              <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text4, lineHeight: 1.45 }}>
+                Текст сообщения для продавцов...
+              </div>
+            )
+            : renderMarkdown(body)}
         </div>
         <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '6px' }}>
           Только что
@@ -546,12 +590,16 @@ function TextInput({ value, placeholder, onChange }: {
   );
 }
 
-function TextArea({ value, placeholder, onChange, height }: {
-  value: string; placeholder?: string; onChange: (v: string) => void; height?: number;
-}) {
+const TextArea = React.forwardRef<HTMLTextAreaElement, {
+  value: string;
+  placeholder?: string;
+  onChange: (v: string) => void;
+  height?: number;
+}>(function TextArea({ value, placeholder, onChange, height }, ref) {
   const [focus, setFocus] = useState(false);
   return (
     <textarea
+      ref={ref}
       value={value}
       placeholder={placeholder}
       onChange={e => onChange(e.target.value)}
@@ -569,7 +617,7 @@ function TextArea({ value, placeholder, onChange, height }: {
       }}
     />
   );
-}
+});
 
 function CheckboxRow({ label, checked, onChange, disabled }: {
   label: string; checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean;

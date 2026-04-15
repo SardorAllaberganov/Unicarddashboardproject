@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
   Bell, ChevronRight, Copy, Check, XCircle, Send, MailCheck, Eye,
-  Pencil, Trash2, X,
+  Pencil, Trash2, X, Clock,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -39,6 +40,40 @@ interface AnnouncementDetail {
   };
   rows: DeliveryRow[];
 }
+
+interface ScheduledDetail {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: string;
+  author: string;
+  scheduledAt: string;
+  scheduledRelative: string;
+  orgs: string[];
+  channels: Channel[];
+  recipients: { id: number; initials: string; name: string; org: string; channels: Channel[] }[];
+}
+
+const SCHEDULED_DETAIL: ScheduledDetail = {
+  id: 4,
+  title: 'Акция: бонус за KPI 3',
+  body:
+    'Уважаемые партнёры!\n\n' +
+    'С 15 апреля запускаем акцию: каждая карта, прошедшая все три этапа KPI, принесёт продавцу дополнительный бонус +10 000 UZS к стандартному вознаграждению. Акция действует до конца апреля и распространяется на все активные партии.\n\n' +
+    'Подробные условия и пример расчёта опубликованы в личном кабинете. Просим ознакомить продавцов с условиями до старта акции.',
+  createdAt: '13.04.2026 16:00',
+  author: 'Админ Камолов',
+  scheduledAt: '15.04.2026 09:00',
+  scheduledRelative: 'Через 2 дня, 19 часов',
+  orgs: ['Mysafar OOO', 'Unired Marketing'],
+  channels: ['In-app'],
+  recipients: [
+    { id: 1, initials: 'РА', name: 'Рустам Алиев',       org: 'Mysafar OOO', channels: ['In-app'] },
+    { id: 2, initials: 'СМ', name: 'Санжар (менеджер 2)', org: 'Mysafar OOO', channels: ['In-app'] },
+    { id: 3, initials: 'ЛК', name: 'Лола Каримова',       org: 'Unired Mkt',  channels: ['In-app'] },
+    { id: 4, initials: 'БН', name: 'Бобур Н.',            org: 'Unired Mkt',  channels: ['In-app'] },
+  ],
+};
 
 const DETAIL: AnnouncementDetail = {
   id: 1,
@@ -75,7 +110,7 @@ const DETAIL: AnnouncementDetail = {
 
 export default function AnnouncementDetailPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -85,6 +120,7 @@ export default function AnnouncementDetailPage() {
 
   const [cancelOpen, setCancelOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [sendNowOpen, setSendNowOpen] = useState(false);
 
   const readPct = Math.round((data.stats.read[0] / data.stats.read[1]) * 100);
   const deliveredPct = Math.round((data.stats.delivered[0] / data.stats.delivered[1]) * 100);
@@ -110,10 +146,10 @@ export default function AnnouncementDetailPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span onClick={() => navigate('/dashboard')} style={crumbLink}>Главная</span>
             <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span onClick={() => navigate('/announcements')} style={crumbLink}>Объявления</span>
+            <span onClick={() => navigate('/announcements')} style={crumbLink}>История объявлений</span>
             <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
             <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
-              #{id ?? data.id} — {data.title}
+              {status === 'scheduled' ? SCHEDULED_DETAIL.title : data.title}
             </span>
           </div>
 
@@ -125,7 +161,7 @@ export default function AnnouncementDetailPage() {
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
-                  {data.title}
+                  {status === 'scheduled' ? SCHEDULED_DETAIL.title : data.title}
                 </h1>
                 {status === 'sent' && (
                   <StatusBadge label="Отправлено" bg={C.successBg} color="#15803D" dot={C.success} />
@@ -137,35 +173,55 @@ export default function AnnouncementDetailPage() {
                   <StatusBadge label="Черновик" bg="#F3F4F6" color={C.text3} dot={C.text4} />
                 )}
               </div>
-              <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
-                {status === 'sent' && (
-                  <>
-                    <span style={{ fontFamily: F.mono, color: C.text2 }}>{data.sentAt}</span> · {data.recipientsLabel} · {data.channels.join(', ')}
-                  </>
-                )}
-                {status === 'scheduled' && (
-                  <>
-                    Запланировано на <span style={{ fontFamily: F.mono, color: C.text2 }}>15.04.2026 09:00</span> · {data.recipientsLabel} · {data.channels.join(', ')}
-                  </>
-                )}
-                {status === 'draft' && (
-                  <>Черновик не отправлен · {data.channels.join(', ') || 'Каналы не выбраны'}</>
-                )}
-              </div>
+              {status === 'scheduled' ? (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  fontFamily: F.inter, fontSize: '13px', color: '#B45309',
+                  marginTop: '8px',
+                }}>
+                  <Clock size={14} strokeWidth={1.75} />
+                  <span>
+                    Отправка:{' '}
+                    <span style={{ fontFamily: F.mono }}>{SCHEDULED_DETAIL.scheduledAt}</span>
+                    {' '}(через 2 дня)
+                  </span>
+                </div>
+              ) : (
+                <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
+                  {status === 'sent' && (
+                    <>
+                      <span style={{ fontFamily: F.mono, color: C.text2 }}>{data.sentAt}</span> · {data.recipientsLabel} · {data.channels.join(', ')}
+                    </>
+                  )}
+                  {status === 'draft' && (
+                    <>Черновик не отправлен · {data.channels.join(', ') || 'Каналы не выбраны'}</>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
+              {status === 'scheduled' && (
+                <>
+                  <PrimaryButton icon={Send} onClick={() => setSendNowOpen(true)}>
+                    Отправить сейчас
+                  </PrimaryButton>
+                  <OutlineButton icon={Pencil} onClick={() => navigate('/announcements/new')}>
+                    Редактировать
+                  </OutlineButton>
+                  <OutlineButton icon={XCircle} danger onClick={() => setCancelOpen(true)}>
+                    Отменить отправку
+                  </OutlineButton>
+                </>
+              )}
               {status === 'draft' && (
                 <PrimaryButton icon={Pencil} onClick={() => navigate('/announcements/new')}>
                   Редактировать
                 </PrimaryButton>
               )}
-              <OutlineButton icon={Copy} onClick={() => navigate('/announcements/new')}>
-                Дублировать
-              </OutlineButton>
-              {status === 'scheduled' && (
-                <OutlineButton icon={XCircle} danger onClick={() => setCancelOpen(true)}>
-                  Отменить отправку
+              {status !== 'scheduled' && (
+                <OutlineButton icon={Copy} onClick={() => navigate('/announcements/new')}>
+                  Дублировать
                 </OutlineButton>
               )}
               {status === 'draft' && (
@@ -206,39 +262,195 @@ export default function AnnouncementDetailPage() {
             </div>
           )}
 
-          {/* Message card */}
-          <div style={cardStyle}>
-            <div style={{
-              fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-              color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
-              marginBottom: '10px',
-            }}>
-              Сообщение
-            </div>
-            <div style={{
-              display: 'flex', alignItems: 'flex-start', gap: '12px',
-              padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px',
-            }}>
+          {/* Message card — sent + draft only */}
+          {status !== 'scheduled' && (
+            <div style={cardStyle}>
               <div style={{
-                width: '36px', height: '36px', borderRadius: '50%',
-                background: C.blueLt, flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
+                color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+                marginBottom: '10px',
               }}>
-                <Bell size={18} color={C.blue} strokeWidth={1.75} />
+                Сообщение
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
-                  📢 {data.title}
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: '12px',
+                padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px',
+              }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '50%',
+                  background: C.blueLt, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Bell size={18} color={C.blue} strokeWidth={1.75} />
                 </div>
-                <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2, marginTop: '6px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                  {data.body}
-                </div>
-                <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '12px' }}>
-                  От: <span style={{ color: C.text2 }}>{data.from}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
+                    📢 {data.title}
+                  </div>
+                  <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2, marginTop: '6px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                    {data.body}
+                  </div>
+                  <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '12px' }}>
+                    От: <span style={{ color: C.text2 }}>{data.from}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Scheduled: two-column content + delivery info */}
+          {status === 'scheduled' && (
+            <div className="sched-grid" style={{
+              display: 'grid', gridTemplateColumns: '55fr 45fr', gap: '16px',
+            }}>
+              {/* LEFT — Content */}
+              <div style={cardStyle}>
+                <SectionHeading>Содержание</SectionHeading>
+                <div style={{
+                  fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
+                  color: C.text1, lineHeight: 1.4,
+                }}>
+                  <span style={{ color: C.text3, fontWeight: 400 }}>Заголовок: </span>
+                  {SCHEDULED_DETAIL.title}
+                </div>
+
+                <HDivider />
+
+                <div style={{
+                  fontFamily: F.inter, fontSize: '13px', color: C.text2,
+                  lineHeight: 1.6, whiteSpace: 'pre-wrap',
+                }}>
+                  {SCHEDULED_DETAIL.body}
+                </div>
+
+                <HDivider />
+
+                <div style={{
+                  display: 'flex', gap: '18px', flexWrap: 'wrap',
+                  fontFamily: F.inter, fontSize: '12px', color: C.text3,
+                }}>
+                  <span>
+                    Создано:{' '}
+                    <span style={{ fontFamily: F.mono, color: C.text2 }}>
+                      {SCHEDULED_DETAIL.createdAt}
+                    </span>
+                  </span>
+                  <span>
+                    Автор: <span style={{ color: C.text2 }}>{SCHEDULED_DETAIL.author}</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* RIGHT — Schedule + recipients */}
+              <div style={cardStyle}>
+                <SectionHeading>Расписание доставки</SectionHeading>
+
+                {/* Info card */}
+                <div style={{
+                  background: '#FFFBEB',
+                  borderTop: `1px solid ${C.border}`,
+                  borderRight: `1px solid ${C.border}`,
+                  borderBottom: `1px solid ${C.border}`,
+                  borderLeft: `3px solid ${C.warning}`,
+                  borderRadius: '8px', padding: '16px',
+                  display: 'flex', alignItems: 'flex-start', gap: '12px',
+                }}>
+                  <Clock size={20} color={C.warning} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '1px' }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{
+                      fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1,
+                      lineHeight: 1.4,
+                    }}>
+                      Запланировано на{' '}
+                      <span style={{ fontFamily: F.mono }}>{SCHEDULED_DETAIL.scheduledAt}</span>
+                    </div>
+                    <div style={{
+                      fontFamily: F.inter, fontSize: '12px', color: C.text3,
+                      marginTop: '3px', lineHeight: 1.45,
+                    }}>
+                      {SCHEDULED_DETAIL.scheduledRelative}
+                    </div>
+                  </div>
+                </div>
+
+                <HDivider />
+
+                <SectionHeading>Получатели</SectionHeading>
+
+                <div style={{
+                  fontFamily: F.inter, fontSize: '13px', color: C.text2,
+                  lineHeight: 1.6,
+                }}>
+                  <div>
+                    <span style={{ color: C.text3 }}>Организации: </span>
+                    {SCHEDULED_DETAIL.orgs.join(', ')}
+                  </div>
+                  <div>
+                    <span style={{ color: C.text3 }}>Пользователей: </span>
+                    {SCHEDULED_DETAIL.recipients.length}
+                  </div>
+                </div>
+
+                {/* Recipient list */}
+                <div style={{
+                  marginTop: '12px',
+                  border: `1px solid ${C.border}`, borderRadius: '8px',
+                  overflow: 'hidden',
+                }}>
+                  {SCHEDULED_DETAIL.recipients.map((r, i) => (
+                    <div
+                      key={r.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 140px 80px',
+                        alignItems: 'center', gap: '10px',
+                        padding: '10px 12px',
+                        borderTop: i === 0 ? 'none' : `1px solid ${C.border}`,
+                        background: i % 2 === 0 ? C.surface : '#F9FAFB',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <div style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          background: C.blueLt, color: C.blue,
+                          fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          {r.initials}
+                        </div>
+                        <span style={{
+                          fontFamily: F.inter, fontSize: '13px', color: C.text1, fontWeight: 500,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {r.name}
+                        </span>
+                      </div>
+                      <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text2 }}>
+                        {r.org}
+                      </span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {r.channels.map(c => (
+                          <span key={c} style={{
+                            fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+                            padding: '3px 8px', borderRadius: '6px',
+                            background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+                          }}>{c}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{
+                  fontFamily: F.inter, fontSize: '12px', color: C.text3,
+                  marginTop: '10px', lineHeight: 1.45,
+                }}>
+                  Все столбцы «Доставлено» и «Прочитано» будут доступны после отправки.
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Delivery table — sent only */}
           {status === 'sent' && (
@@ -268,22 +480,6 @@ export default function AnnouncementDetailPage() {
             </div>
           )}
 
-          {/* Scheduled info strip */}
-          {status === 'scheduled' && (
-            <div style={{
-              ...cardStyle, marginTop: '20px',
-              background: C.warningBg, borderColor: C.border,
-              borderLeft: `3px solid ${C.warning}`,
-            }}>
-              <div style={{
-                fontFamily: F.inter, fontSize: '13px', color: C.text2, lineHeight: 1.5,
-              }}>
-                Объявление будет автоматически отправлено в указанное время. До отправки вы можете
-                отредактировать черновик или отменить отправку.
-              </div>
-            </div>
-          )}
-
           {/* Draft info strip */}
           {status === 'draft' && (
             <div style={{
@@ -304,6 +500,7 @@ export default function AnnouncementDetailPage() {
         <style>{`
           @media (max-width: 900px) {
             .an-stats { grid-template-columns: 1fr !important; }
+            .sched-grid { grid-template-columns: 1fr !important; }
           }
         `}</style>
       </div>
@@ -324,6 +521,133 @@ export default function AnnouncementDetailPage() {
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => { setDeleteOpen(false); goList(); }}
       />
+
+      <SendNowModal
+        open={sendNowOpen}
+        scheduledAt={SCHEDULED_DETAIL.scheduledAt}
+        recipientCount={SCHEDULED_DETAIL.recipients.length}
+        channels={SCHEDULED_DETAIL.channels}
+        onClose={() => setSendNowOpen(false)}
+        onConfirm={() => { setSendNowOpen(false); goList(); }}
+      />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCHEDULED LAYOUT HELPERS
+═══════════════════════════════════════════════════════════════════════════ */
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 style={{
+      margin: '0 0 12px',
+      fontFamily: F.dm, fontSize: '13px', fontWeight: 600,
+      color: C.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
+    }}>
+      {children}
+    </h3>
+  );
+}
+
+function HDivider() {
+  return <div style={{ height: '1px', background: C.border, margin: '16px 0' }} />;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SEND-NOW MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function SendNowModal({ open, scheduledAt, recipientCount, channels, onClose, onConfirm }: {
+  open: boolean;
+  scheduledAt: string;
+  recipientCount: number;
+  channels: Channel[];
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '460px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <Send size={20} color={C.blue} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Отправить объявление сейчас
+          </h2>
+          <button
+            type="button"
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px', border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{
+            fontFamily: F.inter, fontSize: '13px', color: C.text1, lineHeight: 1.5,
+          }}>
+            Отправить объявление сейчас вместо запланированного времени (
+            <span style={{ fontFamily: F.mono }}>{scheduledAt}</span>)?
+          </div>
+          <div style={{
+            fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.45,
+          }}>
+            {recipientCount} получателя · {channels.join(', ')}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: '8px',
+          padding: '14px 20px', borderTop: `1px solid ${C.border}`,
+        }}>
+          <OutlineButton onClick={onClose}>Отмена</OutlineButton>
+          <PrimaryButton icon={Send} onClick={onConfirm}>Отправить сейчас</PrimaryButton>
+        </div>
+      </div>
     </div>
   );
 }

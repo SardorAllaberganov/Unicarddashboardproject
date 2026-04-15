@@ -1,13 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell, ChevronRight, ChevronLeft, Plus, X, Check, ChevronDown, Search,
   Save, AlertTriangle, Calendar as CalendarIcon, Clock,
+  CheckCircle2, Loader2, Trash2,
 } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
+import { renderMarkdown, FormatToolbar } from '../components/renderMarkdown';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MOCK DATA
@@ -65,12 +68,117 @@ const EMPTY_FORM: FormState = {
 
 export default function AnnouncementComposePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [draftState, setDraftState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [draftToastOpen, setDraftToastOpen] = useState(false);
+  const [draftMeta, setDraftMeta] = useState<{ id: number; savedAt: string; savedAtShort: string } | null>(null);
+  const [deleteDraftOpen, setDeleteDraftOpen] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const patch = (p: Partial<FormState>) => setForm(s => ({ ...s, ...p }));
+
+  // Consume nav-state handoff from history → compose (draft edit)
+  const draftConsumedRef = useRef(false);
+  useEffect(() => {
+    if (draftConsumedRef.current) return;
+    const s = location.state as { draft?: { id: number; title: string } } | null;
+    if (!s?.draft) return;
+    draftConsumedRef.current = true;
+
+    setForm({
+      title: s.draft.title,
+      body:
+        'Коротко по итогам марта: общий объём продаж, число новых продавцов, топ-3 организации, средний процент KPI 3. Подробный отчёт прикрепим ближе к публикации.\n\n' +
+        'Пока собираю цифры — не отправляйте, пока не проверю с аналитикой.',
+      mode: 'all',
+      selectedOrgs: EMPTY_FORM.selectedOrgs,
+      selectedUsers: EMPTY_FORM.selectedUsers,
+      channels: { inapp: true, email: true, sms: false },
+      schedule: 'now',
+      scheduleDate: EMPTY_FORM.scheduleDate,
+      scheduleTime: EMPTY_FORM.scheduleTime,
+    });
+    setDraftState('saved');
+    setLastSavedAt('12.04 15:30');
+    setDraftMeta({ id: s.draft.id, savedAt: '12.04.2026 15:30', savedAtShort: '12.04 15:30' });
+    didMountRef.current = true; // skip initial auto-save fire for the pre-filled body
+
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
+
+  // Auto-save: 3s debounce on title/body edits → saving → saved with HH:MM stamp
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    if (!didMountRef.current) { didMountRef.current = true; return; }
+    if (form.title.trim() === '' && form.body.trim() === '') return;
+
+    const idleTimer = window.setTimeout(() => {
+      setDraftState('saving');
+      window.setTimeout(() => {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        setLastSavedAt(`${hh}:${mm}`);
+        setDraftState('saved');
+      }, 800);
+    }, 3000);
+
+    return () => window.clearTimeout(idleTimer);
+  }, [form.title, form.body]);
+
+  const saveDraftNow = () => {
+    setDraftState('saving');
+    window.setTimeout(() => {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      setLastSavedAt(`${hh}:${mm}`);
+      setDraftState('saved');
+      setDraftToastOpen(true);
+    }, 600);
+  };
+
+  const handleSendConfirm = () => {
+    const orgCount = form.mode === 'orgs' ? form.selectedOrgs.length : (form.mode === 'all' ? TOTAL_ORG_COUNT : 0);
+    const userCount = recipientsCount.users;
+
+    const recipientsLabel = form.mode === 'all'
+      ? `Все организации (${userCount} чел.)`
+      : form.mode === 'orgs'
+        ? `${form.selectedOrgs.slice(0, 2).join(', ')}${form.selectedOrgs.length > 2 ? ` и ещё ${form.selectedOrgs.length - 2}` : ''} (${userCount} чел.)`
+        : `${form.selectedUsers.slice(0, 2).join(', ')}${form.selectedUsers.length > 2 ? ` и ещё ${form.selectedUsers.length - 2}` : ''} (${userCount} чел.)`;
+
+    const channels: ('In-app' | 'Email' | 'SMS')[] = [
+      'In-app',
+      ...(form.channels.email ? (['Email'] as const) : []),
+      ...(form.channels.sms ? (['SMS'] as const) : []),
+    ];
+
+    const newRow = {
+      id: Date.now(),
+      date: 'Только что',
+      title: form.title.trim() || 'Без заголовка',
+      recipientsLabel,
+      channels,
+      delivered: [0, userCount] as [number, number],
+      read: [0, userCount] as [number, number],
+      status: 'sent' as const,
+    };
+
+    const summary = orgCount > 0
+      ? `${orgCount} ${plural(orgCount, 'организация', 'организации', 'организаций')} (${userCount} ${plural(userCount, 'получатель', 'получателя', 'получателей')})`
+      : `${userCount} ${plural(userCount, 'получатель', 'получателя', 'получателей')}`;
+
+    setConfirmOpen(false);
+    navigate('/announcements', {
+      state: { newRow, toast: { title: newRow.title, summary } },
+    });
+  };
 
   const recipientsCount = useMemo(() => {
     if (form.mode === 'all') return { orgs: TOTAL_ORG_COUNT, users: TOTAL_USER_COUNT };
@@ -103,25 +211,65 @@ export default function AnnouncementComposePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span onClick={() => navigate('/dashboard')} style={crumbLink}>Главная</span>
             <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span onClick={() => navigate('/notification-rules')} style={crumbLink}>Уведомления</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Новое объявление</span>
+            {draftMeta ? (
+              <>
+                <span onClick={() => navigate('/announcements')} style={crumbLink}>История объявлений</span>
+                <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Редактирование черновика</span>
+              </>
+            ) : (
+              <>
+                <span onClick={() => navigate('/notification-rules')} style={crumbLink}>Уведомления</span>
+                <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Новое объявление</span>
+              </>
+            )}
           </div>
 
           {/* Header */}
           <div style={{ marginBottom: '24px' }}>
             <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
-              Отправить объявление
+              {draftMeta ? 'Редактирование черновика' : 'Отправить объявление'}
             </h1>
             <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
-              Отправьте сообщение организациям и пользователям
+              {draftMeta
+                ? <>Черновик сохранён: <span style={{ fontFamily: F.mono, color: C.text2 }}>{draftMeta.savedAt}</span></>
+                : 'Отправьте сообщение организациям и пользователям'}
             </div>
           </div>
 
           {/* Two-column grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '24px', paddingBottom: '96px' }}>
             {/* ── LEFT: compose ── */}
-            <div style={cardStyle}>
+            <div style={{ ...cardStyle, position: 'relative' }}>
+              {/* Draft badge + auto-save indicator (top-right of compose card) */}
+              <div style={{
+                position: 'absolute', top: '14px', right: '16px',
+                display: 'flex', alignItems: 'center', gap: '10px',
+                minHeight: '18px',
+              }}>
+                {draftMeta && (
+                  <>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '5px',
+                      fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
+                      padding: '3px 8px', borderRadius: '10px',
+                      background: '#F3F4F6', color: C.text3,
+                    }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.text4 }} />
+                      Черновик
+                    </span>
+                    <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+                      Сохранён {draftMeta.savedAtShort}
+                    </span>
+                  </>
+                )}
+                {/* Hide the duplicate "Черновик сохранён HH:MM" in draft mode (badge + caption already cover it); still show "Сохранение…" while auto-saving */}
+                {(!draftMeta || draftState === 'saving') && (
+                  <AutoSaveIndicator state={draftState} savedAt={lastSavedAt} />
+                )}
+              </div>
+
               {/* § Содержание */}
               <FormSection title="Содержание">
                 <FieldLabel required>Заголовок</FieldLabel>
@@ -132,13 +280,19 @@ export default function AnnouncementComposePage() {
                 />
 
                 <FieldLabel required style={{ marginTop: '14px' }}>Текст сообщения</FieldLabel>
+                <FormatToolbar
+                  textareaRef={bodyRef}
+                  value={form.body}
+                  onChange={v => patch({ body: v })}
+                />
                 <TextArea
+                  ref={bodyRef}
                   value={form.body}
                   placeholder="Введите текст объявления..."
                   onChange={v => patch({ body: v })}
                   height={160}
                 />
-                <Caption>Поддерживается простое форматирование: **жирный**, _курсив_</Caption>
+                <Caption>Поддерживается простое форматирование: **жирный**, _курсив_, • списки</Caption>
               </FormSection>
 
               <Divider />
@@ -294,13 +448,27 @@ export default function AnnouncementComposePage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: '8px', flexShrink: 0,
         }}>
-          <GhostButton icon={Save} onClick={() => {}}>Сохранить как черновик</GhostButton>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <OutlineButton onClick={() => navigate('/notification-rules')}>Отмена</OutlineButton>
-            <PrimaryButton disabled={!canSend} onClick={() => setConfirmOpen(true)}>
-              Отправить объявление
-            </PrimaryButton>
-          </div>
+          {draftMeta ? (
+            <>
+              <DestructiveOutlineButton icon={Trash2} onClick={() => setDeleteDraftOpen(true)}>
+                Удалить черновик
+              </DestructiveOutlineButton>
+              <GhostButton icon={Save} onClick={saveDraftNow}>Сохранить черновик</GhostButton>
+              <PrimaryButton disabled={!canSend} onClick={() => setConfirmOpen(true)}>
+                Отправить объявление
+              </PrimaryButton>
+            </>
+          ) : (
+            <>
+              <GhostButton icon={Save} onClick={saveDraftNow}>Сохранить как черновик</GhostButton>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <OutlineButton onClick={() => navigate('/notification-rules')}>Отмена</OutlineButton>
+                <PrimaryButton disabled={!canSend} onClick={() => setConfirmOpen(true)}>
+                  Отправить объявление
+                </PrimaryButton>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -309,8 +477,160 @@ export default function AnnouncementComposePage() {
         userCount={recipientsCount.users}
         channels={form.channels}
         onClose={() => setConfirmOpen(false)}
-        onConfirm={() => { setConfirmOpen(false); navigate('/notification-rules'); }}
+        onConfirm={handleSendConfirm}
       />
+
+      {draftToastOpen && (
+        <DraftSavedToast
+          title={form.title}
+          onClose={() => setDraftToastOpen(false)}
+          onOpenDrafts={() => { setDraftToastOpen(false); navigate('/announcements'); }}
+        />
+      )}
+
+      <DeleteDraftModal
+        open={deleteDraftOpen}
+        title={form.title}
+        onClose={() => setDeleteDraftOpen(false)}
+        onConfirm={() => { setDeleteDraftOpen(false); navigate('/announcements'); }}
+      />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DRAFT AUTO-SAVE INDICATOR + SUCCESS TOAST
+═══════════════════════════════════════════════════════════════════════════ */
+
+function AutoSaveIndicator({ state, savedAt }: {
+  state: 'idle' | 'saving' | 'saved';
+  savedAt: string | null;
+}) {
+  if (state === 'idle') return null;
+
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      fontFamily: F.inter, fontSize: '12px', color: C.text3,
+      lineHeight: 1.2,
+    }}>
+      <style>{`
+        @keyframes draftSpin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+      `}</style>
+      {state === 'saving' ? (
+        <>
+          <span style={{ display: 'inline-flex', animation: 'draftSpin 0.9s linear infinite' }}>
+            <Loader2 size={16} color={C.text3} strokeWidth={1.75} />
+          </span>
+          <span>Сохранение…</span>
+        </>
+      ) : (
+        <>
+          <CheckCircle2 size={16} color={C.success} strokeWidth={1.75} />
+          <span>Черновик сохранён{savedAt ? ` ${savedAt}` : ''}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+function DraftSavedToast({ title, onClose, onOpenDrafts }: {
+  title: string;
+  onClose: () => void;
+  onOpenDrafts: () => void;
+}) {
+  useEffect(() => {
+    const t = window.setTimeout(onClose, 6000);
+    return () => window.clearTimeout(t);
+  }, [onClose]);
+
+  const subtitle = title.trim() !== ''
+    ? `«${title.trim()}» — вы можете продолжить редактирование позже`
+    : 'Вы можете продолжить редактирование позже';
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'fixed', top: '24px', right: '24px',
+        width: '380px', maxWidth: 'calc(100vw - 48px)',
+        background: C.surface,
+        borderTop: `1px solid ${C.border}`,
+        borderRight: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${C.border}`,
+        borderLeft: `3px solid ${C.success}`,
+        borderRadius: '10px',
+        padding: '12px 14px',
+        display: 'flex', alignItems: 'flex-start', gap: '10px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        zIndex: 300,
+        animation: 'draftToastIn 0.2s ease-out',
+      }}
+    >
+      <style>{`
+        @keyframes draftToastIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      {/* Icon */}
+      <div style={{
+        width: '24px', height: '24px', borderRadius: '50%',
+        background: C.successBg, border: '1px solid #A7F3D0',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, marginTop: '1px',
+      }}>
+        <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
+          color: C.text1, lineHeight: 1.4,
+        }}>
+          Черновик сохранён
+        </div>
+        <div style={{
+          fontFamily: F.inter, fontSize: '12px', color: C.text3,
+          marginTop: '3px', lineHeight: 1.45,
+        }}>
+          {subtitle}
+        </div>
+        <button
+          type="button"
+          onClick={onOpenDrafts}
+          style={{
+            marginTop: '8px',
+            background: 'transparent', border: 'none', padding: 0,
+            fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+            color: C.blue, cursor: 'pointer',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = C.blueHover)}
+          onMouseLeave={e => (e.currentTarget.style.color = C.blue)}
+        >
+          Перейти к черновикам →
+        </button>
+      </div>
+
+      {/* Close */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Закрыть"
+        style={{
+          background: 'transparent', border: 'none', padding: '2px',
+          color: C.text3, cursor: 'pointer', flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <X size={14} strokeWidth={1.75} />
+      </button>
     </div>
   );
 }
@@ -341,13 +661,17 @@ function PreviewCard({ title, body, placeholder }: { title: string; body: string
         }}>
           📢 {title}
         </div>
-        <div style={{
-          fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '4px',
-          lineHeight: 1.45,
-          display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2,
-          overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {body}
+        <div style={{ marginTop: '6px' }}>
+          {body.trim() === ''
+            ? (
+              <div style={{
+                fontFamily: F.inter, fontSize: '13px', color: C.text4,
+                lineHeight: 1.45,
+              }}>
+                Введите текст объявления...
+              </div>
+            )
+            : renderMarkdown(body)}
         </div>
         <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '6px' }}>
           Только что
@@ -993,12 +1317,16 @@ function TextInput({ value, placeholder, onChange }: {
   );
 }
 
-function TextArea({ value, placeholder, onChange, height }: {
-  value: string; placeholder?: string; onChange: (v: string) => void; height?: number;
-}) {
+const TextArea = React.forwardRef<HTMLTextAreaElement, {
+  value: string;
+  placeholder?: string;
+  onChange: (v: string) => void;
+  height?: number;
+}>(function TextArea({ value, placeholder, onChange, height }, ref) {
   const [focus, setFocus] = useState(false);
   return (
     <textarea
+      ref={ref}
       value={value}
       placeholder={placeholder}
       onChange={e => onChange(e.target.value)}
@@ -1016,7 +1344,7 @@ function TextArea({ value, placeholder, onChange, height }: {
       }}
     />
   );
-}
+});
 
 function CheckboxRow({ label, checked, onChange, disabled }: {
   label: string; checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean;
@@ -1169,6 +1497,154 @@ function GhostButton({ children, onClick, icon: Icon }: {
       {Icon && <Icon size={14} strokeWidth={1.75} />}
       {children}
     </button>
+  );
+}
+
+function DestructiveOutlineButton({ children, onClick, icon: Icon }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        height: '38px', padding: '0 16px',
+        border: `1px solid ${C.error}`, borderRadius: '8px',
+        background: hov ? C.errorBg : C.surface,
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+        color: C.error, cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: '6px',
+        transition: 'all 0.12s', flexShrink: 0,
+      }}
+    >
+      {Icon && <Icon size={14} strokeWidth={1.75} />}
+      {children}
+    </button>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DELETE DRAFT MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function DeleteDraftModal({ open, title, onClose, onConfirm }: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [closeHov, setCloseHov] = useState(false);
+  const [confirmHov, setConfirmHov] = useState(false);
+  const [cancelHov, setCancelHov] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '440px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <Trash2 size={20} color={C.error} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Удалить черновик
+          </h2>
+          <button
+            type="button"
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px', border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{
+            fontFamily: F.inter, fontSize: '13px', color: C.text1, lineHeight: 1.5,
+          }}>
+            Удалить черновик {title.trim() !== '' && <>«<span style={{ fontWeight: 500 }}>{title}</span>»</>}? Действие нельзя отменить.
+          </div>
+        </div>
+
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: '8px',
+          padding: '14px 20px', borderTop: `1px solid ${C.border}`,
+        }}>
+          <button
+            type="button"
+            onMouseEnter={() => setCancelHov(true)}
+            onMouseLeave={() => setCancelHov(false)}
+            onClick={onClose}
+            style={{
+              height: '38px', padding: '0 16px',
+              border: `1px solid ${cancelHov ? C.text3 : C.inputBorder}`,
+              borderRadius: '8px', background: C.surface,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: C.text1, cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
+          >
+            Отмена
+          </button>
+          <button
+            type="button"
+            onMouseEnter={() => setConfirmHov(true)}
+            onMouseLeave={() => setConfirmHov(false)}
+            onClick={onConfirm}
+            style={{
+              height: '38px', padding: '0 16px',
+              border: 'none', borderRadius: '8px',
+              background: confirmHov ? '#DC2626' : C.error,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+              color: '#FFFFFF', cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              boxShadow: confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <Trash2 size={14} strokeWidth={1.75} />
+            Удалить черновик
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
