@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ChevronRight, ChevronLeft, Plus, MoreVertical,
-  Eye, Copy, Trash2, Inbox,
+  Eye, Copy, Trash2, Inbox, X,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
@@ -150,6 +150,7 @@ export default function SellerMessageHistoryPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [rows, setRows] = useState<MessageRow[]>(ROWS);
+  const [deletingRow, setDeletingRow] = useState<MessageRow | null>(null);
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
 
@@ -239,7 +240,7 @@ export default function SellerMessageHistoryPage() {
                       row={r}
                       onOpen={() => navigate(`/seller-messages/${r.id}`)}
                       onDuplicate={() => navigate('/seller-messages/new')}
-                      onDelete={() => remove(r.id)}
+                      onDelete={() => setDeletingRow(r)}
                     />
                   ))}
                 </tbody>
@@ -272,7 +273,185 @@ export default function SellerMessageHistoryPage() {
           </div>
         </div>
       </div>
+
+      <DeleteMessageModal
+        row={deletingRow}
+        onClose={() => setDeletingRow(null)}
+        onConfirm={() => {
+          if (deletingRow) remove(deletingRow.id);
+          setDeletingRow(null);
+        }}
+      />
     </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DELETE MESSAGE MODAL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function DeleteMessageModal({ row, onClose, onConfirm }: {
+  row: MessageRow | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [closeHov, setCloseHov] = useState(false);
+
+  useEffect(() => {
+    if (!row) return;
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', h);
+    return () => document.removeEventListener('keydown', h);
+  }, [row, onClose]);
+
+  if (!row) return null;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(17, 24, 39, 0.50)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 100, padding: '20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: '480px',
+          background: C.surface, border: `1px solid ${C.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+        }}>
+          <Trash2 size={20} color={C.error} strokeWidth={1.75} />
+          <h2 style={{
+            flex: 1, margin: 0,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+          }}>
+            Удалить сообщение
+          </h2>
+          <button
+            onMouseEnter={() => setCloseHov(true)}
+            onMouseLeave={() => setCloseHov(false)}
+            onClick={onClose}
+            aria-label="Закрыть"
+            style={{
+              width: '28px', height: '28px', border: 'none', borderRadius: '7px',
+              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'background 0.12s',
+            }}
+          >
+            <X size={16} color={C.text3} strokeWidth={1.75} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{
+          padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px',
+        }}>
+          {/* Message card */}
+          <div style={{
+            background: C.errorBg,
+            borderTop: `1px solid ${C.border}`,
+            borderRight: `1px solid ${C.border}`,
+            borderBottom: `1px solid ${C.border}`,
+            borderLeft: `3px solid ${C.error}`,
+            borderRadius: '8px', padding: '12px',
+            display: 'flex', flexDirection: 'column', gap: '4px',
+          }}>
+            <div style={{
+              fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1,
+            }}>
+              {row.title}
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+              Отправлено: <span style={{ fontFamily: F.mono, color: C.text2 }}>{row.date}</span>
+              <span style={{ margin: '0 6px', color: C.text4 }}>|</span>
+              Получатели: <span style={{ color: C.text2 }}>{row.recipientsLabel}</span>
+            </div>
+          </div>
+
+          <p style={{
+            margin: 0, fontFamily: F.inter, fontSize: '14px',
+            color: C.text1, lineHeight: 1.5,
+          }}>
+            Сообщение будет удалено из вашей истории. Уже доставленные уведомления
+            у продавцов сохранятся.
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', justifyContent: 'flex-end', gap: '8px',
+          padding: '16px 20px', borderTop: `1px solid ${C.border}`,
+        }}>
+          <OutlineButton onClick={onClose}>Отмена</OutlineButton>
+          <DestructiveButton onClick={onConfirm} icon={Trash2}>
+            Удалить сообщение
+          </DestructiveButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OutlineButton({ children, onClick }: {
+  children: React.ReactNode; onClick?: () => void;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        height: '38px', padding: '0 18px',
+        border: `1px solid ${hov ? C.text3 : C.inputBorder}`,
+        borderRadius: '8px', background: C.surface,
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+        color: C.text1, cursor: 'pointer',
+        transition: 'all 0.12s', flexShrink: 0,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DestructiveButton({ children, onClick, icon: Icon }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+}) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      type="button"
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      onClick={onClick}
+      style={{
+        height: '38px', padding: '0 18px',
+        border: 'none', borderRadius: '8px',
+        background: hov ? '#DC2626' : C.error,
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+        color: '#FFFFFF', cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: '6px',
+        boxShadow: hov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)',
+        transition: 'all 0.15s', flexShrink: 0,
+      }}
+    >
+      {Icon && <Icon size={14} strokeWidth={1.75} />}
+      {children}
+    </button>
   );
 }
 
