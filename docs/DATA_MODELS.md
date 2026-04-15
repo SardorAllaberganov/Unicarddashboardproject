@@ -203,6 +203,33 @@ interface Rule {
 
 Companion `FormState` now lives in [NotificationRuleEditorPage.tsx](../src/app/pages/NotificationRuleEditorPage.tsx) (the editor moved from a modal into a standalone page). Keep `ruleToForm(Rule) → FormState` in sync if either shape changes.
 
+### Rule detail — `FireRow` + `ErrorRow` + retry state
+Defined in [NotificationRuleDetailPage.tsx](../src/app/pages/NotificationRuleDetailPage.tsx).
+
+```ts
+type RetryState = 'idle' | 'confirming' | 'sending' | 'success' | 'failed';
+
+interface FireRow {
+  id: number; date: string; event: string;
+  initials: string; recipient: string;
+  channel: 'Push' | 'In-app' | 'Email' | 'SMS';
+  delivered: boolean;
+  readAt: string | null;
+}
+
+interface ErrorRow {
+  id: number; date: string; initials: string; recipient: string;
+  channel: 'Push' | 'In-app' | 'Email' | 'SMS';
+  reason: string;
+  retryState: RetryState;
+  retryCount: number;
+  deliveredAt: string | null;       // HH:MM after success
+  originalReason: string;           // preserved for "Повтор также не удался · {original}"
+}
+```
+
+Bulk retry stagger: 600 ms between rows, each resolves after 1500 ms with 75 % success probability.
+
 ### Notification delivery log — `LogRow`
 Defined in [NotificationDeliveryLogPage.tsx](../src/app/pages/NotificationDeliveryLogPage.tsx).
 
@@ -210,6 +237,15 @@ Defined in [NotificationDeliveryLogPage.tsx](../src/app/pages/NotificationDelive
 type EventType = 'KPI' | 'Финансы' | 'Карты' | 'Система' | 'Объявление';
 type Channel = 'In-app' | 'Push' | 'Email' | 'SMS';
 type Delivery = 'delivered' | 'queued' | 'error';
+
+interface ErrorDetail {
+  title: string;
+  device?: string;
+  lastPushAt?: string;
+  attempts: [number, number];
+  nextAttempt: string;
+  recommendation?: string;
+}
 
 interface LogRow {
   id: number;
@@ -221,11 +257,12 @@ interface LogRow {
   channel: Channel;
   status: Delivery;
   readAt: string | null;     // 'HH:MM' or null
-  error?: string;            // present when status === 'error'
+  error?: string;            // short summary when status === 'error'
+  errorDetail?: ErrorDetail; // structured detail for the inline expansion
 }
 ```
 
-Error rows render with a 3px `C.error` left inset and are clickable to expand an inline detail row with the `error` string.
+Error rows render with a 3 px `C.error` left inset and a rotating chevron. Click expands an inline two-column card (KVPair details on the left, Outline "Повторить" + Ghost alt-channel dropdown + Info recommendation on the right). `SEED_ROWS` is now lifted into `useState` so retry flips the row to `delivered` in place.
 
 ### Announcements — history + detail
 
@@ -270,7 +307,21 @@ interface AnnouncementDetail {
 }
 ```
 
-`AnnouncementComposePage.tsx` has its own `FormState` shape for the composer; it does not round-trip through `AnnouncementRow` — composing a new announcement does not currently append to the history seed array.
+`AnnouncementComposePage.tsx` has its own `FormState` shape for the composer. On send, it builds a concrete `AnnouncementRow` + toast payload and hands off via `navigate('/announcements', { state: { newRow, toast } })`. The history page consumes the state once (ref-guarded), prepends the row, triggers the `.anno-row-pulse` animation, and shows `SentAnnouncementToast`. Same pattern applies to seller messages via `SellerMessageHistoryPage`.
+
+**`ScheduledDetail`** — [AnnouncementDetailPage.tsx](../src/app/pages/AnnouncementDetailPage.tsx). Used when `:id === '4'` to render the 55/45 scheduled-detail layout.
+
+```ts
+interface ScheduledDetail {
+  id: number; title: string; body: string;
+  createdAt: string; author: string;
+  scheduledAt: string;            // '15.04.2026 09:00'
+  scheduledRelative: string;      // 'Через 2 дня, 19 часов'
+  orgs: string[];
+  channels: Channel[];
+  recipients: { id: number; initials: string; name: string; org: string; channels: Channel[] }[];
+}
+```
 
 ### Seller messages — history + detail
 

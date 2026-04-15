@@ -90,3 +90,38 @@ Mistake: The amount field in the manual reward adjustment modal accepted raw dig
 Root cause: The onChange only filtered characters (`replace(/[^0-9 ]/g, '')`) without actively re-formatting the digits into the project's mono-style `1 234 567` shape.
 Fix: On every keystroke, strip non-digits, parse to int, then re-mask through the shared `fmtUzs` helper before calling `setAmountStr`.
 Rule: Every monetary input must be masked with space-thousand separators as the user types. Strip to pure digits on change, then re-apply `n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')` (same helper used for display). Also use `inputMode="numeric"` and render in `F.mono`. The internal numeric value for calculations is always `parseInt(str.replace(/\s/g, ''))`.
+
+## 2026-04-16 — `location.state` + lucide `forwardRef` icons = `DataCloneError`
+
+Mistake: `navigate('/notification-rules/${r.id}/edit', { state: { preFilled: r } })` crashed with `DataCloneError: Symbol(react.forward_ref) could not be cloned.` whenever the user clicked "Редактировать" from the rule detail page.
+Root cause: `history.pushState` serializes `state` via the structured-clone algorithm. `Rule.icon: React.ElementType` was a lucide component — all lucide-react icons are `React.forwardRef` wrappers carrying a `Symbol(react.forward_ref)` that structured-clone rejects.
+Fix: Dropped the `state` on the edit-from-detail path. The editor falls back to `INITIAL_RULES.find(r => r.id === id)` when no state is present, which works for real rules. The latent copy in `NotificationRulesPage.openEdit` was left alone because it's needed for duplicate-then-edit (synthesized ids won't be in `INITIAL_RULES`) — fix there would be to strip the `icon` field before passing.
+Rule: Anything passed through `location.state` must be JSON-serializable. React components, functions, DOM nodes, Maps/Sets, and most class instances will crash `pushState`. For rows that carry `icon: React.ElementType`, either strip the icon before navigating OR navigate without state and let the destination re-hydrate from a module-level lookup keyed by `:id`. Test the navigation end-to-end — the error only surfaces at runtime, not at type-check.
+
+## 2026-04-16 — Cross-page events are lost when the dispatcher unmounts
+
+Mistake: Compose pages dispatched `window.dispatchEvent(new CustomEvent('app:notif:batch', ...))` right before `navigate()` to tell the navbar bell a batch had landed. The bell on the next page never received them.
+Root cause: Each page mounts its own `<Navbar>`. `navigate()` triggers unmount of the current page (and its navbar instance) before the next page mounts its own. The event fires in the window between unmount and mount — no subscribers.
+Fix: For the bell's design spec, added in-dropdown demo buttons that dispatch + consume the events in the same navbar instance so the flow is exercisable. Real cross-page delivery requires a module-level store (or a queue hydrated from `sessionStorage` on mount).
+Rule: Don't rely on `window` CustomEvents to carry state across navigations when the subscriber unmounts with the page. Options in order of preference: (1) module-level mutable store with a subscribe API, (2) `sessionStorage` queue consumed on mount, (3) `location.state` handoff if it's a one-shot per-navigation payload. Never dispatch-and-navigate expecting the destination to hear.
+
+## 2026-04-16 — `:focus-visible` cannot be expressed with inline styles
+
+Mistake: Accessible radio cards should show a focus ring for keyboard focus but not for mouse clicks. Writing `onFocus`/`onBlur` state tracking gave rings on every focus (including mouse), defeating the spec.
+Root cause: CSS `:focus-visible` is a pseudo-class — browsers compute it themselves based on heuristics (last input modality). React inline styles can't target pseudo-classes; `onFocus` fires for both mouse and keyboard focus.
+Fix: The RadioGroup component injects a scoped `<style>` block once on first mount via a `STYLE_ID` idempotent `document.head.appendChild` — the block defines `.rc-option:focus-visible { outline: 2px solid blue; outline-offset: 2px; }`. Cards get `className="rc-option"`. A mousedown handler also calls `focus({ preventScroll: true })` so the focus ring doesn't flicker on mouse.
+Rule: Whenever the spec calls for keyboard-only focus rings, use `:focus-visible` via a scoped injected stylesheet — never approximate with `onFocus` state or plain `:focus`. Inline styles only work for always-on visuals; pseudo-class states need CSS. Pattern template in [RadioCard.tsx](../src/app/components/RadioCard.tsx).
+
+## 2026-04-16 — Cross-route state needs a drop-in hook signature
+
+Mistake: Adding dark-mode persistence tempted a full refactor — replacing `darkMode: boolean` props + local `useState` across 42 pages with a new context provider pattern. That's 42 PR-worthy changes.
+Root cause: Default thinking for "global state" goes to Context or external stores, which both change call-site shape.
+Fix: Built `useDarkMode()` to return the exact shape of `useState<boolean>(false)` — `[value, setter]` where the setter accepts both `boolean` and updater functions. All 42 pages needed only a 1-line swap: `const [darkMode, setDarkMode] = useState(false)` → `= useDarkMode()`. Done via `sed` in a single bash loop.
+Rule: When retrofitting global state into an existing codebase, match the signature the pages are already using. A hook that mimics `useState<T>()` is a trivial swap; a Context provider that forces call-site restructure is a refactor. Corollary: when you design a hook from scratch, consider whether a future upgrade to "shared" might happen — preserving the `[value, setter]` shape keeps the upgrade painless.
+
+## 2026-04-16 — `location.state` handoff needs a consumed-ref guard + state clear
+
+Mistake: Early draft of the "compose sends announcement → history highlights row" flow re-prepended the row every time the history page re-rendered (React StrictMode's double-invoke surfaced the bug immediately).
+Root cause: `useEffect(() => { setRows(prev => [s.newRow, ...prev]); ... }, [location, navigate])` fires on every location change AND in StrictMode fires twice on mount. Without an idempotency guard, the newRow was inserted multiple times.
+Fix: Guard the consumption with a `useRef(false)` flipped on first successful read. After consuming, clear the state via `navigate(location.pathname, { replace: true, state: null })` so a refresh or back-forward navigation doesn't re-trigger the pulse.
+Rule: One-shot `location.state` handoffs need two guards: (1) a `consumedRef` so the effect runs its body at most once per navigation, (2) a `navigate(replace: true, state: null)` at the end so a refresh / back-button doesn't re-fire. Pattern applies to compose→history, duplicate rule prefills, and any "redirect with payload" flow.

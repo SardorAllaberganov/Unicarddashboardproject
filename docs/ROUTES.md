@@ -33,11 +33,13 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/users` | bank | [UsersManagementPage](../src/app/pages/UsersManagementPage.tsx) | Edit role / Block-Unblock / Reset password modals |
 | `/notification-rules` | bank | [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) | 4 tabs × 14 rules, delete + duplicate confirmation modals |
 | `/notification-rules/new` | bank | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) | Create a rule; two-column form + preview + summary |
-| `/notification-rules/:id/edit` | bank | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) | Edit existing rule; hydrates from `location.state.preFilled` or from `INITIAL_RULES` by `:id` |
-| `/announcements` | bank | [AnnouncementHistoryPage](../src/app/pages/AnnouncementHistoryPage.tsx) | Filter bar + table + action menu gated by status |
-| `/announcements/new` | bank | [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) | Two-column composer, preview, masked HH:MM time |
-| `/announcements/:id` | bank | [AnnouncementDetailPage](../src/app/pages/AnnouncementDetailPage.tsx) | Delivery stats + per-recipient table (mock ignores `:id`) |
-| `/notification-log` | bank | [NotificationDeliveryLogPage](../src/app/pages/NotificationDeliveryLogPage.tsx) | 4 stat cards, filter bar, inline error expand |
+| `/notification-rules/:id` | bank | [NotificationRuleDetailPage](../src/app/pages/NotificationRuleDetailPage.tsx) | Config summary + 4 stat cards + 3 tabs (Лог срабатываний / Ошибки + retry flow / Статистика charts) |
+| `/notification-rules/:id/edit` | bank | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) | Edit existing rule; hydrates from `INITIAL_RULES` by `:id` (don't pass `preFilled` with forward-ref icons — structured-clone will reject) |
+| `/announcements` | bank | [AnnouncementHistoryPage](../src/app/pages/AnnouncementHistoryPage.tsx) | Filter bar + table; consumes `location.state.newRow` on mount for pulse-highlight + `SentAnnouncementToast` |
+| `/announcements/new` | bank | [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) | Two-column composer with `FormatToolbar` + markdown preview. Auto-save indicator. Draft-edit mode when `location.state.draft` is set (flips breadcrumb, title, footer to destructive "Удалить черновик") |
+| `/announcements/:id` | bank | [AnnouncementDetailPage](../src/app/pages/AnnouncementDetailPage.tsx) | 3 variants by `:id` — sent (stat cards + delivery table), `4` → scheduled (55/45 two-column layout + SendNowModal), `5` → draft (info strip) |
+| `/flow/announcements` | shared | [AnnouncementFlowPage](../src/app/pages/AnnouncementFlowPage.tsx) | Dev-handoff reference — no sidebar/navbar. Flow diagram + state model + integration checklist |
+| `/notification-log` | bank | [NotificationDeliveryLogPage](../src/app/pages/NotificationDeliveryLogPage.tsx) | 4 stat cards, filter bar. Collapsed error rows get rotating chevron; expanded row is a two-column card with KVPair error details + Outline "Повторить" + Ghost alt-channel dropdown + Info recommendation |
 | `/settings` | bank | [SettingsPage](../src/app/pages/SettingsPage.tsx) | 6 tabs |
 
 ### Organization Admin
@@ -50,8 +52,8 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/org-cards` | org | [OrgCardsPage](../src/app/pages/OrgCardsPage.tsx) | Inline "Зафиксировать" sale flow |
 | `/card-assignment` | org | [CardAssignmentPage](../src/app/pages/CardAssignmentPage.tsx) | |
 | `/card-assignment/bulk` | org | [BulkCardAssignmentPage](../src/app/pages/BulkCardAssignmentPage.tsx) | Capacity-capped distribution table |
-| `/seller-messages` | org | [SellerMessageHistoryPage](../src/app/pages/SellerMessageHistoryPage.tsx) | Sent-messages history |
-| `/seller-messages/new` | org | [SellerMessageComposePage](../src/app/pages/SellerMessageComposePage.tsx) | Compose + quick templates + send confirm |
+| `/seller-messages` | org | [SellerMessageHistoryPage](../src/app/pages/SellerMessageHistoryPage.tsx) | Consumes `location.state.newRow` → prepend + pulse + `SentMessageToast` |
+| `/seller-messages/new` | org | [SellerMessageComposePage](../src/app/pages/SellerMessageComposePage.tsx) | Compose with `FormatToolbar` + markdown preview + quick templates + send confirm |
 | `/seller-messages/:id` | org | [SellerMessageDetailPage](../src/app/pages/SellerMessageDetailPage.tsx) | 55/45 message + stats + delivery table (mock ignores `:id`) |
 | `/org-rewards` | org | [OrgFinancePage](../src/app/pages/OrgFinancePage.tsx) | |
 | `/org-withdrawals` | org | [OrgWithdrawalsPage](../src/app/pages/OrgWithdrawalsPage.tsx) | Approve / Reject modals |
@@ -64,7 +66,11 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/` | shared | [LoginPage](../src/app/pages/LoginPage.tsx) | Role-based login, demo credentials |
 | `/card-detail/:id` | shared | [CardDetailPage](../src/app/pages/CardDetailPage.tsx) | Block Card modal; navbar role flips via `?from=org` |
 | `/notifications` | shared | [NotificationsHistoryPage](../src/app/pages/NotificationsHistoryPage.tsx) | `?from=org` switches sidebar to org role |
-| `/empty-states` | shared | [EmptyStatesShowcasePage](../src/app/pages/EmptyStatesShowcasePage.tsx) | |
+| `/empty-states` | shared | [EmptyStatesShowcasePage](../src/app/pages/EmptyStatesShowcasePage.tsx) | 6 filtered-empty variants |
+| `/empty-states-first-use` | shared | [FirstUseEmptyStatesShowcasePage](../src/app/pages/FirstUseEmptyStatesShowcasePage.tsx) | 7 "no data yet" variants — Bell / Megaphone / MessageSquare / ListChecks / Wallet / Clock / Activity |
+| `/skeleton-states` | shared | [SkeletonStatesShowcasePage](../src/app/pages/SkeletonStatesShowcasePage.tsx) | 6 shimmer variants (table / stat cards / KPI stepper / charts / full page / filter bar) |
+| `/pagination-showcase` | shared | [PaginationShowcasePage](../src/app/pages/PaginationShowcasePage.tsx) | 3 live `<PaginationBar />` states |
+| `/radio-card-showcase` | shared | [RadioCardShowcasePage](../src/app/pages/RadioCardShowcasePage.tsx) | Accessible radio-group demo + keyboard diagram + focus matrix |
 | `/design-system` | shared | [DesignSystemPage](../src/app/pages/DesignSystemPage.tsx) | 10-row DS tour |
 | `/sidebar` | shared | [SidebarShowcasePage](../src/app/pages/SidebarShowcasePage.tsx) | |
 | `/sidebar-org` | shared | [OrgSidebarShowcasePage](../src/app/pages/OrgSidebarShowcasePage.tsx) | |
@@ -73,6 +79,21 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 
 - `?from=org` — shared pages (`/notifications`, `/card-detail/:id`) use this to flip the sidebar + navbar from Bank Admin to Organization Admin. Set by any org-side link navigating to a shared page. Detected in [Navbar.tsx](../src/app/components/Navbar.tsx) `detectRole()`.
 - `?from=YYYY-MM-DD&to=YYYY-MM-DD` — `/reports/preview/:reportId` reads the selected date range from [ReportsExportPage](../src/app/pages/ReportsExportPage.tsx).
+
+### `location.state` contracts
+
+- **Compose → History handoff** — `/announcements/new` and `/seller-messages/new` navigate to their history with `state: { newRow, toast }`. History pages (M-04, N-02) guard the read with a `consumedRef`, prepend the row, run the `.anno-row-pulse` / `.msg-row-pulse` animation, render the success toast, then clear state via `navigate(pathname, { replace: true, state: null })`.
+- **Draft edit** — M-04 draft row click / menu navigates to `/announcements/new` with `state: { draft: row }`. M-03 consumes it and flips into draft-edit mode.
+- **Rule duplicate** — `/notification-rules/:id/edit` **does not** accept `state.preFilled` containing a lucide forward-ref `icon` — the browser's structured-clone used by `pushState` rejects React forward-ref symbols. The editor re-hydrates from `INITIAL_RULES` keyed by `:id` instead. Only the duplicate flow (for synthesized ids) may need serializable preFilled.
+
+### CustomEvent contracts (navbar notification bell)
+
+Dispatched via `window.dispatchEvent(new CustomEvent(...))`:
+
+- `app:notif:new` — `{ color: 'green'|'blue'|'amber'|'red', title: string, sub?: string }`. Prepends one unread notif, triggers `bellPulse`, renders `BellFlyout` for 4 s.
+- `app:notif:batch` — `{ count: number, title?: string, color?: NotifIconColor }`. Prepends N unread notifs, triggers `bellBounce`. No flyout.
+
+Events dispatched from a page before `navigate()` are lost — navbar unmounts on route change. For real cross-page delivery, route through a module-level store.
 
 ---
 
@@ -169,6 +190,66 @@ interface EmptyStateProps {
 ```
 
 Drop inside any empty table body or dashboard card. Six canonical variants are showcased at `/empty-states`.
+
+### `useDarkMode()` / `useThemePref()`
+File: [useDarkMode.tsx](../src/app/components/useDarkMode.tsx)
+
+```ts
+useDarkMode(): [boolean, (next: boolean | ((prev: boolean) => boolean)) => void]
+useThemePref(): [ThemePref, resolvedDark: boolean, setPref: (p: ThemePref) => void]
+// ThemePref = 'light' | 'dark' | 'system'
+```
+
+Module-level store backed by `localStorage['moment-kpi-theme']`. `useDarkMode()` is a **drop-in** for `useState<boolean>(false)` — the signature is identical, but state is shared across all pages and persists across route changes. Writes always normalize to `'light'` / `'dark'`; use `useThemePref()` to write `'system'`. Listens to OS `prefers-color-scheme` changes when pref is `'system'`.
+
+### `renderMarkdown(text)` / `<FormatToolbar />`
+File: [renderMarkdown.tsx](../src/app/components/renderMarkdown.tsx)
+
+```ts
+renderMarkdown(text: string): React.ReactNode
+
+<FormatToolbar
+  textareaRef={React.RefObject<HTMLTextAreaElement | null>}
+  value={string}
+  onChange={(next: string) => void}
+/>
+```
+
+Grammar (deliberately narrow): `**bold**`, `_italic_`, lines starting with `-`/`•`/`*` grouped into `<ul>`, blank lines separate paragraphs, single `\n` → `<br>`. Output is pure React nodes (no `dangerouslySetInnerHTML`). Toolbar wraps selection using `setSelectionRange`; the bullet button toggles list prefix across selected lines.
+
+### `<PaginationBar />`
+File: [PaginationBar.tsx](../src/app/components/PaginationBar.tsx)
+
+```ts
+interface PaginationBarProps {
+  total: number;
+  page: number;               // 1-indexed
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+  storageKey?: string;        // persists pageSize to localStorage['pagesize:{key}']
+  pageSizeOptions?: number[]; // default [10, 20, 50, 100]
+}
+```
+
+Three sections: left range readout ("Показано X–Y из Z"), center page-size select (72 px compact), right page buttons with ellipsis algorithm (always show first + last + current ±1). Changing `pageSize` automatically resets `page` to 1 via `onPageChange(1)`.
+
+### `<RadioGroup />` / `<RadioIndicator />`
+File: [RadioCard.tsx](../src/app/components/RadioCard.tsx)
+
+```ts
+interface RadioOption<T> { value: T; label: string; sub?: string; children?: React.ReactNode }
+interface RadioGroupProps<T> {
+  label: string;              // aria-label on the radiogroup container
+  name: string;
+  value: T;
+  options: RadioOption<T>[];
+  onChange: (next: T) => void;
+  orientation?: 'horizontal' | 'vertical';
+}
+```
+
+WAI-ARIA `radiogroup` pattern. Roving tabindex: only the selected card is `tabIndex=0`. Keyboard — ↑/↓/←/→ wraps through options, Home/End jumps, Space/Enter re-selects. Focus ring is rendered only for `:focus-visible` (keyboard focus); injected via a scoped `<style id="rc-focus-styles">` block on first mount.
 
 ### `<DateRangePicker />`
 File: [DateRangePicker.tsx](../src/app/components/DateRangePicker.tsx)

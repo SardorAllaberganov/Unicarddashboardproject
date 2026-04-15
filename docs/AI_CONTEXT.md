@@ -1,15 +1,15 @@
 # AI Context — Moment Card KPI Platform
 
-Last synced: 2026-04-15 (pm)
+Last synced: 2026-04-16
 
 ## Current state
 
-Moment Card KPI is a React 18 + TypeScript + Vite single-page app that serves two admin roles for a partner-distributed VISA card program:
+Moment Card KPI is a React 18 + TypeScript + Vite single-page app serving two admin roles for a partner-distributed VISA card program:
 
-- **Bank Admin** — oversees every partner organization, card batch, KPI config, reward payout, notification rule, and system announcement across the platform.
+- **Bank Admin** — oversees every partner organization, card batch, KPI config, reward payout, notification rule, delivery log, and system announcement across the platform.
 - **Organization Admin** — runs their own shop: sellers, card inventory, KPI conversion, UCOIN withdrawals, and direct messaging to sellers.
 
-There is no backend. All data is mock TypeScript arrays inside each page file. Role is inferred from the URL path (and `?from=org` query param for shared pages like `/notifications` and `/card-detail/:id`). Light and dark themes are both wired via token objects in [tokens.ts](../src/app/components/ds/tokens.ts). The target resolution is 1920×1080 desktop.
+There is no backend. All data is mock TypeScript arrays inside each page file. Role is inferred from the URL path (and `?from=org` for shared pages like `/notifications` and `/card-detail/:id`). Dark mode persists via a module-level theme store backed by `localStorage['moment-kpi-theme']` with values `'light' | 'dark' | 'system'`. The target resolution is 1920×1080 desktop.
 
 ## Feature map (what lives where)
 
@@ -17,12 +17,17 @@ There is no backend. All data is mock TypeScript arrays inside each page file. R
 
 | Route | Page | Notes |
 |---|---|---|
-| `/` | [LoginPage](../src/app/pages/LoginPage.tsx) | Entry point, seeds demo credentials |
+| `/` | [LoginPage](../src/app/pages/LoginPage.tsx) | Entry, seeds demo credentials |
 | `/card-detail/:id` | [CardDetailPage](../src/app/pages/CardDetailPage.tsx) | KPI Stepper Variant B + Block Card modal |
-| `/notifications` | [NotificationsHistoryPage](../src/app/pages/NotificationsHistoryPage.tsx) | End-user notification inbox; `?from=org` toggles role |
-| `/empty-states` | [EmptyStatesShowcasePage](../src/app/pages/EmptyStatesShowcasePage.tsx) | 6 canonical variants |
-| `/design-system` | [DesignSystemPage](../src/app/pages/DesignSystemPage.tsx) | Full DS showcase (10 rows) |
-| `/sidebar`, `/sidebar-org` | Sidebar showcases | |
+| `/notifications` | [NotificationsHistoryPage](../src/app/pages/NotificationsHistoryPage.tsx) | `?from=org` flips sidebar/navbar |
+| `/empty-states` | [EmptyStatesShowcasePage](../src/app/pages/EmptyStatesShowcasePage.tsx) | 6 filtered-empty variants |
+| `/empty-states-first-use` | [FirstUseEmptyStatesShowcasePage](../src/app/pages/FirstUseEmptyStatesShowcasePage.tsx) | 7 "no data yet" variants |
+| `/skeleton-states` | [SkeletonStatesShowcasePage](../src/app/pages/SkeletonStatesShowcasePage.tsx) | 6 shimmer loading variants |
+| `/pagination-showcase` | [PaginationShowcasePage](../src/app/pages/PaginationShowcasePage.tsx) | 3 live `<PaginationBar />` states |
+| `/radio-card-showcase` | [RadioCardShowcasePage](../src/app/pages/RadioCardShowcasePage.tsx) | Accessible radio group pattern + focus matrix |
+| `/design-system` | [DesignSystemPage](../src/app/pages/DesignSystemPage.tsx) | 10-row DS tour |
+| `/sidebar`, `/sidebar-org` | Sidebar showcases |  |
+| `/flow/announcements` | [AnnouncementFlowPage](../src/app/pages/AnnouncementFlowPage.tsx) | Dev-handoff diagram (no sidebar/navbar) |
 
 ### Bank Admin
 
@@ -45,14 +50,15 @@ There is no backend. All data is mock TypeScript arrays inside each page file. R
 | `/reports/preview/:reportId` | [ReportPreviewPage](../src/app/pages/ReportPreviewPage.tsx) |
 | `/reports/overdue-kpi` | [OverdueKpiReportPage](../src/app/pages/OverdueKpiReportPage.tsx) |
 | `/users` | [UsersManagementPage](../src/app/pages/UsersManagementPage.tsx) |
-| `/notification-rules` | [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) — 14 rules × 4 tabs, delete + duplicate modals |
-| `/notification-rules/new` | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) — create a rule (two-column form + live preview + summary) |
-| `/notification-rules/:id/edit` | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) — edit an existing rule |
-| `/announcements` | [AnnouncementHistoryPage](../src/app/pages/AnnouncementHistoryPage.tsx) |
-| `/announcements/new` | [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) — two-column composer with preview |
-| `/announcements/:id` | [AnnouncementDetailPage](../src/app/pages/AnnouncementDetailPage.tsx) — delivery stats + per-recipient table |
-| `/notification-log` | [NotificationDeliveryLogPage](../src/app/pages/NotificationDeliveryLogPage.tsx) — system-wide delivery audit |
-| `/settings` | [SettingsPage](../src/app/pages/SettingsPage.tsx) — 6 tabs |
+| `/notification-rules` | [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) — 14 rules × 4 tabs |
+| `/notification-rules/new` | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) |
+| `/notification-rules/:id` | [NotificationRuleDetailPage](../src/app/pages/NotificationRuleDetailPage.tsx) — config summary · 4 stat cards · 3 tabs (Лог срабатываний · Ошибки + retry · Статистика charts) |
+| `/notification-rules/:id/edit` | [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) |
+| `/announcements` | [AnnouncementHistoryPage](../src/app/pages/AnnouncementHistoryPage.tsx) — consumes `location.state.newRow` on mount for pulse + toast |
+| `/announcements/new` | [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) — auto-save indicator, markdown preview, draft-edit state from `location.state.draft` |
+| `/announcements/:id` | [AnnouncementDetailPage](../src/app/pages/AnnouncementDetailPage.tsx) — sent/scheduled/draft variants (scheduled gets 55/45 two-column layout + SendNowModal) |
+| `/notification-log` | [NotificationDeliveryLogPage](../src/app/pages/NotificationDeliveryLogPage.tsx) — inline expanded error row with retry + alt-channel dropdown |
+| `/settings` | [SettingsPage](../src/app/pages/SettingsPage.tsx) — 6 tabs, theme radio with thumbnails |
 
 ### Organization Admin
 
@@ -64,8 +70,8 @@ There is no backend. All data is mock TypeScript arrays inside each page file. R
 | `/org-cards` | [OrgCardsPage](../src/app/pages/OrgCardsPage.tsx) |
 | `/card-assignment` | [CardAssignmentPage](../src/app/pages/CardAssignmentPage.tsx) |
 | `/card-assignment/bulk` | [BulkCardAssignmentPage](../src/app/pages/BulkCardAssignmentPage.tsx) |
-| `/seller-messages` | [SellerMessageHistoryPage](../src/app/pages/SellerMessageHistoryPage.tsx) |
-| `/seller-messages/new` | [SellerMessageComposePage](../src/app/pages/SellerMessageComposePage.tsx) — compose + quick templates |
+| `/seller-messages` | [SellerMessageHistoryPage](../src/app/pages/SellerMessageHistoryPage.tsx) — consumes `location.state.newRow` for pulse + toast |
+| `/seller-messages/new` | [SellerMessageComposePage](../src/app/pages/SellerMessageComposePage.tsx) — markdown preview |
 | `/seller-messages/:id` | [SellerMessageDetailPage](../src/app/pages/SellerMessageDetailPage.tsx) |
 | `/org-rewards` | [OrgFinancePage](../src/app/pages/OrgFinancePage.tsx) |
 | `/org-withdrawals` | [OrgWithdrawalsPage](../src/app/pages/OrgWithdrawalsPage.tsx) |
@@ -75,37 +81,44 @@ There is no backend. All data is mock TypeScript arrays inside each page file. R
 
 | File | Export | Purpose |
 |---|---|---|
-| [usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts) | `usePopoverPosition()` | Fixed-position anchored dropdown with auto-flip, measure-before-paint, click-outside + scroll/resize auto-close. Used by every `ActionDropdown`, every `FilterSelect`, and the bell dropdown. |
-| [useExportToast.tsx](../src/app/components/useExportToast.tsx) | `useExportToast()` | Processing → Success/Error toast for every export flow. Returns `{ start, close, node }`. |
-| [EmptyState.tsx](../src/app/components/EmptyState.tsx) | `<EmptyState />` | 64px muted icon + title + subtitle + up to 3 actions (primary / outline / ghost). Prompt 0 §16. |
-| [Navbar.tsx](../src/app/components/Navbar.tsx) | `<Navbar />`, `ORG_PATHS`, `detectRole()` | Role switcher, theme toggle, notification bell dropdown, user menu. |
-| [Sidebar.tsx](../src/app/components/Sidebar.tsx) | `<Sidebar role="bank"│"org" />` | Unified sidebar; 260px expanded / 68px collapsed. Auto-highlights active route. |
+| [usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts) | `usePopoverPosition()` | Fixed-position anchored dropdown: auto-flip, measure-before-paint, outside-click, scroll/resize **re-anchoring** (follows trigger; closes only when trigger leaves viewport). |
+| [useExportToast.tsx](../src/app/components/useExportToast.tsx) | `useExportToast()` | Processing → success/error toast. Returns `{ start, close, node }`. |
+| [useDarkMode.tsx](../src/app/components/useDarkMode.tsx) | `useDarkMode()`, `useThemePref()` | Module-level theme store persisting to `localStorage['moment-kpi-theme']`. `useDarkMode()` is a drop-in for `useState<boolean>(false)`; `useThemePref()` exposes the 3-way `'light'|'dark'|'system'` preference. |
+| [renderMarkdown.tsx](../src/app/components/renderMarkdown.tsx) | `renderMarkdown(text)`, `<FormatToolbar>` | Markdown-lite renderer (`**bold**`, `_italic_`, `-`/`•` lists). Toolbar wraps selection via `setSelectionRange`. |
+| [PaginationBar.tsx](../src/app/components/PaginationBar.tsx) | `<PaginationBar />` | Range readout + 10/20/50/100 page-size select + ellipsis page buttons. Persists size via `storageKey` → `pagesize:{key}`. |
+| [RadioCard.tsx](../src/app/components/RadioCard.tsx) | `<RadioGroup>`, `<RadioIndicator>` | Accessible radio pattern: `role="radiogroup"`, roving tabindex, arrow/Home/End/Space keys, `:focus-visible`-only ring. |
+| [EmptyState.tsx](../src/app/components/EmptyState.tsx) | `<EmptyState />` | 64 px muted icon + title + subtitle + up to 3 actions. |
+| [Navbar.tsx](../src/app/components/Navbar.tsx) | `<Navbar />`, `ORG_PATHS`, `detectRole()` | Role switcher, theme toggle, notification bell with 4 states (`app:notif:new` / `app:notif:batch` CustomEvents), bell flyout, user menu. |
+| [Sidebar.tsx](../src/app/components/Sidebar.tsx) | `<Sidebar role="bank"│"org" />` | Unified sidebar; 260 px / 68 px. Bottom: `ThemeToggleRow` (Sun/Moon with 200 ms rotation) + collapse row. |
 | [DateRangePicker.tsx](../src/app/components/DateRangePicker.tsx) | `<DateRangePicker />` | Range picker with quick-preset panel. |
-| [ds/tokens.ts](../src/app/components/ds/tokens.ts) | `F`, `C`, `D`, `theme(dark)` | Fonts (Inter / DM Sans / JetBrains Mono), colors (light + dark sets). |
+| [ds/tokens.ts](../src/app/components/ds/tokens.ts) | `F`, `C`, `D`, `theme(dark)` | Fonts / colors / dark-mode overrides. |
 
 ## Data model (mock data)
 
-The full interface catalogue is in [DATA_MODELS.md](./DATA_MODELS.md). Each page owns its own seed arrays; no shared store. Highlights:
+Full interface catalogue in [DATA_MODELS.md](./DATA_MODELS.md). Each page owns its own seed arrays; no shared store. Highlights:
 
-- **Cards** — `CardRow` ([AllCardsPage](../src/app/pages/AllCardsPage.tsx), [OrgCardsPage](../src/app/pages/OrgCardsPage.tsx)), `BatchCardRow` ([CardBatchDetailPage](../src/app/pages/CardBatchDetailPage.tsx)), `BatchCard`/`KpiConfig` ([CardBatchesPage](../src/app/pages/CardBatchesPage.tsx)), `KPIStepData` ([CardDetailPage](../src/app/pages/CardDetailPage.tsx)).
-- **People** — `UserRow` ([UsersManagementPage](../src/app/pages/UsersManagementPage.tsx)), `SellerRow` ([SellersManagementPage](../src/app/pages/SellersManagementPage.tsx)), `SellerOption` (two different shapes across [CardAssignmentPage](../src/app/pages/CardAssignmentPage.tsx), [RewardsFinancePage](../src/app/pages/RewardsFinancePage.tsx), [SellerMessageComposePage](../src/app/pages/SellerMessageComposePage.tsx)).
-- **Finance** — `WdRow` ([OrgWithdrawalsPage](../src/app/pages/OrgWithdrawalsPage.tsx)), `TxRow` ([OrgFinancePage](../src/app/pages/OrgFinancePage.tsx), [SellerDetailPage](../src/app/pages/SellerDetailPage.tsx)), `Transaction` ([RewardsFinancePage](../src/app/pages/RewardsFinancePage.tsx)).
-- **Notifications & messaging** — `Notif` ([NotificationsHistoryPage](../src/app/pages/NotificationsHistoryPage.tsx)), `Rule` ([NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx)), `LogRow` ([NotificationDeliveryLogPage](../src/app/pages/NotificationDeliveryLogPage.tsx)), `AnnouncementRow` + `AnnouncementDetail` + `DeliveryRow` (across [AnnouncementHistoryPage](../src/app/pages/AnnouncementHistoryPage.tsx) and [AnnouncementDetailPage](../src/app/pages/AnnouncementDetailPage.tsx)), `MessageRow` + `MessageDetail` + `DeliveryRow` (across [SellerMessageHistoryPage](../src/app/pages/SellerMessageHistoryPage.tsx) and [SellerMessageDetailPage](../src/app/pages/SellerMessageDetailPage.tsx)).
-- **Reports** — `OverdueRow` ([OverdueKpiReportPage](../src/app/pages/OverdueKpiReportPage.tsx)), `PreviewRow` ([ReportPreviewPage](../src/app/pages/ReportPreviewPage.tsx)).
+- **Cards** — `CardRow`, `BatchCardRow`, `BatchCard`, `KpiConfig`, `KPIStepData`.
+- **People** — `UserRow`, `SellerRow`, three shapes of `SellerOption` across CardAssignment / Rewards / SellerMessageCompose.
+- **Finance** — `WdRow`, `TxRow`, `Transaction`.
+- **Notifications & messaging** — `Notif`, `Rule` (exported from NotificationRulesPage), `LogRow` + `ErrorDetail`, `AnnouncementRow` + `AnnouncementDetail` + `ScheduledDetail`, `MessageRow` + `MessageDetail`, `FireRow` + `ErrorRow` (with `RetryState` machine).
+- **Reports** — `OverdueRow`, `PreviewRow`.
 
 ## Known gotchas
 
-- **`overflow-x: auto` also clips the y-axis.** Dropdown/popover menus inside a scrollable table must use `position: fixed`, never `position: absolute`. See [usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts).
-- **New page ≠ done until it's navigable.** A new page requires touching [routes.tsx](../src/app/routes.tsx), the right sidebar group in [Sidebar.tsx](../src/app/components/Sidebar.tsx), and (if it's an org page) the `ORG_PATHS` array in [Navbar.tsx](../src/app/components/Navbar.tsx).
-- **Main content area = `width: 100%`, `padding: 28px 32px`, never `maxWidth`.** Enforced across every page.
-- **No Tailwind font-size / font-weight / line-height classes.** Defaults live in [theme.css](../src/styles/theme.css).
-- **Every monetary input must be masked.** Use `fmtUzs(parseInt(digits))` on each keystroke + `inputMode="numeric"` + `F.mono`. See [tasks/lessons.md](../tasks/lessons.md).
-- **Every time input must be masked HH:MM.** Strip to digits, auto-insert colon after 2 digits, clamp hours ≤ 23 / minutes ≤ 59 on blur, render in `F.mono`. Pattern in [AnnouncementComposePage.tsx](../src/app/pages/AnnouncementComposePage.tsx) `TimeField`.
-- **Every export button must route through `useExportToast`.** Never attach a plain `onClick` that silently "downloads".
-- **Empty state views use `<EmptyState />`, not inline divs.** 6 canonical variants showcased at `/empty-states`.
-- **Radio cards inside a row container use `flex: 1; min-width: 0`.** Gives equal widths and lets them shrink. Nested inputs should `stopPropagation` on their wrapper so the radio card doesn't swallow the click — but label/sub-label text must stay bubble-up so clicking the title selects the card.
-- **Detail pages ignore `:id`.** Every `/.../:id` detail page in the notifications/messages area returns the same mock payload regardless of the URL param. This is intentional for the prototype; a real backend wiring would key off `useParams().id`. Announcement detail is the one partial exception — `:id` is used to pick a demo *status* (`4` → scheduled, `5` → draft, else sent) so the action-button surface can be shown in each variant.
-- **Detail pages must mirror their list row's ⋯ menu.** Every `/.../:id` detail page exposes the same actions the list row offers, using the same confirmation modals. If the list is status-gated, the detail page gates the same way. See [tasks/lessons.md](../tasks/lessons.md).
-- **Custom `<label>` wrappers need an explicit `onClick`.** A `<label>` that wraps two `<span>` elements (visual checkbox + text) has no native input to forward to, so clicks on the text do nothing unless the `onClick` lives on the `<label>` itself. Applies to `CheckboxRow` primitives across the codebase — see [tasks/lessons.md](../tasks/lessons.md).
-- **`usePopoverPosition` re-anchors on scroll.** Previously it closed on any scroll event, which broke popovers inside scrollable modals (e.g. the rule editor's trigger dropdown). The hook now re-runs positioning on scroll/resize and only closes when the trigger scrolls out of the viewport.
+- **`overflow-x: auto` also clips the y-axis.** Popover menus inside scrollable tables must use `position: fixed` via [usePopoverPosition](../src/app/components/usePopoverPosition.ts).
+- **`usePopoverPosition` re-anchors on scroll** rather than closing — required for dropdowns inside scrollable modals.
+- **New page ≠ done until it's navigable.** Touch [routes.tsx](../src/app/routes.tsx), the right sidebar group in [Sidebar.tsx](../src/app/components/Sidebar.tsx), and (for org pages) `ORG_PATHS` in [Navbar.tsx](../src/app/components/Navbar.tsx).
+- **Main content area**: `width: 100%`, `padding: 28px 32px`, never `maxWidth`.
+- **No Tailwind font-size / font-weight / line-height classes** — defaults in [theme.css](../src/styles/theme.css).
+- **Every monetary input must be masked**. `fmtUzs(parseInt(digits))` on each keystroke + `inputMode="numeric"` + `F.mono`.
+- **Every time input must be masked HH:MM.** See [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) `TimeField`.
+- **Every export button must route through `useExportToast`.**
+- **Empty-state views use `<EmptyState />`**, not inline divs. 6 filtered variants at `/empty-states`; 7 first-use variants at `/empty-states-first-use`.
+- **`<label>` wrappers around two spans need an explicit `onClick`** — no native input to forward to.
+- **Detail pages must mirror their list row's ⋯ menu** (actions + modals). Applies to announcement / seller-message / rule detail pages.
+- **Cross-page handoff uses `location.state`.** Compose → History (`newRow` + `toast`), draft edit (`draft`), duplicate rule (`preFilled`). History pages guard the read with a `consumedRef` and clear state via `navigate(..., { replace: true, state: null })`.
+- **Structured-clone rejects React forward-ref components.** Passing a `Rule` with `icon: lucide.forwardRef` via `location.state` crashes `pushState`. Strip non-serializable fields before navigating, or skip `state` when the destination can re-hydrate from `:id` + a module-level lookup.
+- **Dark-mode state is global** via `useDarkMode()`. Do not re-introduce `useState(false)` — toggle in Sidebar or Settings must persist across route changes.
+- **Notification bell consumes `window` CustomEvents** (`app:notif:new`, `app:notif:batch`). Events dispatched before `navigate()` are lost (navbar unmounts) — needs a module-level store for real cross-page delivery.
+- **`:focus-visible` only, not `:focus`.** Accessible radio/checkbox cards inject a scoped `<style>` block since inline styles can't express the pseudo-class. Pattern at [RadioCard.tsx](../src/app/components/RadioCard.tsx).
 - **Figma & `ImageWithFallback` are protected.** Do not modify [`ImageWithFallback.tsx`](../src/app/components/figma/ImageWithFallback.tsx) or `pnpm-lock.yaml`.

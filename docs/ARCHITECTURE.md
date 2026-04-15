@@ -27,13 +27,17 @@ src/
 │   ├── routes.tsx                 # createBrowserRouter config
 │   ├── pages/                     # one file per route
 │   └── components/
-│       ├── Sidebar.tsx            # unified bank/org sidebar
-│       ├── Navbar.tsx             # sticky top bar + notification bell + user menu
+│       ├── Sidebar.tsx            # unified bank/org sidebar + ThemeToggleRow
+│       ├── Navbar.tsx             # sticky top bar + 4-state notification bell + user menu
 │       ├── DateRangePicker.tsx
 │       ├── EmptyState.tsx         # shared zero-state primitive
+│       ├── PaginationBar.tsx      # shared pagination with page-size select + ellipsis
+│       ├── RadioCard.tsx          # accessible radiogroup + roving tabindex
 │       ├── OrgDetailDrawer.tsx
 │       ├── usePopoverPosition.ts  # shared anchored-popover hook
 │       ├── useExportToast.tsx     # shared export-toast hook
+│       ├── useDarkMode.tsx        # module-level theme store (localStorage-backed)
+│       ├── renderMarkdown.tsx     # markdown-lite renderer + FormatToolbar
 │       ├── ds/
 │       │   ├── tokens.ts          # F (fonts), C (colors), D (dark), theme()
 │       │   └── Row1…Row10.tsx     # design-system showcase rows
@@ -68,15 +72,21 @@ The `detectRole()` helper in [Navbar.tsx](../src/app/components/Navbar.tsx) is t
   - `F` — font families.
 - `theme(dark: boolean)` returns the merged palette for the current mode.
 - CSS custom properties for shadcn/ui-style components live in [theme.css](../src/styles/theme.css) and toggle via a `.dark` class on a root element.
-- Dark mode state lives on each page (`const [darkMode, setDarkMode] = useState(false)`) and is passed to `<Navbar>` / `<Sidebar>`. There is no global theme provider — persistence across routes is intentionally out of scope for this design prototype.
+- **Dark mode state is global** via the [useDarkMode](../src/app/components/useDarkMode.tsx) hook — a module-level store backed by `localStorage['moment-kpi-theme']` with values `'light' | 'dark' | 'system'`. Every page calls `const [darkMode, setDarkMode] = useDarkMode();` (signature identical to `useState<boolean>(false)`), so toggles from any page or from the sidebar's `ThemeToggleRow` persist across route changes. The `useThemePref()` sibling hook exposes the 3-way preference for the Settings Profile tab.
 
 ## Shared primitives
 
-Three in-house hooks/components exist to prevent copy-paste drift:
+In-house hooks/components that exist to prevent copy-paste drift:
 
 1. **[usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts)** — any ⋯ action menu, filter select, or form dropdown anchored to a trigger uses this. It handles `position: fixed`, measure-before-paint auto-flip, outside-click, and **re-anchoring on scroll/resize** (the popover follows its trigger as the container scrolls; it only closes if the trigger leaves the viewport). Important for dropdowns hosted inside scrollable modals.
 2. **[useExportToast.tsx](../src/app/components/useExportToast.tsx)** — every "Экспорт" / "Скачать Excel" button hooks through this. Three-phase toast (processing → success/error), single-flight, 8s auto-dismiss on success.
-3. **[EmptyState.tsx](../src/app/components/EmptyState.tsx)** — every empty table/list/card view renders `<EmptyState />`, not an ad-hoc div. 6 canonical variants demoed at `/empty-states`.
+3. **[EmptyState.tsx](../src/app/components/EmptyState.tsx)** — every empty table/list/card view renders `<EmptyState />`, not an ad-hoc div. 6 canonical variants demoed at `/empty-states`; 7 first-use variants at `/empty-states-first-use`.
+4. **[useDarkMode.tsx](../src/app/components/useDarkMode.tsx)** — drop-in replacement for `useState<boolean>(false)` on page-level dark-mode state. Backed by a module-level store + `localStorage['moment-kpi-theme']`. Also exposes `useThemePref()` for the 3-way preference.
+5. **[renderMarkdown.tsx](../src/app/components/renderMarkdown.tsx)** — markdown-lite renderer + `<FormatToolbar>` for announcement / message body composition. Narrow grammar (`**bold**`, `_italic_`, bullet lists).
+6. **[PaginationBar.tsx](../src/app/components/PaginationBar.tsx)** — full-width pagination row with page-size selector and ellipsis page buttons. Persists preferred page size in `localStorage['pagesize:{storageKey}']`. Live demo at `/pagination-showcase`.
+7. **[RadioCard.tsx](../src/app/components/RadioCard.tsx)** — accessible `<RadioGroup>` with roving tabindex, arrow-key navigation, and `:focus-visible`-only ring. Live demo at `/radio-card-showcase`.
+
+Shimmer loading states share a single `@keyframes skeletonShimmer` recipe (light→lighter→light gradient, 200% background-size, 1.5s linear infinite) — see `/skeleton-states` for 6 variants.
 
 If you find yourself writing a fourth copy of something, hoist it here too. See [tasks/lessons.md](../tasks/lessons.md) for the triggers that prompted each extraction.
 
