@@ -1,5 +1,8 @@
-import React, { useEffect, useRef } from 'react';
-import { F, C } from './ds/tokens';
+import React, { useEffect, useRef, useState } from 'react';
+import { F, C, D, theme } from './ds/tokens';
+import { useDarkMode } from './useDarkMode';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RadioCard — Prompt 0 §11
@@ -12,6 +15,10 @@ import { F, C } from './ds/tokens';
      • Home / End jump to first / last
      • Focus ring rendered only for keyboard focus (:focus-visible)
 
+   Theming: reads global dark mode via useDarkMode(). Pass `dark` prop to
+   force a variant (used by showcase pages). Per-option `disabled` is also
+   supported.
+
    Use for M-03 recipients selector, C-05 assignment target, and any place
    where the user picks one option from a small set with descriptive text.
 ═══════════════════════════════════════════════════════════════════════════ */
@@ -20,6 +27,7 @@ export interface RadioOption<T extends string | number> {
   value: T;
   label: string;
   sub?: string;
+  disabled?: boolean;
   /** Extra inline content (e.g. date pickers) rendered below when selected. */
   children?: React.ReactNode;
 }
@@ -31,9 +39,12 @@ export interface RadioGroupProps<T extends string | number> {
   options: RadioOption<T>[];
   onChange: (next: T) => void;
   orientation?: 'horizontal' | 'vertical';
+  /** Force theme variant. Omit to follow the global useDarkMode() store. */
+  dark?: boolean;
 }
 
-/* ── Scoped stylesheet for :focus-visible (inline styles can't express it) ── */
+/* ── Scoped stylesheet for :focus-visible (inline styles can't express it).
+   Uses a CSS variable so the ring color can follow the option's theme. ── */
 
 const STYLE_ID = 'rc-focus-styles';
 
@@ -45,7 +56,7 @@ function ensureStyles() {
   style.textContent = `
     .rc-option { outline: none; }
     .rc-option:focus-visible {
-      outline: 2px solid ${C.blue};
+      outline: 2px solid var(--rc-focus-ring, ${C.focusRing});
       outline-offset: 2px;
       border-radius: 10px;
     }
@@ -64,35 +75,44 @@ export function RadioGroup<T extends string | number>({
   options,
   onChange,
   orientation = 'vertical',
+  dark: darkProp,
 }: RadioGroupProps<T>) {
+  const [globalDark] = useDarkMode();
+  const dark = darkProp ?? globalDark;
+  const t = theme(dark);
   const refs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => { ensureStyles(); }, []);
 
-  const focusIndex = (idx: number) => {
-    const n = options.length;
-    if (n === 0) return;
-    const wrapped = ((idx % n) + n) % n;
-    onChange(options[wrapped].value);
-    // Move DOM focus after the state update has re-rendered tabindex=0 onto it
+  const enabled = options.map((o, i) => ({ o, i })).filter(x => !x.o.disabled);
+
+  const focusIndex = (rawIdx: number) => {
+    if (enabled.length === 0) return;
+    const n = enabled.length;
+    const wrapped = ((rawIdx % n) + n) % n;
+    const target = enabled[wrapped];
+    onChange(target.o.value);
     requestAnimationFrame(() => {
-      refs.current[wrapped]?.focus();
+      refs.current[target.i]?.focus();
     });
   };
 
-  const currentIndex = Math.max(0, options.findIndex(o => o.value === value));
+  const currentEnabledIdx = Math.max(
+    0,
+    enabled.findIndex(x => x.o.value === value)
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     switch (e.key) {
       case 'ArrowDown':
       case 'ArrowRight':
         e.preventDefault();
-        focusIndex(currentIndex + 1);
+        focusIndex(currentEnabledIdx + 1);
         break;
       case 'ArrowUp':
       case 'ArrowLeft':
         e.preventDefault();
-        focusIndex(currentIndex - 1);
+        focusIndex(currentEnabledIdx - 1);
         break;
       case 'Home':
         e.preventDefault();
@@ -100,15 +120,12 @@ export function RadioGroup<T extends string | number>({
         break;
       case 'End':
         e.preventDefault();
-        focusIndex(options.length - 1);
+        focusIndex(enabled.length - 1);
         break;
       case ' ':
       case 'Enter':
-        // When a radio has focus, Space/Enter should (re)select it;
-        // since it's already focused, this is a no-op but we still
-        // swallow the event.
         e.preventDefault();
-        onChange(options[currentIndex].value);
+        if (enabled[currentEnabledIdx]) onChange(enabled[currentEnabledIdx].o.value);
         break;
     }
   };
@@ -123,7 +140,9 @@ export function RadioGroup<T extends string | number>({
         flexDirection: orientation === 'horizontal' ? 'row' : 'column',
         gap: '10px',
         alignItems: 'stretch',
-      }}
+        // Scoped CSS variable so :focus-visible ring follows this group's theme.
+        ['--rc-focus-ring' as string]: t.focusRing,
+      } as React.CSSProperties}
     >
       {options.map((opt, i) => {
         const selected = opt.value === value;
@@ -134,9 +153,11 @@ export function RadioGroup<T extends string | number>({
             name={name}
             option={opt}
             selected={selected}
-            tabIndex={selected ? 0 : -1}
+            tabIndex={opt.disabled ? -1 : (selected ? 0 : -1)}
             orientation={orientation}
-            onSelect={() => onChange(opt.value)}
+            onSelect={() => !opt.disabled && onChange(opt.value)}
+            dark={dark}
+            t={t}
           />
         );
       })}
@@ -155,13 +176,47 @@ interface RadioCardCellProps<T extends string | number> {
   tabIndex: 0 | -1;
   orientation: 'horizontal' | 'vertical';
   onSelect: () => void;
+  dark: boolean;
+  t: T;
 }
 
 const RadioCardCell = React.forwardRef<HTMLDivElement, RadioCardCellProps<string | number>>(
-  function RadioCardCell({ name, option, selected, tabIndex, orientation, onSelect }, ref) {
-    const border = selected ? `2px solid ${C.blue}` : `1px solid ${C.inputBorder}`;
-    const padding = selected ? '11px' : '12px'; // compensates the 1px thicker border
-    const bg = selected ? '#EFF6FF' : C.surface;
+  function RadioCardCell({ name, option, selected, tabIndex, orientation, onSelect, dark, t }, ref) {
+    const [hov, setHov] = useState(false);
+    const disabled = !!option.disabled;
+
+    // Resolve border/bg/text colors based on priority: disabled > selected > hover > default.
+    let border: string;
+    let padding: string;
+    let bg: string;
+    let titleColor: string;
+    let subColor: string;
+
+    if (disabled) {
+      border     = `1px solid ${dark ? D.border : C.inputBorder}`;
+      padding    = '12px';
+      bg         = dark ? D.tableAlt : '#F9FAFB';
+      titleColor = dark ? D.text4    : C.text4;
+      subColor   = dark ? D.text4    : C.text4;
+    } else if (selected) {
+      border     = `2px solid ${t.blue}`;
+      padding    = '11px';
+      bg         = t.blueLt;
+      titleColor = dark ? D.text1 : C.text1;
+      subColor   = dark ? D.text2 : C.text3;
+    } else if (hov) {
+      border     = `1px solid ${dark ? D.text4 : '#9CA3AF'}`;
+      padding    = '12px';
+      bg         = dark ? D.tableHover : '#F9FAFB';
+      titleColor = dark ? D.text1 : C.text1;
+      subColor   = dark ? D.text2 : C.text3;
+    } else {
+      border     = `1px solid ${dark ? D.border : C.inputBorder}`;
+      padding    = '12px';
+      bg         = 'transparent';
+      titleColor = dark ? D.text1 : C.text1;
+      subColor   = dark ? D.text2 : C.text3;
+    }
 
     return (
       <div
@@ -169,14 +224,17 @@ const RadioCardCell = React.forwardRef<HTMLDivElement, RadioCardCellProps<string
         className="rc-option"
         role="radio"
         aria-checked={selected}
+        aria-disabled={disabled || undefined}
         tabIndex={tabIndex}
         data-name={name}
-        onClick={onSelect}
-        onMouseDown={e => {
+        onClick={disabled ? undefined : onSelect}
+        onMouseDown={disabled ? undefined : (e => {
           // Prevent the blur/refocus dance that would surface :focus-visible
           // on pure mouse interaction; keyboard focus still works.
           if (e.button === 0) e.currentTarget.focus({ preventScroll: true });
-        }}
+        })}
+        onMouseEnter={disabled ? undefined : () => setHov(true)}
+        onMouseLeave={disabled ? undefined : () => setHov(false)}
         style={{
           flex: orientation === 'horizontal' ? 1 : undefined,
           minWidth: 0,
@@ -184,23 +242,24 @@ const RadioCardCell = React.forwardRef<HTMLDivElement, RadioCardCellProps<string
           border,
           borderRadius: '10px',
           background: bg,
-          cursor: 'pointer',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.7 : 1,
           display: 'flex', alignItems: 'flex-start', gap: '10px',
           transition: 'background 0.12s, border-color 0.12s',
         }}
       >
-        <RadioIndicator selected={selected} />
+        <RadioIndicator selected={selected} disabled={disabled} dark={dark} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-            color: C.text1, lineHeight: 1.3,
+            color: titleColor, lineHeight: 1.3,
           }}>
             {option.label}
           </div>
           {option.sub && (
             <div style={{
-              fontFamily: F.inter, fontSize: '12px', color: C.text3,
+              fontFamily: F.inter, fontSize: '12px', color: subColor,
               marginTop: '3px', lineHeight: 1.4,
             }}>
               {option.sub}
@@ -224,22 +283,34 @@ const RadioCardCell = React.forwardRef<HTMLDivElement, RadioCardCellProps<string
    RadioIndicator — 18×18 circle (hollow / filled)
 ═══════════════════════════════════════════════════════════════════════════ */
 
-export function RadioIndicator({ selected }: { selected: boolean }) {
+export function RadioIndicator({ selected, disabled, dark: darkProp }: {
+  selected: boolean; disabled?: boolean; dark?: boolean;
+}) {
+  const [globalDark] = useDarkMode();
+  const dark = darkProp ?? globalDark;
+  const t = theme(dark);
+
+  const ringColor = selected
+    ? t.blue
+    : disabled
+      ? (dark ? D.textDisabled : C.textDisabled)
+      : (dark ? D.text4 : C.inputBorder);
+
   return (
     <span
       aria-hidden="true"
       style={{
         width: '18px', height: '18px', borderRadius: '50%',
-        border: `1.5px solid ${selected ? C.blue : C.inputBorder}`,
-        background: C.surface,
+        border: selected ? `none` : `2px solid ${ringColor}`,
+        background: selected ? t.blue : 'transparent',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, marginTop: '1px',
-        transition: 'border-color 0.12s',
+        transition: 'border-color 0.12s, background 0.12s',
       }}
     >
       {selected && (
         <span style={{
-          width: '9px', height: '9px', borderRadius: '50%', background: C.blue,
+          width: '6px', height: '6px', borderRadius: '50%', background: '#FFFFFF',
         }} />
       )}
     </span>
