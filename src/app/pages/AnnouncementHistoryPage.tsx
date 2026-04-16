@@ -6,11 +6,13 @@ import {
 import { useLocation, useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { EmptyState } from '../components/EmptyState';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -55,28 +57,39 @@ const CHANNEL_OPTIONS: { value: ChannelFilter; label: string }[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   STATUS STYLE MAPS (multi-state)
+═══════════════════════════════════════════════════════════════════════════ */
+
+const STATUS_STYLE_LIGHT: Record<Status, { bg: string; color: string; dot: string; label: string }> = {
+  sent:      { bg: C.successBg, color: '#15803D', dot: C.success, label: 'Отправлено' },
+  scheduled: { bg: C.warningBg, color: '#B45309', dot: C.warning, label: 'Запланировано' },
+  draft:     { bg: '#F3F4F6',   color: C.text3,   dot: C.text4,   label: 'Черновик' },
+};
+
+const STATUS_STYLE_DARK: Record<Status, { bg: string; color: string; dot: string; label: string }> = {
+  sent:      { bg: 'rgba(52,211,153,0.12)', color: '#34D399', dot: '#34D399', label: 'Отправлено' },
+  scheduled: { bg: 'rgba(251,191,36,0.12)', color: '#FBBF24', dot: '#FBBF24', label: 'Запланировано' },
+  draft:     { bg: D.tableAlt,              color: D.text2,   dot: D.text4,   label: 'Черновик' },
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
    BADGES
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ChannelBadge({ label }: { label: Channel }) {
+function ChannelBadge({ label, t }: { label: Channel; t: T }) {
   return (
     <span style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 8px', borderRadius: '6px',
-      background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+      background: t.blueLt, color: t.blue, whiteSpace: 'nowrap',
     }}>
       {label}
     </span>
   );
 }
 
-function StatusBadge({ status }: { status: Status }) {
-  const cfg: Record<Status, { bg: string; color: string; dot: string; label: string }> = {
-    sent:      { bg: C.successBg, color: '#15803D', dot: C.success, label: 'Отправлено' },
-    scheduled: { bg: C.warningBg, color: '#B45309', dot: C.warning, label: 'Запланировано' },
-    draft:     { bg: '#F3F4F6',   color: C.text3,   dot: C.text4,   label: 'Черновик' },
-  };
-  const c = cfg[status];
+function StatusBadge({ status, dark }: { status: Status; dark: boolean }) {
+  const c = (dark ? STATUS_STYLE_DARK : STATUS_STYLE_LIGHT)[status];
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -94,23 +107,24 @@ function StatusBadge({ status }: { status: Status }) {
    PROGRESS CELL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ProgressCell({ value }: { value: [number, number] | null }) {
-  if (!value) return <span style={{ color: C.text4 }}>—</span>;
+function ProgressCell({ value, t, dark }: { value: [number, number] | null; t: T; dark: boolean }) {
+  if (!value) return <span style={{ color: t.text4 }}>—</span>;
   const [done, total] = value;
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
   const complete = done === total;
+  const trackBg = dark ? D.progressTrack : '#F3F4F6';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: '56px' }}>
-      <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>
+      <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text1 }}>
         {done}/{total}
       </span>
       <div style={{
         width: '100%', height: '4px', borderRadius: '2px',
-        background: '#F3F4F6', overflow: 'hidden',
+        background: trackBg, overflow: 'hidden',
       }}>
         <div style={{
           width: `${pct}%`, height: '100%',
-          background: complete ? C.success : C.warning,
+          background: complete ? t.success : t.warning,
           transition: 'width 0.2s',
         }} />
       </div>
@@ -122,16 +136,19 @@ function ProgressCell({ value }: { value: [number, number] | null }) {
    ACTION MENU
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function RowActionMenu({ status, onDetail, onDuplicate, onEdit, onCancel, onDelete }: {
+function RowActionMenu({ status, onDetail, onDuplicate, onEdit, onCancel, onDelete, t, dark }: {
   status: Status;
   onDetail: () => void;
   onDuplicate: () => void;
   onEdit: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } = usePopoverPosition();
   const [hov, setHov] = useState<string | null>(null);
+  const triggerBg = dark ? D.tableHover : '#F3F4F6';
 
   const item = (label: string, Icon: React.ElementType, onClick: () => void, destructive = false) => (
     <button
@@ -141,10 +158,10 @@ function RowActionMenu({ status, onDetail, onDuplicate, onEdit, onCancel, onDele
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         width: '100%', padding: '9px 12px',
-        background: hov === label ? (destructive ? C.errorBg : C.blueLt) : 'transparent',
+        background: hov === label ? (destructive ? t.errorBg : t.blueLt) : 'transparent',
         border: 'none', cursor: 'pointer',
         fontFamily: F.inter, fontSize: '13px',
-        color: destructive ? C.error : C.text2, textAlign: 'left',
+        color: destructive ? t.error : t.text2, textAlign: 'left',
         transition: 'background 0.1s',
       }}
     >
@@ -161,12 +178,12 @@ function RowActionMenu({ status, onDetail, onDuplicate, onEdit, onCancel, onDele
         aria-label="Действия"
         style={{
           width: '32px', height: '32px', borderRadius: '8px',
-          border: 'none', background: open ? '#F3F4F6' : 'transparent',
+          border: 'none', background: open ? triggerBg : 'transparent',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'background 0.12s',
         }}
       >
-        <MoreVertical size={16} color={C.text3} />
+        <MoreVertical size={16} color={t.text3} />
       </button>
       {open && (
         <div
@@ -174,10 +191,10 @@ function RowActionMenu({ status, onDetail, onDuplicate, onEdit, onCancel, onDele
           style={{
             ...menuStyle,
             minWidth: '180px',
-            background: C.surface,
-            border: `1px solid ${C.border}`,
+            background: t.surface,
+            border: `1px solid ${t.border}`,
             borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(17,24,39,0.08)',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.08)',
             padding: '4px 0',
           }}
         >
@@ -188,7 +205,7 @@ function RowActionMenu({ status, onDetail, onDuplicate, onEdit, onCancel, onDele
           {status === 'scheduled' && item('Отменить', XCircle, onCancel, true)}
           {status === 'draft' && (
             <>
-              <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+              <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />
               {item('Удалить', Trash2, onDelete, true)}
             </>
           )}
@@ -202,11 +219,13 @@ function RowActionMenu({ status, onDetail, onDuplicate, onEdit, onCancel, onDele
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect<T extends string>({ label, value, options, onChange }: {
+function FilterSelect<V extends string>({ label, value, options, onChange, t, dark }: {
   label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
+  value: V;
+  options: { value: V; label: string }[];
+  onChange: (v: V) => void;
+  t: T;
+  dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
     usePopoverPosition({ alignRight: false });
@@ -219,16 +238,16 @@ function FilterSelect<T extends string>({ label, value, options, onChange }: {
         onClick={toggle}
         style={{
           height: '36px', padding: '0 12px',
-          border: `1px solid ${open ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
+          border: `1px solid ${open ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
           display: 'inline-flex', alignItems: 'center', gap: '6px',
-          fontFamily: F.inter, fontSize: '13px', color: C.text1,
+          fontFamily: F.inter, fontSize: '13px', color: t.text1,
           cursor: 'pointer', transition: 'border-color 0.12s',
         }}
       >
-        <span style={{ color: C.text3 }}>{label}:</span>
+        <span style={{ color: t.text3 }}>{label}:</span>
         <span style={{ fontWeight: 500 }}>{current?.label}</span>
-        <ChevronDown size={14} color={C.text3} strokeWidth={1.75} />
+        <ChevronDown size={14} color={t.text3} strokeWidth={1.75} />
       </button>
       {open && (
         <div
@@ -236,8 +255,9 @@ function FilterSelect<T extends string>({ label, value, options, onChange }: {
           style={{
             ...menuStyle,
             minWidth: '160px',
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: '8px', boxShadow: '0 8px 24px rgba(17,24,39,0.12)',
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: '8px',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.12)',
             padding: '4px 0',
           }}
         >
@@ -250,14 +270,14 @@ function FilterSelect<T extends string>({ label, value, options, onChange }: {
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '8px 12px', border: 'none',
-                  background: sel ? C.blueLt : 'transparent',
+                  background: sel ? t.blueLt : 'transparent',
                   fontFamily: F.inter, fontSize: '13px',
-                  color: sel ? C.blue : C.text1,
+                  color: sel ? t.blue : t.text1,
                   cursor: 'pointer', textAlign: 'left',
                 }}
               >
                 {o.label}
-                {sel && <Check size={14} strokeWidth={2} color={C.blue} />}
+                {sel && <Check size={14} strokeWidth={2} color={t.blue} />}
               </button>
             );
           })}
@@ -276,6 +296,8 @@ const PAGE_SIZE = 10;
 export default function AnnouncementHistoryPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [rows, setRows] = useState<AnnouncementRow[]>(ROWS);
   const [cancellingRow, setCancellingRow] = useState<AnnouncementRow | null>(null);
   const [deletingRow, setDeletingRow] = useState<AnnouncementRow | null>(null);
@@ -289,7 +311,6 @@ export default function AnnouncementHistoryPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Consume nav-state handoff from compose → history
   const consumedRef = useRef(false);
   useEffect(() => {
     if (consumedRef.current) return;
@@ -309,8 +330,8 @@ export default function AnnouncementHistoryPage() {
 
     navigate(location.pathname, { replace: true, state: null });
 
-    const t = window.setTimeout(() => setHighlightId(null), 2500);
-    return () => window.clearTimeout(t);
+    const to = window.setTimeout(() => setHighlightId(null), 2500);
+    return () => window.clearTimeout(to);
   }, [location, navigate]);
 
   const scrollToHighlighted = () => {
@@ -349,8 +370,11 @@ export default function AnnouncementHistoryPage() {
 
   const resetFilters = () => { setQuery(''); setStatus('all'); setChannel('all'); };
 
+  const pulseBg = dark ? 'rgba(59,130,246,0.15)' : C.blueLt;
+  const tableHeaderBg = dark ? D.tableHeaderBg : '#F9FAFB';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar
         role="bank"
         collapsed={sidebarCollapsed}
@@ -365,9 +389,9 @@ export default function AnnouncementHistoryPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <span onClick={() => navigate('/dashboard')} style={crumbLink}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>История объявлений</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>История объявлений</span>
           </div>
 
           {/* Top bar */}
@@ -376,14 +400,14 @@ export default function AnnouncementHistoryPage() {
             gap: '16px', marginBottom: '20px', flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 История объявлений
               </h1>
-              <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
+              <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '6px' }}>
                 Все отправленные и запланированные объявления
               </div>
             </div>
-            <PrimaryButton icon={Plus} onClick={() => navigate('/announcements/new')}>
+            <PrimaryButton icon={Plus} onClick={() => navigate('/announcements/new')} t={t}>
               Новое объявление
             </PrimaryButton>
           </div>
@@ -393,30 +417,30 @@ export default function AnnouncementHistoryPage() {
             display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
             marginBottom: '16px',
           }}>
-            <SearchInput value={query} onChange={setQuery} />
-            <FilterSelect label="Статус" value={status} options={STATUS_OPTIONS} onChange={setStatus} />
-            <FilterSelect label="Канал" value={channel} options={CHANNEL_OPTIONS} onChange={setChannel} />
+            <SearchInput value={query} onChange={setQuery} t={t} />
+            <FilterSelect label="Статус" value={status} options={STATUS_OPTIONS} onChange={setStatus} t={t} dark={dark} />
+            <FilterSelect label="Канал" value={channel} options={CHANNEL_OPTIONS} onChange={setChannel} t={t} dark={dark} />
             <DateRangePicker value={dateRange} onChange={setDateRange} />
           </div>
 
           {/* Table card */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px',
+            background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px',
             overflow: 'hidden',
           }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: F.inter }}>
                 <thead>
-                  <tr style={{ background: '#F9FAFB', borderBottom: `1px solid ${C.border}` }}>
-                    <Th width="44px">#</Th>
-                    <Th width="130px">Дата отправки</Th>
-                    <Th>Заголовок</Th>
-                    <Th>Получатели</Th>
-                    <Th>Каналы</Th>
-                    <Th width="110px">Доставлено</Th>
-                    <Th width="110px">Прочитано</Th>
-                    <Th width="150px">Статус</Th>
-                    <Th width="48px" />
+                  <tr style={{ background: tableHeaderBg, borderBottom: `1px solid ${t.border}` }}>
+                    <Th width="44px" t={t}>#</Th>
+                    <Th width="130px" t={t}>Дата отправки</Th>
+                    <Th t={t}>Заголовок</Th>
+                    <Th t={t}>Получатели</Th>
+                    <Th t={t}>Каналы</Th>
+                    <Th width="110px" t={t}>Доставлено</Th>
+                    <Th width="110px" t={t}>Прочитано</Th>
+                    <Th width="150px" t={t}>Статус</Th>
+                    <Th width="48px" t={t} />
                   </tr>
                 </thead>
                 <tbody>
@@ -447,6 +471,8 @@ export default function AnnouncementHistoryPage() {
                       onEdit={() => navigate('/announcements/new', { state: { draft: r } })}
                       onCancel={() => setCancellingRow(r)}
                       onDelete={() => setDeletingRow(r)}
+                      t={t}
+                      dark={dark}
                     />
                   ))}
                 </tbody>
@@ -456,8 +482,8 @@ export default function AnnouncementHistoryPage() {
             {/* Pagination */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '12px 16px', borderTop: `1px solid ${C.border}`,
-              fontFamily: F.inter, fontSize: '13px', color: C.text3,
+              padding: '12px 16px', borderTop: `1px solid ${t.border}`,
+              fontFamily: F.inter, fontSize: '13px', color: t.text3,
             }}>
               <div>
                 {filtered.length === 0
@@ -465,13 +491,13 @@ export default function AnnouncementHistoryPage() {
                   : `Показано ${(pageSafe - 1) * PAGE_SIZE + 1}–${Math.min(pageSafe * PAGE_SIZE, filtered.length)} из ${filtered.length}`}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <PageBtn disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                <PageBtn disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} t={t}>
                   <ChevronLeft size={14} strokeWidth={1.75} />
                 </PageBtn>
-                <span style={{ padding: '0 10px', fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+                <span style={{ padding: '0 10px', fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>
                   {pageSafe} / {pageCount}
                 </span>
-                <PageBtn disabled={pageSafe >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                <PageBtn disabled={pageSafe >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))} t={t}>
                   <ChevronRight size={14} strokeWidth={1.75} />
                 </PageBtn>
               </div>
@@ -484,12 +510,16 @@ export default function AnnouncementHistoryPage() {
         row={cancellingRow}
         onClose={() => setCancellingRow(null)}
         onConfirm={confirmCancel}
+        t={t}
+        dark={dark}
       />
 
       <DeleteDraftModal
         row={deletingRow}
         onClose={() => setDeletingRow(null)}
         onConfirm={confirmDelete}
+        t={t}
+        dark={dark}
       />
 
       {sentToast && (
@@ -498,18 +528,20 @@ export default function AnnouncementHistoryPage() {
           summary={sentToast.summary}
           onOpen={() => { scrollToHighlighted(); setSentToast(null); }}
           onClose={() => setSentToast(null)}
+          t={t}
+          dark={dark}
         />
       )}
 
       <style>{`
         @keyframes annoRowPulseBg {
-          0%   { background-color: ${C.blueLt}; }
-          60%  { background-color: ${C.blueLt}; }
+          0%   { background-color: ${pulseBg}; }
+          60%  { background-color: ${pulseBg}; }
           100% { background-color: transparent; }
         }
         @keyframes annoRowPulseBorder {
-          0%   { box-shadow: inset 3px 0 0 ${C.blue}; }
-          60%  { box-shadow: inset 3px 0 0 ${C.blue}; }
+          0%   { box-shadow: inset 3px 0 0 ${t.blue}; }
+          60%  { box-shadow: inset 3px 0 0 ${t.blue}; }
           100% { box-shadow: inset 3px 0 0 transparent; }
         }
         .anno-row-pulse { animation: annoRowPulseBg 2s ease-out 1; }
@@ -523,10 +555,12 @@ export default function AnnouncementHistoryPage() {
    CANCEL SCHEDULED MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function CancelScheduledModal({ row, onClose, onConfirm }: {
+function CancelScheduledModal({ row, onClose, onConfirm, t, dark }: {
   row: AnnouncementRow | null;
   onClose: () => void;
   onConfirm: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
 
@@ -539,12 +573,16 @@ function CancelScheduledModal({ row, onClose, onConfirm }: {
 
   if (!row) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+  const warnBg = dark ? 'rgba(251,191,36,0.08)' : C.warningBg;
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -553,22 +591,21 @@ function CancelScheduledModal({ row, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '480px',
-          background: C.surface, border: `1px solid ${C.border}`,
+          background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
           maxHeight: 'calc(100vh - 40px)',
         }}
       >
-        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`, flexShrink: 0,
         }}>
-          <XCircle size={20} color={C.warning} strokeWidth={1.75} />
+          <XCircle size={20} color={t.warning} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Отменить отправку
           </h2>
@@ -579,27 +616,25 @@ function CancelScheduledModal({ row, onClose, onConfirm }: {
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? closeHovBg : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
-        {/* Content */}
         <div style={{
           padding: '20px', overflowY: 'auto',
           display: 'flex', flexDirection: 'column', gap: '14px',
         }}>
-          {/* Announcement card */}
           <div style={{
-            background: C.warningBg,
-            borderTop: `1px solid ${C.border}`,
-            borderRight: `1px solid ${C.border}`,
-            borderBottom: `1px solid ${C.border}`,
-            borderLeft: `3px solid ${C.warning}`,
+            background: warnBg,
+            borderTop: `1px solid ${t.border}`,
+            borderRight: `1px solid ${t.border}`,
+            borderBottom: `1px solid ${t.border}`,
+            borderLeft: `3px solid ${t.warning}`,
             borderRadius: '8px', padding: '12px',
             display: 'flex', flexDirection: 'column', gap: '6px',
           }}>
@@ -608,22 +643,22 @@ function CancelScheduledModal({ row, onClose, onConfirm }: {
               gap: '10px', flexWrap: 'wrap',
             }}>
               <span style={{
-                fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1,
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1,
               }}>
                 {row.title}
               </span>
-              <StatusBadge status="scheduled" />
+              <StatusBadge status="scheduled" dark={dark} />
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Получатели: <span style={{ color: C.text2 }}>{row.recipientsLabel}</span>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Получатели: <span style={{ color: t.text2 }}>{row.recipientsLabel}</span>
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Запланировано на: <span style={{ fontFamily: F.mono, color: C.text2 }}>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Запланировано на: <span style={{ fontFamily: F.mono, color: t.text2 }}>
                 {row.date ?? '—'}
               </span>
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Каналы: <span style={{ color: C.text2 }}>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Каналы: <span style={{ color: t.text2 }}>
                 {row.channels.length ? row.channels.join(', ') : '—'}
               </span>
             </div>
@@ -631,20 +666,19 @@ function CancelScheduledModal({ row, onClose, onConfirm }: {
 
           <p style={{
             margin: 0, fontFamily: F.inter, fontSize: '14px',
-            color: C.text1, lineHeight: 1.5,
+            color: t.text1, lineHeight: 1.5,
           }}>
             Объявление будет отменено и перемещено в черновики.
             Вы сможете отредактировать и отправить его позже.
           </p>
         </div>
 
-        {/* Footer */}
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '16px 20px', borderTop: `1px solid ${C.border}`, flexShrink: 0,
+          padding: '16px 20px', borderTop: `1px solid ${t.border}`, flexShrink: 0,
         }}>
-          <OutlineButton onClick={onClose}>Назад</OutlineButton>
-          <PrimaryButtonDialog onClick={onConfirm} icon={XCircle}>
+          <OutlineButton onClick={onClose} t={t}>Назад</OutlineButton>
+          <PrimaryButtonDialog onClick={onConfirm} icon={XCircle} t={t} dark={dark}>
             Отменить отправку
           </PrimaryButtonDialog>
         </div>
@@ -653,8 +687,8 @@ function CancelScheduledModal({ row, onClose, onConfirm }: {
   );
 }
 
-function OutlineButton({ children, onClick }: {
-  children: React.ReactNode; onClick?: () => void;
+function OutlineButton({ children, onClick, t }: {
+  children: React.ReactNode; onClick?: () => void; t: T;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -665,10 +699,10 @@ function OutlineButton({ children, onClick }: {
       onClick={onClick}
       style={{
         height: '38px', padding: '0 18px',
-        border: `1px solid ${hov ? C.text3 : C.inputBorder}`,
-        borderRadius: '8px', background: C.surface,
+        border: `1px solid ${hov ? t.text3 : t.inputBorder}`,
+        borderRadius: '8px', background: t.surface,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.text1, cursor: 'pointer',
+        color: t.text1, cursor: 'pointer',
         transition: 'all 0.12s', flexShrink: 0,
       }}
     >
@@ -677,8 +711,8 @@ function OutlineButton({ children, onClick }: {
   );
 }
 
-function PrimaryButtonDialog({ children, onClick, icon: Icon }: {
-  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+function PrimaryButtonDialog({ children, onClick, icon: Icon, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -690,11 +724,11 @@ function PrimaryButtonDialog({ children, onClick, icon: Icon }: {
       style={{
         height: '38px', padding: '0 18px',
         border: 'none', borderRadius: '8px',
-        background: hov ? C.blueHover : C.blue,
+        background: hov ? t.blueHover : t.blue,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
-        boxShadow: hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+        boxShadow: dark ? 'none' : (hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)'),
         transition: 'all 0.15s', flexShrink: 0,
       }}
     >
@@ -708,10 +742,12 @@ function PrimaryButtonDialog({ children, onClick, icon: Icon }: {
    DELETE DRAFT MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DeleteDraftModal({ row, onClose, onConfirm }: {
+function DeleteDraftModal({ row, onClose, onConfirm, t, dark }: {
   row: AnnouncementRow | null;
   onClose: () => void;
   onConfirm: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
 
@@ -724,12 +760,15 @@ function DeleteDraftModal({ row, onClose, onConfirm }: {
 
   if (!row) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -738,21 +777,20 @@ function DeleteDraftModal({ row, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '440px',
-          background: C.surface, border: `1px solid ${C.border}`,
+          background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
         }}
       >
-        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <Trash2 size={20} color={C.error} strokeWidth={1.75} />
+          <Trash2 size={20} color={t.error} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Удалить черновик
           </h2>
@@ -763,49 +801,47 @@ function DeleteDraftModal({ row, onClose, onConfirm }: {
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? closeHovBg : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
-        {/* Content */}
         <div style={{
           padding: '20px',
           display: 'flex', flexDirection: 'column', gap: '8px',
         }}>
           <p style={{
             margin: 0, fontFamily: F.inter, fontSize: '14px',
-            color: C.text1, lineHeight: 1.5,
+            color: t.text1, lineHeight: 1.5,
           }}>
             Удалить черновик «<span style={{ fontWeight: 500 }}>{row.title}</span>»?
           </p>
           <p style={{
             margin: 0, fontFamily: F.inter, fontSize: '12px',
-            color: C.text3, lineHeight: 1.5,
+            color: t.text3, lineHeight: 1.5,
           }}>
             Черновик будет удалён навсегда. Это действие нельзя отменить.
           </p>
         </div>
 
-        {/* Footer */}
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '16px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '16px 20px', borderTop: `1px solid ${t.border}`,
         }}>
-          <OutlineButton onClick={onClose}>Отмена</OutlineButton>
-          <DestructiveButton onClick={onConfirm} icon={Trash2}>Удалить</DestructiveButton>
+          <OutlineButton onClick={onClose} t={t}>Отмена</OutlineButton>
+          <DestructiveButton onClick={onConfirm} icon={Trash2} t={t} dark={dark}>Удалить</DestructiveButton>
         </div>
       </div>
     </div>
   );
 }
 
-function DestructiveButton({ children, onClick, icon: Icon }: {
-  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+function DestructiveButton({ children, onClick, icon: Icon, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -817,11 +853,11 @@ function DestructiveButton({ children, onClick, icon: Icon }: {
       style={{
         height: '38px', padding: '0 18px',
         border: 'none', borderRadius: '8px',
-        background: hov ? '#DC2626' : C.error,
+        background: hov ? '#DC2626' : t.error,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
-        boxShadow: hov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)',
+        boxShadow: dark ? 'none' : (hov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)'),
         transition: 'all 0.15s', flexShrink: 0,
       }}
     >
@@ -835,7 +871,7 @@ function DestructiveButton({ children, onClick, icon: Icon }: {
    ROW
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Row({ row, highlight, onOpen, onDuplicate, onEdit, onCancel, onDelete }: {
+function Row({ row, highlight, onOpen, onDuplicate, onEdit, onCancel, onDelete, t, dark }: {
   row: AnnouncementRow;
   highlight?: boolean;
   onOpen: () => void;
@@ -843,9 +879,12 @@ function Row({ row, highlight, onOpen, onDuplicate, onEdit, onCancel, onDelete }
   onEdit: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   const isFresh = row.date === 'Только что';
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
   return (
     <tr
       id={`anno-row-${row.id}`}
@@ -854,35 +893,35 @@ function Row({ row, highlight, onOpen, onDuplicate, onEdit, onCancel, onDelete }
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${t.border}`,
         cursor: 'pointer',
-        background: hov && !highlight ? '#F9FAFB' : undefined,
+        background: hov && !highlight ? hoverBg : undefined,
         transition: 'background 0.1s',
       }}
     >
-      <Td><span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text3 }}>{row.id}</span></Td>
-      <Td>
+      <Td t={t}><span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text3 }}>{row.id}</span></Td>
+      <Td t={t}>
         {row.date
           ? isFresh
-            ? <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.blue, fontWeight: 500 }}>{row.date}</span>
-            : <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>{row.date}</span>
-          : <span style={{ color: C.text4 }}>—</span>}
+            ? <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.blue, fontWeight: 500 }}>{row.date}</span>
+            : <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text1 }}>{row.date}</span>
+          : <span style={{ color: t.text4 }}>—</span>}
       </Td>
-      <Td><span style={{ color: C.text1, fontWeight: 500 }}>{row.title}</span></Td>
-      <Td><span style={{ color: C.text2, fontSize: '13px' }}>{row.recipientsLabel}</span></Td>
-      <Td>
+      <Td t={t}><span style={{ color: t.text1, fontWeight: 500 }}>{row.title}</span></Td>
+      <Td t={t}><span style={{ color: t.text2, fontSize: '13px' }}>{row.recipientsLabel}</span></Td>
+      <Td t={t}>
         {row.channels.length === 0
-          ? <span style={{ color: C.text4 }}>—</span>
+          ? <span style={{ color: t.text4 }}>—</span>
           : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-              {row.channels.map(c => <ChannelBadge key={c} label={c} />)}
+              {row.channels.map(c => <ChannelBadge key={c} label={c} t={t} />)}
             </div>
           )}
       </Td>
-      <Td><ProgressCell value={row.delivered} /></Td>
-      <Td><ProgressCell value={row.read} /></Td>
-      <Td><StatusBadge status={row.status} /></Td>
-      <Td>
+      <Td t={t}><ProgressCell value={row.delivered} t={t} dark={dark} /></Td>
+      <Td t={t}><ProgressCell value={row.read} t={t} dark={dark} /></Td>
+      <Td t={t}><StatusBadge status={row.status} dark={dark} /></Td>
+      <Td t={t}>
         <RowActionMenu
           status={row.status}
           onDetail={onOpen}
@@ -890,6 +929,8 @@ function Row({ row, highlight, onOpen, onDuplicate, onEdit, onCancel, onDelete }
           onEdit={onEdit}
           onCancel={onCancel}
           onDelete={onDelete}
+          t={t}
+          dark={dark}
         />
       </Td>
     </tr>
@@ -900,16 +941,20 @@ function Row({ row, highlight, onOpen, onDuplicate, onEdit, onCancel, onDelete }
    SENT TOAST (post-send handoff)
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SentAnnouncementToast({ title, summary, onOpen, onClose }: {
+function SentAnnouncementToast({ title, summary, onOpen, onClose, t, dark }: {
   title: string;
   summary: string;
   onOpen: () => void;
   onClose: () => void;
+  t: T;
+  dark: boolean;
 }) {
   useEffect(() => {
-    const t = window.setTimeout(onClose, 6000);
-    return () => window.clearTimeout(t);
+    const to = window.setTimeout(onClose, 6000);
+    return () => window.clearTimeout(to);
   }, [onClose]);
+
+  const successBorder = dark ? 'rgba(52,211,153,0.35)' : '#A7F3D0';
 
   return (
     <div
@@ -918,15 +963,15 @@ function SentAnnouncementToast({ title, summary, onOpen, onClose }: {
       style={{
         position: 'fixed', top: '24px', right: '24px',
         width: '400px', maxWidth: 'calc(100vw - 48px)',
-        background: C.surface,
-        borderTop: `1px solid ${C.border}`,
-        borderRight: `1px solid ${C.border}`,
-        borderBottom: `1px solid ${C.border}`,
-        borderLeft: `3px solid ${C.success}`,
+        background: t.surface,
+        borderTop: `1px solid ${t.border}`,
+        borderRight: `1px solid ${t.border}`,
+        borderBottom: `1px solid ${t.border}`,
+        borderLeft: `3px solid ${t.success}`,
         borderRadius: '10px',
         padding: '12px 14px',
         display: 'flex', alignItems: 'flex-start', gap: '10px',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 12px 32px rgba(0,0,0,0.12)',
         zIndex: 300,
         animation: 'sentToastIn 0.2s ease-out',
       }}
@@ -940,22 +985,22 @@ function SentAnnouncementToast({ title, summary, onOpen, onClose }: {
 
       <div style={{
         width: '24px', height: '24px', borderRadius: '50%',
-        background: C.successBg, border: '1px solid #A7F3D0',
+        background: t.successBg, border: `1px solid ${successBorder}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, marginTop: '1px',
       }}>
-        <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+        <CheckCircle2 size={14} color={t.success} strokeWidth={2} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
-          color: C.text1, lineHeight: 1.4,
+          color: t.text1, lineHeight: 1.4,
         }}>
           Объявление отправлено
         </div>
         <div style={{
-          fontFamily: F.inter, fontSize: '12px', color: C.text3,
+          fontFamily: F.inter, fontSize: '12px', color: t.text3,
           marginTop: '3px', lineHeight: 1.45,
         }}>
           «{title}» → {summary}
@@ -967,10 +1012,10 @@ function SentAnnouncementToast({ title, summary, onOpen, onClose }: {
             marginTop: '8px',
             background: 'transparent', border: 'none', padding: 0,
             fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-            color: C.blue, cursor: 'pointer',
+            color: t.blue, cursor: 'pointer',
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = C.blueHover)}
-          onMouseLeave={e => (e.currentTarget.style.color = C.blue)}
+          onMouseEnter={e => (e.currentTarget.style.color = t.blueHover)}
+          onMouseLeave={e => (e.currentTarget.style.color = t.blue)}
         >
           Открыть в истории →
         </button>
@@ -982,7 +1027,7 @@ function SentAnnouncementToast({ title, summary, onOpen, onClose }: {
         aria-label="Закрыть"
         style={{
           background: 'transparent', border: 'none', padding: '2px',
-          color: C.text3, cursor: 'pointer', flexShrink: 0,
+          color: t.text3, cursor: 'pointer', flexShrink: 0,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -996,12 +1041,12 @@ function SentAnnouncementToast({ title, summary, onOpen, onClose }: {
    CELLS & HELPERS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Th({ children, width }: { children?: React.ReactNode; width?: string }) {
+function Th({ children, width, t }: { children?: React.ReactNode; width?: string; t: T }) {
   return (
     <th style={{
       textAlign: 'left', padding: '10px 14px', width,
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-      color: C.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
       whiteSpace: 'nowrap',
     }}>
       {children}
@@ -1009,28 +1054,28 @@ function Th({ children, width }: { children?: React.ReactNode; width?: string })
   );
 }
 
-function Td({ children }: { children: React.ReactNode }) {
+function Td({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <td style={{
       padding: '12px 14px', fontFamily: F.inter, fontSize: '13px',
-      color: C.text1, verticalAlign: 'middle',
+      color: t.text1, verticalAlign: 'middle',
     }}>
       {children}
     </td>
   );
 }
 
-function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function SearchInput({ value, onChange, t }: { value: string; onChange: (v: string) => void; t: T }) {
   const [focus, setFocus] = useState(false);
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: '8px',
       height: '36px', width: '320px', padding: '0 12px',
-      border: `1px solid ${focus ? C.blue : C.inputBorder}`,
-      borderRadius: '8px', background: C.surface,
+      border: `1px solid ${focus ? t.blue : t.inputBorder}`,
+      borderRadius: '8px', background: t.surface,
       transition: 'border-color 0.12s',
     }}>
-      <Search size={14} color={C.text3} strokeWidth={1.75} />
+      <Search size={14} color={t.text3} strokeWidth={1.75} />
       <input
         type="text"
         value={value}
@@ -1040,23 +1085,23 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
         placeholder="Поиск по теме или тексту..."
         style={{
           flex: 1, border: 'none', outline: 'none',
-          fontFamily: F.inter, fontSize: '13px', color: C.text1, background: 'transparent',
+          fontFamily: F.inter, fontSize: '13px', color: t.text1, background: 'transparent',
         }}
       />
     </div>
   );
 }
 
-function PageBtn({ children, disabled, onClick }: {
-  children: React.ReactNode; disabled?: boolean; onClick: () => void;
+function PageBtn({ children, disabled, onClick, t }: {
+  children: React.ReactNode; disabled?: boolean; onClick: () => void; t: T;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       style={{
-        width: '32px', height: '32px', border: `1px solid ${C.border}`, borderRadius: '6px',
-        background: C.surface, color: disabled ? C.text4 : C.text2,
+        width: '32px', height: '32px', border: `1px solid ${t.border}`, borderRadius: '6px',
+        background: t.surface, color: disabled ? t.text4 : t.text2,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         opacity: disabled ? 0.6 : 1,
@@ -1067,12 +1112,8 @@ function PageBtn({ children, disabled, onClick }: {
   );
 }
 
-const crumbLink: React.CSSProperties = {
-  fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer',
-};
-
-function PrimaryButton({ children, icon: Icon, onClick }: {
-  children: React.ReactNode; icon?: React.ElementType; onClick?: () => void;
+function PrimaryButton({ children, icon: Icon, onClick, t }: {
+  children: React.ReactNode; icon?: React.ElementType; onClick?: () => void; t: T;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1084,7 +1125,7 @@ function PrimaryButton({ children, icon: Icon, onClick }: {
       style={{
         height: '38px', padding: '0 18px',
         border: 'none', borderRadius: '8px',
-        background: hov ? C.blueHover : C.blue,
+        background: hov ? t.blueHover : t.blue,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',

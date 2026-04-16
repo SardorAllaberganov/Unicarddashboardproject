@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { ChevronRight, Download, X } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { useExportToast } from '../components/useExportToast';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -57,14 +59,15 @@ function fmtDateRu(iso: string): string {
   return `${d}.${m}.${y}`;
 }
 
-function ProgressInline({ pct, bold }: { pct: number; bold?: boolean }) {
+function ProgressInline({ pct, bold, t, dark }: { pct: number; bold?: boolean; t: T; dark: boolean }) {
+  const trackBg = dark ? D.progressTrack : '#F3F4F6';
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', minWidth: '105px' }}>
-      <div style={{ width: '56px', height: '5px', borderRadius: '3px', background: '#F3F4F6', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: C.blue }} />
+      <div style={{ width: '56px', height: '5px', borderRadius: '3px', background: trackBg, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: t.blue }} />
       </div>
       <span style={{
-        fontFamily: F.mono, fontSize: '12px', color: C.text1,
+        fontFamily: F.mono, fontSize: '12px', color: t.text1,
         fontWeight: bold ? 700 : 500, minWidth: '30px',
       }}>
         {pct}%
@@ -73,14 +76,18 @@ function ProgressInline({ pct, bold }: { pct: number; bold?: boolean }) {
   );
 }
 
-const tdBase: React.CSSProperties = {
-  padding: '10px 12px', whiteSpace: 'nowrap',
-  fontFamily: F.inter, fontSize: '13px', color: C.text1,
-};
-const tdMono: React.CSSProperties = {
-  padding: '10px 12px', whiteSpace: 'nowrap',
-  fontFamily: F.mono, fontSize: '12px', color: C.text1,
-};
+function makeTdBase(t: T): React.CSSProperties {
+  return {
+    padding: '10px 12px', whiteSpace: 'nowrap',
+    fontFamily: F.inter, fontSize: '13px', color: t.text1,
+  };
+}
+function makeTdMono(t: T): React.CSSProperties {
+  return {
+    padding: '10px 12px', whiteSpace: 'nowrap',
+    fontFamily: F.mono, fontSize: '12px', color: t.text1,
+  };
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PAGE
@@ -89,9 +96,12 @@ const tdMono: React.CSSProperties = {
 export default function ReportPreviewPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [closeHov, setCloseHov] = useState(false);
   const [cancelHov, setCancelHov] = useState(false);
   const [dlPrimaryHov, setDlPrimaryHov] = useState(false);
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const navigate = useNavigate();
   const { reportId } = useParams();
   const [params] = useSearchParams();
@@ -101,6 +111,19 @@ export default function ReportPreviewPage() {
   const from = params.get('from') ?? '2026-04-01';
   const to = params.get('to') ?? '2026-04-13';
 
+  const tdBase = makeTdBase(t);
+  const tdMono = makeTdMono(t);
+
+  const closeHoverBg = dark ? D.tableHover : '#F9FAFB';
+  const closeHoverBorder = dark ? D.inputBorder : '#D1D5DB';
+  const cancelHoverBg = dark ? D.tableHover : '#F9FAFB';
+  const subheaderPillBg = dark ? D.tableAlt : '#F3F4F6';
+  const headerRowBg = dark ? D.tableHeaderBg : '#F9FAFB';
+  const rowHoverBg = dark ? D.tableHover : '#FAFBFC';
+  const primaryShadow = dark
+    ? (dlPrimaryHov ? '0 2px 8px rgba(0,0,0,0.4)' : 'none')
+    : (dlPrimaryHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)');
+
   const triggerExport = () => {
     exportToast.start({
       subtitle: `${title} за ${fmtDateRu(from)}–${fmtDateRu(to)}`,
@@ -109,20 +132,20 @@ export default function ReportPreviewPage() {
     });
   };
 
-  const totals = PREVIEW_ROWS.reduce((t, r) => ({
-    issued: t.issued + r.issued,
-    sold: t.sold + r.sold,
-    k1: t.k1 + r.k1,
-    k2: t.k2 + r.k2,
-    k3: t.k3 + r.k3,
-    credited: t.credited + r.credited,
-    withdrawn: t.withdrawn + r.withdrawn,
-    balance: t.balance + r.balance,
+  const totals = PREVIEW_ROWS.reduce((acc, r) => ({
+    issued: acc.issued + r.issued,
+    sold: acc.sold + r.sold,
+    k1: acc.k1 + r.k1,
+    k2: acc.k2 + r.k2,
+    k3: acc.k3 + r.k3,
+    credited: acc.credited + r.credited,
+    withdrawn: acc.withdrawn + r.withdrawn,
+    balance: acc.balance + r.balance,
   }), { issued: 0, sold: 0, k1: 0, k2: 0, k3: 0, credited: 0, withdrawn: 0, balance: 0 });
   const totalPct = Math.round((totals.sold / totals.issued) * 100);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -136,11 +159,11 @@ export default function ReportPreviewPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span onClick={() => navigate('/reports')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Отчёты</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Предпросмотр</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span onClick={() => navigate('/reports')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Отчёты</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Предпросмотр</span>
           </div>
 
           {/* Header */}
@@ -150,7 +173,7 @@ export default function ReportPreviewPage() {
           }}>
             <h1 style={{
               fontFamily: F.dm, fontSize: '22px', fontWeight: 700,
-              color: C.text1, margin: 0, lineHeight: 1.2,
+              color: t.text1, margin: 0, lineHeight: 1.2,
             }}>
               Предпросмотр: {title}
             </h1>
@@ -162,32 +185,32 @@ export default function ReportPreviewPage() {
               aria-label="Закрыть"
               style={{
                 width: '36px', height: '36px',
-                border: `1px solid ${closeHov ? '#D1D5DB' : C.border}`,
+                border: `1px solid ${closeHov ? closeHoverBorder : t.border}`,
                 borderRadius: '8px',
-                background: closeHov ? '#F9FAFB' : C.surface,
+                background: closeHov ? closeHoverBg : t.surface,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
               }}
             >
-              <X size={16} color={C.text3} strokeWidth={1.75} />
+              <X size={16} color={t.text3} strokeWidth={1.75} />
             </button>
           </div>
 
           {/* Content card */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '12px', overflow: 'hidden',
           }}>
             {/* Subheader row */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '14px 20px',
-              borderBottom: `1px solid ${C.border}`,
+              borderBottom: `1px solid ${t.border}`,
               flexWrap: 'wrap',
             }}>
-              <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+              <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
                 Период:{' '}
-                <span style={{ fontFamily: F.mono, color: C.text1 }}>
+                <span style={{ fontFamily: F.mono, color: t.text1 }}>
                   {fmtDateRu(from)} — {fmtDateRu(to)}
                 </span>
               </span>
@@ -195,8 +218,8 @@ export default function ReportPreviewPage() {
                 display: 'inline-flex', alignItems: 'center',
                 fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                 padding: '3px 10px', borderRadius: '10px',
-                background: '#F3F4F6', color: C.text2,
-                border: `1px solid ${C.border}`,
+                background: subheaderPillBg, color: t.text2,
+                border: `1px solid ${t.border}`,
               }}>
                 Предварительный
               </span>
@@ -206,12 +229,12 @@ export default function ReportPreviewPage() {
             <div style={{ overflow: 'auto', maxHeight: '500px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '960px' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
-                  <tr style={{ background: '#F9FAFB', borderBottom: `1px solid ${C.border}` }}>
+                  <tr style={{ background: headerRowBg, borderBottom: `1px solid ${t.border}` }}>
                     {['#', 'Организация', 'Карт выдано', 'Продано', '% продано', 'KPI 1', 'KPI 2', 'KPI 3', 'Начислено', 'Выведено', 'Баланс'].map(h => (
                       <th key={h} style={{
                         padding: '10px 12px', textAlign: 'left',
                         fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-                        color: C.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
+                        color: t.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
                         whiteSpace: 'nowrap',
                       }}>{h}</th>
                     ))}
@@ -219,40 +242,49 @@ export default function ReportPreviewPage() {
                 </thead>
                 <tbody>
                   {PREVIEW_ROWS.map((r, i) => (
-                    <tr key={r.org} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td style={tdBase}><span style={{ fontFamily: F.mono, color: C.text3 }}>{i + 1}</span></td>
+                    <tr
+                      key={r.org}
+                      onMouseEnter={() => setHoveredRow(i)}
+                      onMouseLeave={() => setHoveredRow(null)}
+                      style={{
+                        borderBottom: `1px solid ${t.border}`,
+                        background: hoveredRow === i ? rowHoverBg : 'transparent',
+                        transition: 'background 0.12s',
+                      }}
+                    >
+                      <td style={tdBase}><span style={{ fontFamily: F.mono, color: t.text3 }}>{i + 1}</span></td>
                       <td style={tdBase}>
-                        <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, fontWeight: 500 }}>{r.org}</span>
+                        <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, fontWeight: 500 }}>{r.org}</span>
                       </td>
                       <td style={tdMono}>{r.issued}</td>
                       <td style={tdMono}>{r.sold}</td>
                       <td style={tdBase}>
-                        <ProgressInline pct={r.pct} />
+                        <ProgressInline pct={r.pct} t={t} dark={dark} />
                       </td>
                       <td style={tdMono}>{r.k1}</td>
                       <td style={tdMono}>{r.k2}</td>
                       <td style={tdMono}>{r.k3}</td>
                       <td style={tdMono}>{fmtNum(r.credited)}</td>
                       <td style={tdMono}>{fmtNum(r.withdrawn)}</td>
-                      <td style={{ ...tdMono, fontWeight: 600, color: C.blue }}>{fmtNum(r.balance)}</td>
+                      <td style={{ ...tdMono, fontWeight: 600, color: t.blue }}>{fmtNum(r.balance)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot style={{ position: 'sticky', bottom: 0 }}>
-                  <tr style={{ background: '#F9FAFB', borderTop: `2px solid ${C.border}` }}>
+                  <tr style={{ background: headerRowBg, borderTop: `2px solid ${t.border}` }}>
                     <td style={{ ...tdBase, fontWeight: 700 }}></td>
-                    <td style={{ ...tdBase, fontFamily: F.dm, fontSize: '13px', fontWeight: 700, color: C.text1 }}>ИТОГО</td>
+                    <td style={{ ...tdBase, fontFamily: F.dm, fontSize: '13px', fontWeight: 700, color: t.text1 }}>ИТОГО</td>
                     <td style={{ ...tdMono, fontWeight: 700 }}>{totals.issued}</td>
                     <td style={{ ...tdMono, fontWeight: 700 }}>{totals.sold}</td>
                     <td style={tdBase}>
-                      <ProgressInline pct={totalPct} bold />
+                      <ProgressInline pct={totalPct} bold t={t} dark={dark} />
                     </td>
                     <td style={{ ...tdMono, fontWeight: 700 }}>{totals.k1}</td>
                     <td style={{ ...tdMono, fontWeight: 700 }}>{totals.k2}</td>
                     <td style={{ ...tdMono, fontWeight: 700 }}>{totals.k3}</td>
                     <td style={{ ...tdMono, fontWeight: 700 }}>{fmtNum(totals.credited)}</td>
                     <td style={{ ...tdMono, fontWeight: 700 }}>{fmtNum(totals.withdrawn)}</td>
-                    <td style={{ ...tdMono, fontWeight: 700, color: C.blue }}>{fmtNum(totals.balance)}</td>
+                    <td style={{ ...tdMono, fontWeight: 700, color: t.blue }}>{fmtNum(totals.balance)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -262,12 +294,12 @@ export default function ReportPreviewPage() {
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               gap: '12px', padding: '14px 20px',
-              borderTop: `1px solid ${C.border}`,
+              borderTop: `1px solid ${t.border}`,
               flexWrap: 'wrap',
             }}>
-              <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>
-                <span style={{ fontFamily: F.mono, color: C.text2 }}>{PREVIEW_ROWS.length}</span> организаций,{' '}
-                <span style={{ fontFamily: F.mono, color: C.text2 }}>{fmtNum(totals.issued)}</span> карт
+              <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4 }}>
+                <span style={{ fontFamily: F.mono, color: t.text2 }}>{PREVIEW_ROWS.length}</span> организаций,{' '}
+                <span style={{ fontFamily: F.mono, color: t.text2 }}>{fmtNum(totals.issued)}</span> карт
               </span>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
@@ -276,10 +308,10 @@ export default function ReportPreviewPage() {
                   onClick={() => navigate('/reports')}
                   style={{
                     height: '38px', padding: '0 18px',
-                    border: `1px solid ${C.border}`, borderRadius: '8px',
-                    background: cancelHov ? '#F9FAFB' : C.surface,
+                    border: `1px solid ${t.border}`, borderRadius: '8px',
+                    background: cancelHov ? cancelHoverBg : t.surface,
                     fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                    color: C.text1, cursor: 'pointer',
+                    color: t.text1, cursor: 'pointer',
                     transition: 'background 0.12s',
                   }}
                 >
@@ -293,11 +325,11 @@ export default function ReportPreviewPage() {
                   style={{
                     height: '38px', padding: '0 18px',
                     border: 'none', borderRadius: '8px',
-                    background: dlPrimaryHov ? C.blueHover : C.blue,
+                    background: dlPrimaryHov ? t.blueHover : t.blue,
                     fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
                     color: '#FFFFFF', cursor: 'pointer',
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    boxShadow: dlPrimaryHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+                    boxShadow: primaryShadow,
                     transition: 'all 0.15s',
                   }}
                 >

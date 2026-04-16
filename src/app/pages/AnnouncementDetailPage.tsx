@@ -6,14 +6,17 @@ import {
 import { useNavigate, useParams } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
 ═══════════════════════════════════════════════════════════════════════════ */
 
 type Channel = 'In-app' | 'Email' | 'SMS';
+type Status = 'sent' | 'scheduled' | 'draft';
 
 interface DeliveryRow {
   id: number;
@@ -105,17 +108,35 @@ const DETAIL: AnnouncementDetail = {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   STATUS STYLE MAPS (multi-state)
+═══════════════════════════════════════════════════════════════════════════ */
+
+const STATUS_STYLE_LIGHT: Record<Status, { bg: string; color: string; dot: string; label: string }> = {
+  sent:      { bg: C.successBg, color: '#15803D', dot: C.success, label: 'Отправлено' },
+  scheduled: { bg: C.warningBg, color: '#B45309', dot: C.warning, label: 'Запланировано' },
+  draft:     { bg: '#F3F4F6',   color: C.text3,   dot: C.text4,   label: 'Черновик' },
+};
+
+const STATUS_STYLE_DARK: Record<Status, { bg: string; color: string; dot: string; label: string }> = {
+  sent:      { bg: 'rgba(52,211,153,0.12)', color: '#34D399', dot: '#34D399', label: 'Отправлено' },
+  scheduled: { bg: 'rgba(251,191,36,0.12)', color: '#FBBF24', dot: '#FBBF24', label: 'Запланировано' },
+  draft:     { bg: D.tableAlt,              color: D.text2,   dot: D.text4,   label: 'Черновик' },
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function AnnouncementDetailPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const data = DETAIL; // mock: same payload regardless of id
-  const status: 'sent' | 'scheduled' | 'draft' =
+  const data = DETAIL;
+  const status: Status =
     id === '4' ? 'scheduled' : id === '5' ? 'draft' : 'sent';
 
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -128,8 +149,26 @@ export default function AnnouncementDetailPage() {
 
   const goList = () => navigate('/announcements');
 
+  const crumbLink: React.CSSProperties = {
+    fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer',
+  };
+  const crumbBackLink: React.CSSProperties = {
+    fontFamily: F.inter, fontSize: '13px', color: t.text3, cursor: 'pointer',
+    transition: 'color 0.12s',
+  };
+  const cardStyle: React.CSSProperties = {
+    background: t.surface, border: `1px solid ${t.border}`,
+    borderRadius: '12px', padding: '20px',
+  };
+
+  const scheduledInfoBg = dark ? 'rgba(251,191,36,0.08)' : '#FFFBEB';
+  const scheduledRelColor = dark ? '#FBBF24' : '#B45309';
+  const recipientAltBg = dark ? D.tableAlt : '#F9FAFB';
+  const draftInfoBg = dark ? D.tableAlt : '#F9FAFB';
+  const deliveryHeaderBg = dark ? D.tableHeaderBg : '#F9FAFB';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar
         role="bank"
         collapsed={sidebarCollapsed}
@@ -145,10 +184,17 @@ export default function AnnouncementDetailPage() {
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span onClick={() => navigate('/dashboard')} style={crumbLink}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span onClick={() => navigate('/announcements')} style={crumbLink}>История объявлений</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span
+              onClick={goList}
+              style={crumbBackLink}
+              onMouseEnter={e => (e.currentTarget.style.color = t.text2)}
+              onMouseLeave={e => (e.currentTarget.style.color = t.text3)}
+            >
+              История объявлений
+            </span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
               {status === 'scheduled' ? SCHEDULED_DETAIL.title : data.title}
             </span>
           </div>
@@ -160,23 +206,15 @@ export default function AnnouncementDetailPage() {
           }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+                <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                   {status === 'scheduled' ? SCHEDULED_DETAIL.title : data.title}
                 </h1>
-                {status === 'sent' && (
-                  <StatusBadge label="Отправлено" bg={C.successBg} color="#15803D" dot={C.success} />
-                )}
-                {status === 'scheduled' && (
-                  <StatusBadge label="Запланировано" bg={C.warningBg} color="#B45309" dot={C.warning} />
-                )}
-                {status === 'draft' && (
-                  <StatusBadge label="Черновик" bg="#F3F4F6" color={C.text3} dot={C.text4} />
-                )}
+                <StatusBadgePill status={status} dark={dark} />
               </div>
               {status === 'scheduled' ? (
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  fontFamily: F.inter, fontSize: '13px', color: '#B45309',
+                  fontFamily: F.inter, fontSize: '13px', color: scheduledRelColor,
                   marginTop: '8px',
                 }}>
                   <Clock size={14} strokeWidth={1.75} />
@@ -187,10 +225,10 @@ export default function AnnouncementDetailPage() {
                   </span>
                 </div>
               ) : (
-                <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
+                <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '6px' }}>
                   {status === 'sent' && (
                     <>
-                      <span style={{ fontFamily: F.mono, color: C.text2 }}>{data.sentAt}</span> · {data.recipientsLabel} · {data.channels.join(', ')}
+                      <span style={{ fontFamily: F.mono, color: t.text2 }}>{data.sentAt}</span> · {data.recipientsLabel} · {data.channels.join(', ')}
                     </>
                   )}
                   {status === 'draft' && (
@@ -203,29 +241,29 @@ export default function AnnouncementDetailPage() {
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0, flexWrap: 'wrap' }}>
               {status === 'scheduled' && (
                 <>
-                  <PrimaryButton icon={Send} onClick={() => setSendNowOpen(true)}>
+                  <PrimaryButton icon={Send} onClick={() => setSendNowOpen(true)} t={t}>
                     Отправить сейчас
                   </PrimaryButton>
-                  <OutlineButton icon={Pencil} onClick={() => navigate('/announcements/new')}>
+                  <OutlineButton icon={Pencil} onClick={() => navigate('/announcements/new')} t={t}>
                     Редактировать
                   </OutlineButton>
-                  <OutlineButton icon={XCircle} danger onClick={() => setCancelOpen(true)}>
+                  <OutlineButton icon={XCircle} danger onClick={() => setCancelOpen(true)} t={t} dark={dark}>
                     Отменить отправку
                   </OutlineButton>
                 </>
               )}
               {status === 'draft' && (
-                <PrimaryButton icon={Pencil} onClick={() => navigate('/announcements/new')}>
+                <PrimaryButton icon={Pencil} onClick={() => navigate('/announcements/new')} t={t}>
                   Редактировать
                 </PrimaryButton>
               )}
               {status !== 'scheduled' && (
-                <OutlineButton icon={Copy} onClick={() => navigate('/announcements/new')}>
+                <OutlineButton icon={Copy} onClick={() => navigate('/announcements/new')} t={t}>
                   Дублировать
                 </OutlineButton>
               )}
               {status === 'draft' && (
-                <DestructiveButton icon={Trash2} onClick={() => setDeleteOpen(true)}>
+                <DestructiveButton icon={Trash2} onClick={() => setDeleteOpen(true)} t={t} dark={dark}>
                   Удалить
                 </DestructiveButton>
               )}
@@ -244,6 +282,8 @@ export default function AnnouncementDetailPage() {
                 label="Отправлено"
                 valueTop={`${data.stats.sent[0]}/${data.stats.sent[1]}`}
                 valuePct={sentPct}
+                t={t}
+                dark={dark}
               />
               <StatCard
                 icon={MailCheck}
@@ -251,6 +291,8 @@ export default function AnnouncementDetailPage() {
                 label="Доставлено"
                 valueTop={`${data.stats.delivered[0]}/${data.stats.delivered[1]}`}
                 valuePct={deliveredPct}
+                t={t}
+                dark={dark}
               />
               <StatCard
                 icon={Eye}
@@ -258,6 +300,8 @@ export default function AnnouncementDetailPage() {
                 label="Прочитано"
                 valueTop={`${data.stats.read[0]}/${data.stats.read[1]}`}
                 valuePct={readPct}
+                t={t}
+                dark={dark}
               />
             </div>
           )}
@@ -267,31 +311,31 @@ export default function AnnouncementDetailPage() {
             <div style={cardStyle}>
               <div style={{
                 fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-                color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+                color: t.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
                 marginBottom: '10px',
               }}>
                 Сообщение
               </div>
               <div style={{
                 display: 'flex', alignItems: 'flex-start', gap: '12px',
-                padding: '12px', border: `1px solid ${C.border}`, borderRadius: '8px',
+                padding: '12px', border: `1px solid ${t.border}`, borderRadius: '8px',
               }}>
                 <div style={{
                   width: '36px', height: '36px', borderRadius: '50%',
-                  background: C.blueLt, flexShrink: 0,
+                  background: t.blueLt, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Bell size={18} color={C.blue} strokeWidth={1.75} />
+                  <Bell size={18} color={t.blue} strokeWidth={1.75} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
+                  <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>
                     📢 {data.title}
                   </div>
-                  <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2, marginTop: '6px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                  <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2, marginTop: '6px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                     {data.body}
                   </div>
-                  <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '12px' }}>
-                    От: <span style={{ color: C.text2 }}>{data.from}</span>
+                  <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '12px' }}>
+                    От: <span style={{ color: t.text2 }}>{data.from}</span>
                   </div>
                 </div>
               </div>
@@ -305,67 +349,67 @@ export default function AnnouncementDetailPage() {
             }}>
               {/* LEFT — Content */}
               <div style={cardStyle}>
-                <SectionHeading>Содержание</SectionHeading>
+                <SectionHeading t={t}>Содержание</SectionHeading>
                 <div style={{
                   fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                  color: C.text1, lineHeight: 1.4,
+                  color: t.text1, lineHeight: 1.4,
                 }}>
-                  <span style={{ color: C.text3, fontWeight: 400 }}>Заголовок: </span>
+                  <span style={{ color: t.text3, fontWeight: 400 }}>Заголовок: </span>
                   {SCHEDULED_DETAIL.title}
                 </div>
 
-                <HDivider />
+                <HDivider t={t} />
 
                 <div style={{
-                  fontFamily: F.inter, fontSize: '13px', color: C.text2,
+                  fontFamily: F.inter, fontSize: '13px', color: t.text2,
                   lineHeight: 1.6, whiteSpace: 'pre-wrap',
                 }}>
                   {SCHEDULED_DETAIL.body}
                 </div>
 
-                <HDivider />
+                <HDivider t={t} />
 
                 <div style={{
                   display: 'flex', gap: '18px', flexWrap: 'wrap',
-                  fontFamily: F.inter, fontSize: '12px', color: C.text3,
+                  fontFamily: F.inter, fontSize: '12px', color: t.text3,
                 }}>
                   <span>
                     Создано:{' '}
-                    <span style={{ fontFamily: F.mono, color: C.text2 }}>
+                    <span style={{ fontFamily: F.mono, color: t.text2 }}>
                       {SCHEDULED_DETAIL.createdAt}
                     </span>
                   </span>
                   <span>
-                    Автор: <span style={{ color: C.text2 }}>{SCHEDULED_DETAIL.author}</span>
+                    Автор: <span style={{ color: t.text2 }}>{SCHEDULED_DETAIL.author}</span>
                   </span>
                 </div>
               </div>
 
               {/* RIGHT — Schedule + recipients */}
               <div style={cardStyle}>
-                <SectionHeading>Расписание доставки</SectionHeading>
+                <SectionHeading t={t}>Расписание доставки</SectionHeading>
 
                 {/* Info card */}
                 <div style={{
-                  background: '#FFFBEB',
-                  borderTop: `1px solid ${C.border}`,
-                  borderRight: `1px solid ${C.border}`,
-                  borderBottom: `1px solid ${C.border}`,
-                  borderLeft: `3px solid ${C.warning}`,
+                  background: scheduledInfoBg,
+                  borderTop: `1px solid ${t.border}`,
+                  borderRight: `1px solid ${t.border}`,
+                  borderBottom: `1px solid ${t.border}`,
+                  borderLeft: `3px solid ${t.warning}`,
                   borderRadius: '8px', padding: '16px',
                   display: 'flex', alignItems: 'flex-start', gap: '12px',
                 }}>
-                  <Clock size={20} color={C.warning} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '1px' }} />
+                  <Clock size={20} color={t.warning} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '1px' }} />
                   <div style={{ minWidth: 0 }}>
                     <div style={{
-                      fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1,
+                      fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1,
                       lineHeight: 1.4,
                     }}>
                       Запланировано на{' '}
                       <span style={{ fontFamily: F.mono }}>{SCHEDULED_DETAIL.scheduledAt}</span>
                     </div>
                     <div style={{
-                      fontFamily: F.inter, fontSize: '12px', color: C.text3,
+                      fontFamily: F.inter, fontSize: '12px', color: t.text3,
                       marginTop: '3px', lineHeight: 1.45,
                     }}>
                       {SCHEDULED_DETAIL.scheduledRelative}
@@ -373,20 +417,20 @@ export default function AnnouncementDetailPage() {
                   </div>
                 </div>
 
-                <HDivider />
+                <HDivider t={t} />
 
-                <SectionHeading>Получатели</SectionHeading>
+                <SectionHeading t={t}>Получатели</SectionHeading>
 
                 <div style={{
-                  fontFamily: F.inter, fontSize: '13px', color: C.text2,
+                  fontFamily: F.inter, fontSize: '13px', color: t.text2,
                   lineHeight: 1.6,
                 }}>
                   <div>
-                    <span style={{ color: C.text3 }}>Организации: </span>
+                    <span style={{ color: t.text3 }}>Организации: </span>
                     {SCHEDULED_DETAIL.orgs.join(', ')}
                   </div>
                   <div>
-                    <span style={{ color: C.text3 }}>Пользователей: </span>
+                    <span style={{ color: t.text3 }}>Пользователей: </span>
                     {SCHEDULED_DETAIL.recipients.length}
                   </div>
                 </div>
@@ -394,7 +438,7 @@ export default function AnnouncementDetailPage() {
                 {/* Recipient list */}
                 <div style={{
                   marginTop: '12px',
-                  border: `1px solid ${C.border}`, borderRadius: '8px',
+                  border: `1px solid ${t.border}`, borderRadius: '8px',
                   overflow: 'hidden',
                 }}>
                   {SCHEDULED_DETAIL.recipients.map((r, i) => (
@@ -405,14 +449,14 @@ export default function AnnouncementDetailPage() {
                         gridTemplateColumns: '1fr 140px 80px',
                         alignItems: 'center', gap: '10px',
                         padding: '10px 12px',
-                        borderTop: i === 0 ? 'none' : `1px solid ${C.border}`,
-                        background: i % 2 === 0 ? C.surface : '#F9FAFB',
+                        borderTop: i === 0 ? 'none' : `1px solid ${t.border}`,
+                        background: i % 2 === 0 ? t.surface : recipientAltBg,
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                         <div style={{
                           width: '28px', height: '28px', borderRadius: '50%',
-                          background: C.blueLt, color: C.blue,
+                          background: t.blueLt, color: t.blue,
                           fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           flexShrink: 0,
@@ -420,13 +464,13 @@ export default function AnnouncementDetailPage() {
                           {r.initials}
                         </div>
                         <span style={{
-                          fontFamily: F.inter, fontSize: '13px', color: C.text1, fontWeight: 500,
+                          fontFamily: F.inter, fontSize: '13px', color: t.text1, fontWeight: 500,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {r.name}
                         </span>
                       </div>
-                      <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text2 }}>
+                      <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text2 }}>
                         {r.org}
                       </span>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -434,7 +478,7 @@ export default function AnnouncementDetailPage() {
                           <span key={c} style={{
                             fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                             padding: '3px 8px', borderRadius: '6px',
-                            background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+                            background: t.blueLt, color: t.blue, whiteSpace: 'nowrap',
                           }}>{c}</span>
                         ))}
                       </div>
@@ -443,7 +487,7 @@ export default function AnnouncementDetailPage() {
                 </div>
 
                 <div style={{
-                  fontFamily: F.inter, fontSize: '12px', color: C.text3,
+                  fontFamily: F.inter, fontSize: '12px', color: t.text3,
                   marginTop: '10px', lineHeight: 1.45,
                 }}>
                   Все столбцы «Доставлено» и «Прочитано» будут доступны после отправки.
@@ -456,24 +500,24 @@ export default function AnnouncementDetailPage() {
           {status === 'sent' && (
             <div style={{ ...cardStyle, marginTop: '20px', padding: 0, overflow: 'hidden' }}>
               <div style={{
-                padding: '14px 18px', borderBottom: `1px solid ${C.border}`,
-                fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.text1,
+                padding: '14px 18px', borderBottom: `1px solid ${t.border}`,
+                fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: t.text1,
               }}>
                 Детали доставки · {data.rows.length} получателей
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: F.inter }}>
                   <thead>
-                    <tr style={{ background: '#F9FAFB', borderBottom: `1px solid ${C.border}` }}>
-                      <Th>Получатель</Th>
-                      <Th>Организация</Th>
-                      <Th>Каналы</Th>
-                      <Th width="150px">Доставлено</Th>
-                      <Th width="150px">Прочитано</Th>
+                    <tr style={{ background: deliveryHeaderBg, borderBottom: `1px solid ${t.border}` }}>
+                      <Th t={t}>Получатель</Th>
+                      <Th t={t}>Организация</Th>
+                      <Th t={t}>Каналы</Th>
+                      <Th width="150px" t={t}>Доставлено</Th>
+                      <Th width="150px" t={t}>Прочитано</Th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.rows.map(r => <DeliveryRowView key={r.id} row={r} />)}
+                    {data.rows.map(r => <DeliveryRowView key={r.id} row={r} t={t} />)}
                   </tbody>
                 </table>
               </div>
@@ -484,11 +528,11 @@ export default function AnnouncementDetailPage() {
           {status === 'draft' && (
             <div style={{
               ...cardStyle, marginTop: '20px',
-              background: '#F9FAFB', borderColor: C.border,
-              borderLeft: `3px solid ${C.text4}`,
+              background: draftInfoBg, borderColor: t.border,
+              borderLeft: `3px solid ${t.text4}`,
             }}>
               <div style={{
-                fontFamily: F.inter, fontSize: '13px', color: C.text2, lineHeight: 1.5,
+                fontFamily: F.inter, fontSize: '13px', color: t.text2, lineHeight: 1.5,
               }}>
                 Это черновик. Отправка ещё не была запланирована. Нажмите «Редактировать», чтобы
                 дополнить его, или «Удалить», если черновик больше не нужен.
@@ -513,6 +557,8 @@ export default function AnnouncementDetailPage() {
         channels={data.channels}
         onClose={() => setCancelOpen(false)}
         onConfirm={() => { setCancelOpen(false); goList(); }}
+        t={t}
+        dark={dark}
       />
 
       <DeleteDraftModal
@@ -520,6 +566,8 @@ export default function AnnouncementDetailPage() {
         title={data.title}
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => { setDeleteOpen(false); goList(); }}
+        t={t}
+        dark={dark}
       />
 
       <SendNowModal
@@ -529,42 +577,55 @@ export default function AnnouncementDetailPage() {
         channels={SCHEDULED_DETAIL.channels}
         onClose={() => setSendNowOpen(false)}
         onConfirm={() => { setSendNowOpen(false); goList(); }}
+        t={t}
+        dark={dark}
       />
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   STATUS BADGE PILL
+═══════════════════════════════════════════════════════════════════════════ */
+
+function StatusBadgePill({ status, dark }: { status: Status; dark: boolean }) {
+  const cfg = (dark ? STATUS_STYLE_DARK : STATUS_STYLE_LIGHT)[status];
+  return <StatusBadge label={cfg.label} bg={cfg.bg} color={cfg.color} dot={cfg.dot} />;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    SCHEDULED LAYOUT HELPERS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <h3 style={{
       margin: '0 0 12px',
       fontFamily: F.dm, fontSize: '13px', fontWeight: 600,
-      color: C.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
     }}>
       {children}
     </h3>
   );
 }
 
-function HDivider() {
-  return <div style={{ height: '1px', background: C.border, margin: '16px 0' }} />;
+function HDivider({ t }: { t: T }) {
+  return <div style={{ height: '1px', background: t.border, margin: '16px 0' }} />;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    SEND-NOW MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SendNowModal({ open, scheduledAt, recipientCount, channels, onClose, onConfirm }: {
+function SendNowModal({ open, scheduledAt, recipientCount, channels, onClose, onConfirm, t, dark }: {
   open: boolean;
   scheduledAt: string;
   recipientCount: number;
   channels: Channel[];
   onClose: () => void;
   onConfirm: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
 
@@ -577,11 +638,14 @@ function SendNowModal({ open, scheduledAt, recipientCount, channels, onClose, on
 
   if (!open) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        position: 'fixed', inset: 0, background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -590,20 +654,20 @@ function SendNowModal({ open, scheduledAt, recipientCount, channels, onClose, on
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '460px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '12px',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
         }}
       >
-        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <Send size={20} color={C.blue} strokeWidth={1.75} />
+          <Send size={20} color={t.blue} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Отправить объявление сейчас
           </h2>
@@ -615,37 +679,35 @@ function SendNowModal({ open, scheduledAt, recipientCount, channels, onClose, on
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? closeHovBg : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
-        {/* Body */}
         <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{
-            fontFamily: F.inter, fontSize: '13px', color: C.text1, lineHeight: 1.5,
+            fontFamily: F.inter, fontSize: '13px', color: t.text1, lineHeight: 1.5,
           }}>
             Отправить объявление сейчас вместо запланированного времени (
             <span style={{ fontFamily: F.mono }}>{scheduledAt}</span>)?
           </div>
           <div style={{
-            fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.45,
+            fontFamily: F.inter, fontSize: '12px', color: t.text3, lineHeight: 1.45,
           }}>
             {recipientCount} получателя · {channels.join(', ')}
           </div>
         </div>
 
-        {/* Footer */}
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '14px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '14px 20px', borderTop: `1px solid ${t.border}`,
         }}>
-          <OutlineButton onClick={onClose}>Отмена</OutlineButton>
-          <PrimaryButton icon={Send} onClick={onConfirm}>Отправить сейчас</PrimaryButton>
+          <OutlineButton onClick={onClose} t={t}>Отмена</OutlineButton>
+          <PrimaryButton icon={Send} onClick={onConfirm} t={t}>Отправить сейчас</PrimaryButton>
         </div>
       </div>
     </div>
@@ -656,7 +718,7 @@ function SendNowModal({ open, scheduledAt, recipientCount, channels, onClose, on
    CANCEL / DELETE MODALS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, onClose, onConfirm }: {
+function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, onClose, onConfirm, t, dark }: {
   open: boolean;
   title: string;
   recipients: string;
@@ -664,6 +726,8 @@ function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, 
   channels: string[];
   onClose: () => void;
   onConfirm: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
 
@@ -676,11 +740,15 @@ function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, 
 
   if (!open) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+  const warnBg = dark ? 'rgba(251,191,36,0.08)' : C.warningBg;
+
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        position: 'fixed', inset: 0, background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -689,19 +757,20 @@ function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, 
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '480px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '12px',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
         }}
       >
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <XCircle size={20} color={C.warning} strokeWidth={1.75} />
+          <XCircle size={20} color={t.warning} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Отменить отправку
           </h2>
@@ -712,12 +781,12 @@ function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, 
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? closeHovBg : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -725,11 +794,11 @@ function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, 
           padding: '20px', display: 'flex', flexDirection: 'column', gap: '14px',
         }}>
           <div style={{
-            background: C.warningBg,
-            borderTop: `1px solid ${C.border}`,
-            borderRight: `1px solid ${C.border}`,
-            borderBottom: `1px solid ${C.border}`,
-            borderLeft: `3px solid ${C.warning}`,
+            background: warnBg,
+            borderTop: `1px solid ${t.border}`,
+            borderRight: `1px solid ${t.border}`,
+            borderBottom: `1px solid ${t.border}`,
+            borderLeft: `3px solid ${t.warning}`,
             borderRadius: '8px', padding: '12px',
             display: 'flex', flexDirection: 'column', gap: '6px',
           }}>
@@ -738,24 +807,24 @@ function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, 
               gap: '10px', flexWrap: 'wrap',
             }}>
               <span style={{
-                fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1,
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1,
               }}>
                 {title}
               </span>
-              <StatusBadge label="Запланировано" bg={C.warningBg} color="#B45309" dot={C.warning} />
+              <StatusBadgePill status="scheduled" dark={dark} />
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Получатели: <span style={{ color: C.text2 }}>{recipients}</span>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Получатели: <span style={{ color: t.text2 }}>{recipients}</span>
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Запланировано на: <span style={{ fontFamily: F.mono, color: C.text2 }}>{scheduledAt}</span>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Запланировано на: <span style={{ fontFamily: F.mono, color: t.text2 }}>{scheduledAt}</span>
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Каналы: <span style={{ color: C.text2 }}>{channels.join(', ')}</span>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Каналы: <span style={{ color: t.text2 }}>{channels.join(', ')}</span>
             </div>
           </div>
 
-          <p style={{ margin: 0, fontFamily: F.inter, fontSize: '14px', color: C.text1, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontFamily: F.inter, fontSize: '14px', color: t.text1, lineHeight: 1.5 }}>
             Объявление будет отменено и перемещено в черновики. Вы сможете отредактировать
             и отправить его позже.
           </p>
@@ -763,19 +832,20 @@ function CancelScheduledModal({ open, title, recipients, scheduledAt, channels, 
 
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '16px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '16px 20px', borderTop: `1px solid ${t.border}`,
         }}>
-          <OutlineButton onClick={onClose}>Назад</OutlineButton>
-          <PrimaryButton icon={XCircle} onClick={onConfirm}>Отменить отправку</PrimaryButton>
+          <OutlineButton onClick={onClose} t={t}>Назад</OutlineButton>
+          <PrimaryButton icon={XCircle} onClick={onConfirm} t={t}>Отменить отправку</PrimaryButton>
         </div>
       </div>
     </div>
   );
 }
 
-function DeleteDraftModal({ open, title, onClose, onConfirm }: {
+function DeleteDraftModal({ open, title, onClose, onConfirm, t, dark }: {
   open: boolean; title: string;
   onClose: () => void; onConfirm: () => void;
+  t: T; dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
 
@@ -788,11 +858,14 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
 
   if (!open) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        position: 'fixed', inset: 0, background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -801,18 +874,19 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '440px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '12px',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
         }}
       >
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <Trash2 size={20} color={C.error} strokeWidth={1.75} />
+          <Trash2 size={20} color={t.error} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Удалить черновик
           </h2>
@@ -823,30 +897,30 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? closeHovBg : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <p style={{ margin: 0, fontFamily: F.inter, fontSize: '14px', color: C.text1, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontFamily: F.inter, fontSize: '14px', color: t.text1, lineHeight: 1.5 }}>
             Удалить черновик «<span style={{ fontWeight: 500 }}>{title}</span>»?
           </p>
-          <p style={{ margin: 0, fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontFamily: F.inter, fontSize: '12px', color: t.text3, lineHeight: 1.5 }}>
             Черновик будет удалён навсегда. Это действие нельзя отменить.
           </p>
         </div>
 
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '16px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '16px 20px', borderTop: `1px solid ${t.border}`,
         }}>
-          <OutlineButton onClick={onClose}>Отмена</OutlineButton>
-          <DestructiveButton icon={Trash2} onClick={onConfirm}>Удалить</DestructiveButton>
+          <OutlineButton onClick={onClose} t={t}>Отмена</OutlineButton>
+          <DestructiveButton icon={Trash2} onClick={onConfirm} t={t} dark={dark}>Удалить</DestructiveButton>
         </div>
       </div>
     </div>
@@ -857,46 +931,46 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
    DELIVERY ROW
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DeliveryRowView({ row }: { row: DeliveryRow }) {
+function DeliveryRowView({ row, t }: { row: DeliveryRow; t: T }) {
   return (
-    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-      <Td>
+    <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+      <Td t={t}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '32px', height: '32px', borderRadius: '50%',
-            background: C.blueLt, color: C.blue,
+            background: t.blueLt, color: t.blue,
             fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
             {row.initials}
           </div>
-          <span style={{ color: C.text1, fontWeight: 500 }}>{row.name}</span>
+          <span style={{ color: t.text1, fontWeight: 500 }}>{row.name}</span>
         </div>
       </Td>
-      <Td><span style={{ color: C.text2 }}>{row.org}</span></Td>
-      <Td>
+      <Td t={t}><span style={{ color: t.text2 }}>{row.org}</span></Td>
+      <Td t={t}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
           {row.channels.map(c => (
             <span key={c} style={{
               fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
               padding: '3px 8px', borderRadius: '6px',
-              background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+              background: t.blueLt, color: t.blue, whiteSpace: 'nowrap',
             }}>{c}</span>
           ))}
         </div>
       </Td>
-      <Td><TimestampCell at={row.deliveredAt} /></Td>
-      <Td><TimestampCell at={row.readAt} /></Td>
+      <Td t={t}><TimestampCell at={row.deliveredAt} t={t} /></Td>
+      <Td t={t}><TimestampCell at={row.readAt} t={t} /></Td>
     </tr>
   );
 }
 
-function TimestampCell({ at }: { at: string | null }) {
+function TimestampCell({ at, t }: { at: string | null; t: T }) {
   if (!at) return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '6px',
-      fontFamily: F.inter, fontSize: '12px', color: C.text4,
+      fontFamily: F.inter, fontSize: '12px', color: t.text4,
     }}>
       <XCircle size={13} strokeWidth={1.75} />
       Не прочитано
@@ -905,9 +979,9 @@ function TimestampCell({ at }: { at: string | null }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '6px',
-      fontFamily: F.inter, fontSize: '12px', color: C.text1,
+      fontFamily: F.inter, fontSize: '12px', color: t.text1,
     }}>
-      <Check size={13} strokeWidth={2.25} color={C.success} />
+      <Check size={13} strokeWidth={2.25} color={t.success} />
       <span style={{ fontFamily: F.mono }}>{at}</span>
     </span>
   );
@@ -917,46 +991,53 @@ function TimestampCell({ at }: { at: string | null }) {
    STAT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatCard({ icon: Icon, tone, label, valueTop, valuePct }: {
+function StatCard({ icon: Icon, tone, label, valueTop, valuePct, t, dark }: {
   icon: React.ElementType;
   tone: 'green' | 'amber';
   label: string;
   valueTop: string;
   valuePct: number;
+  t: T;
+  dark: boolean;
 }) {
-  const tones = {
+  const tonesLight = {
     green: { bg: C.successBg, fg: C.success, text: '#15803D' },
     amber: { bg: C.warningBg, fg: C.warning, text: '#B45309' },
   };
-  const t = tones[tone];
+  const tonesDark = {
+    green: { bg: 'rgba(52,211,153,0.12)', fg: '#34D399', text: '#34D399' },
+    amber: { bg: 'rgba(251,191,36,0.12)', fg: '#FBBF24', text: '#FBBF24' },
+  };
+  const cfg = (dark ? tonesDark : tonesLight)[tone];
+  const trackBg = dark ? D.progressTrack : '#F3F4F6';
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', padding: '18px',
       display: 'flex', gap: '14px', alignItems: 'flex-start',
     }}>
       <div style={{
         width: '40px', height: '40px', borderRadius: '10px',
-        background: t.bg,
+        background: cfg.bg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
       }}>
-        <Icon size={20} color={t.fg} strokeWidth={1.75} />
+        <Icon size={20} color={cfg.fg} strokeWidth={1.75} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: F.inter, fontSize: '12px', fontWeight: 500, color: C.text3 }}>
+        <div style={{ fontFamily: F.inter, fontSize: '12px', fontWeight: 500, color: t.text3 }}>
           {label}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
-          <span style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1 }}>
+          <span style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1 }}>
             {valueTop}
           </span>
-          <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: t.text }}>
+          <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: cfg.text }}>
             {valuePct}%
           </span>
         </div>
-        <div style={{ marginTop: '10px', height: '4px', background: '#F3F4F6', borderRadius: '2px', overflow: 'hidden' }}>
-          <div style={{ width: `${valuePct}%`, height: '100%', background: t.fg, transition: 'width 0.2s' }} />
+        <div style={{ marginTop: '10px', height: '4px', background: trackBg, borderRadius: '2px', overflow: 'hidden' }}>
+          <div style={{ width: `${valuePct}%`, height: '100%', background: cfg.fg, transition: 'width 0.2s' }} />
         </div>
       </div>
     </div>
@@ -981,12 +1062,12 @@ function StatusBadge({ label, bg, color, dot }: { label: string; bg: string; col
   );
 }
 
-function Th({ children, width }: { children?: React.ReactNode; width?: string }) {
+function Th({ children, width, t }: { children?: React.ReactNode; width?: string; t: T }) {
   return (
     <th style={{
       textAlign: 'left', padding: '10px 14px', width,
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-      color: C.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
       whiteSpace: 'nowrap',
     }}>
       {children}
@@ -994,25 +1075,27 @@ function Th({ children, width }: { children?: React.ReactNode; width?: string })
   );
 }
 
-function Td({ children }: { children: React.ReactNode }) {
+function Td({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <td style={{
       padding: '12px 14px', fontFamily: F.inter, fontSize: '13px',
-      color: C.text1, verticalAlign: 'middle',
+      color: t.text1, verticalAlign: 'middle',
     }}>
       {children}
     </td>
   );
 }
 
-function OutlineButton({ children, onClick, icon: Icon, danger }: {
+function OutlineButton({ children, onClick, icon: Icon, danger, t, dark }: {
   children: React.ReactNode; onClick?: () => void; icon?: React.ElementType; danger?: boolean;
+  t: T; dark?: boolean;
 }) {
   const [hov, setHov] = useState(false);
-  const borderIdle = danger ? C.inputBorder : C.inputBorder;
-  const borderHov  = danger ? C.warning : C.text3;
-  const textColor  = danger ? (hov ? '#B45309' : C.text1) : C.text1;
-  const bgHov      = danger ? C.warningBg : C.surface;
+  const borderIdle = t.inputBorder;
+  const borderHov  = danger ? t.warning : t.text3;
+  const textColor  = danger ? (hov ? (dark ? '#FBBF24' : '#B45309') : t.text1) : t.text1;
+  const warnBg = dark ? 'rgba(251,191,36,0.08)' : C.warningBg;
+  const bgHov      = danger ? warnBg : t.surface;
   return (
     <button
       type="button"
@@ -1022,7 +1105,7 @@ function OutlineButton({ children, onClick, icon: Icon, danger }: {
       style={{
         height: '38px', padding: '0 16px',
         border: `1px solid ${hov ? borderHov : borderIdle}`,
-        borderRadius: '8px', background: hov ? bgHov : C.surface,
+        borderRadius: '8px', background: hov ? bgHov : t.surface,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: textColor, cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -1035,8 +1118,8 @@ function OutlineButton({ children, onClick, icon: Icon, danger }: {
   );
 }
 
-function PrimaryButton({ children, onClick, icon: Icon }: {
-  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+function PrimaryButton({ children, onClick, icon: Icon, t }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType; t: T;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1048,7 +1131,7 @@ function PrimaryButton({ children, onClick, icon: Icon }: {
       style={{
         height: '38px', padding: '0 16px',
         border: 'none', borderRadius: '8px',
-        background: hov ? C.blueHover : C.blue,
+        background: hov ? t.blueHover : t.blue,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -1062,8 +1145,8 @@ function PrimaryButton({ children, onClick, icon: Icon }: {
   );
 }
 
-function DestructiveButton({ children, onClick, icon: Icon }: {
-  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+function DestructiveButton({ children, onClick, icon: Icon, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1075,11 +1158,11 @@ function DestructiveButton({ children, onClick, icon: Icon }: {
       style={{
         height: '38px', padding: '0 16px',
         border: 'none', borderRadius: '8px',
-        background: hov ? '#DC2626' : C.error,
+        background: hov ? '#DC2626' : t.error,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
-        boxShadow: hov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)',
+        boxShadow: dark ? 'none' : (hov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)'),
         transition: 'all 0.15s', flexShrink: 0,
       }}
     >
@@ -1088,12 +1171,3 @@ function DestructiveButton({ children, onClick, icon: Icon }: {
     </button>
   );
 }
-
-const crumbLink: React.CSSProperties = {
-  fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer',
-};
-
-const cardStyle: React.CSSProperties = {
-  background: C.surface, border: `1px solid ${C.border}`,
-  borderRadius: '12px', padding: '20px',
-};

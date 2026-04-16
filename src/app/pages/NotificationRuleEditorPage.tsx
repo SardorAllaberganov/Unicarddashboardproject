@@ -5,10 +5,12 @@ import {
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { INITIAL_RULES, type Rule } from './NotificationRulesPage';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    FORM TYPES
@@ -80,6 +82,8 @@ function ruleToForm(r: Rule): FormState {
 export default function NotificationRuleEditorPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
@@ -103,16 +107,29 @@ export default function NotificationRuleEditorPage() {
   const valid = form.trigger.trim() !== '' && form.name.trim() !== '';
   const showAdvanceDays = form.trigger === 'KPI срок истекает';
 
-  const pickTrigger = (t: string) => setForm(prev => ({
+  const pickTrigger = (tr: string) => setForm(prev => ({
     ...prev,
-    trigger: t,
-    name: prev.name.trim() === '' || prev.name === prev.trigger ? t : prev.name,
+    trigger: tr,
+    name: prev.name.trim() === '' || prev.name === prev.trigger ? tr : prev.name,
   }));
 
   const goList = () => navigate('/notification-rules');
 
+  const cardStyle: React.CSSProperties = {
+    background: t.surface,
+    border: `1px solid ${t.border}`,
+    borderRadius: '12px',
+    padding: '24px',
+  };
+
+  const crumbLink: React.CSSProperties = {
+    fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer',
+  };
+
+  const summaryBg = dark ? D.tableAlt : '#F9FAFB';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar
         role="bank"
         collapsed={sidebarCollapsed}
@@ -128,20 +145,20 @@ export default function NotificationRuleEditorPage() {
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span onClick={() => navigate('/dashboard')} style={crumbLink}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
             <span onClick={goList} style={crumbLink}>Правила уведомлений</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
               {mode === 'edit' ? 'Редактировать правило' : 'Новое правило'}
             </span>
           </div>
 
           {/* Header */}
           <div style={{ marginBottom: '24px' }}>
-            <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
               {mode === 'edit' ? 'Редактировать правило' : 'Новое правило уведомления'}
             </h1>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '6px' }}>
               {mode === 'edit'
                 ? 'Измените параметры триггера, каналов, получателей и расписания.'
                 : 'Настройте триггер, каналы, получателей и расписание отправки.'}
@@ -157,52 +174,58 @@ export default function NotificationRuleEditorPage() {
           <div>
           <div style={cardStyle}>
             {/* § Событие */}
-            <FormSection title="Событие">
-              <FieldLabel required>Триггер события</FieldLabel>
-              <TriggerSelect value={form.trigger} onChange={pickTrigger} />
+            <FormSection title="Событие" t={t}>
+              <FieldLabel required t={t}>Триггер события</FieldLabel>
+              <TriggerSelect value={form.trigger} onChange={pickTrigger} t={t} dark={dark} />
 
-              <FieldLabel required style={{ marginTop: '14px' }}>Название правила</FieldLabel>
+              <FieldLabel required style={{ marginTop: '14px' }} t={t}>Название правила</FieldLabel>
               <TextInput
                 value={form.name}
                 placeholder="KPI этап выполнен"
                 onChange={v => setForm(p => ({ ...p, name: v }))}
+                t={t}
               />
 
-              <FieldLabel style={{ marginTop: '14px' }}>Текст уведомления</FieldLabel>
+              <FieldLabel style={{ marginTop: '14px' }} t={t}>Текст уведомления</FieldLabel>
               <TemplateField
                 value={form.template}
                 onChange={v => setForm(p => ({ ...p, template: v }))}
+                t={t}
+                dark={dark}
               />
-              <Caption>Нажмите на переменную, чтобы вставить её в текст. При отправке они заменятся реальными данными.</Caption>
+              <Caption t={t}>Нажмите на переменную, чтобы вставить её в текст. При отправке они заменятся реальными данными.</Caption>
             </FormSection>
 
-            <Divider />
+            <Divider t={t} />
 
             {/* § Каналы */}
-            <FormSection title="Каналы доставки">
+            <FormSection title="Каналы доставки" t={t}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 20px' }}>
-                <CheckboxRow label="In-app" checked disabled />
+                <CheckboxRow label="In-app" checked disabled t={t} />
                 <CheckboxRow
                   label="Push-уведомление"
                   checked={form.channels.push}
                   onChange={v => setForm(p => ({ ...p, channels: { ...p.channels, push: v } }))}
+                  t={t}
                 />
                 <CheckboxRow
                   label="Email"
                   checked={form.channels.email}
                   onChange={v => setForm(p => ({ ...p, channels: { ...p.channels, email: v } }))}
+                  t={t}
                 />
                 <CheckboxRow
                   label="SMS"
                   checked={form.channels.sms}
                   onChange={v => setForm(p => ({ ...p, channels: { ...p.channels, sms: v } }))}
+                  t={t}
                 />
               </div>
               {form.channels.sms && (
                 <div style={{
                   marginTop: '10px',
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  fontFamily: F.inter, fontSize: '12px', color: C.warning,
+                  fontFamily: F.inter, fontSize: '12px', color: t.warning,
                 }}>
                   <AlertTriangle size={13} strokeWidth={1.75} />
                   SMS тарифицируется отдельно: ~50 UZS за сообщение
@@ -210,66 +233,76 @@ export default function NotificationRuleEditorPage() {
               )}
             </FormSection>
 
-            <Divider />
+            <Divider t={t} />
 
             {/* § Получатели */}
-            <FormSection title="Получатели">
+            <FormSection title="Получатели" t={t}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <CheckboxRow
                   label="Продавец (связанный с событием)"
                   checked={form.recipients.seller}
                   onChange={v => setForm(p => ({ ...p, recipients: { ...p.recipients, seller: v } }))}
+                  t={t}
                 />
                 <CheckboxRow
                   label="Менеджер организации"
                   checked={form.recipients.orgMgr}
                   onChange={v => setForm(p => ({ ...p, recipients: { ...p.recipients, orgMgr: v } }))}
+                  t={t}
                 />
                 <CheckboxRow
                   label="Банк-администратор"
                   checked={form.recipients.bankAdmin}
                   onChange={v => setForm(p => ({ ...p, recipients: { ...p.recipients, bankAdmin: v } }))}
+                  t={t}
                 />
                 <CheckboxRow
                   label="Все пользователи"
                   checked={form.recipients.allUsers}
                   onChange={v => setForm(p => ({ ...p, recipients: { ...p.recipients, allUsers: v } }))}
+                  t={t}
                 />
               </div>
 
               {showAdvanceDays && (
                 <div style={{ marginTop: '16px' }}>
-                  <FieldLabel>Отправить за ... дней до истечения</FieldLabel>
+                  <FieldLabel t={t}>Отправить за ... дней до истечения</FieldLabel>
                   <AdvanceDaysChips
                     days={form.advanceDays}
                     onChange={days => setForm(p => ({ ...p, advanceDays: days }))}
+                    t={t}
+                    dark={dark}
                   />
                 </div>
               )}
             </FormSection>
 
-            <Divider />
+            <Divider t={t} />
 
             {/* § Расписание */}
-            <FormSection title="Расписание">
+            <FormSection title="Расписание" t={t}>
               <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'stretch' }}>
                 <RadioRow
                   label="Мгновенно"
                   sub="Отправлять сразу при событии"
                   checked={form.schedule === 'instant'}
                   onSelect={() => setForm(p => ({ ...p, schedule: 'instant' }))}
+                  t={t}
                 />
                 <RadioRow
                   label="Дайджест"
                   sub="Собирать и отправлять пакетом"
                   checked={form.schedule === 'digest'}
                   onSelect={() => setForm(p => ({ ...p, schedule: 'digest' }))}
+                  t={t}
                 >
                   {form.schedule === 'digest' && (
                     <div style={{ marginTop: '10px' }}>
                       <DigestSelect
                         value={form.digestFreq}
                         onChange={v => setForm(p => ({ ...p, digestFreq: v }))}
+                        t={t}
+                        dark={dark}
                       />
                     </div>
                   )}
@@ -277,7 +310,7 @@ export default function NotificationRuleEditorPage() {
               </div>
             </FormSection>
 
-            <Divider />
+            <Divider t={t} />
 
             {/* Active switch */}
             <div style={{
@@ -285,10 +318,10 @@ export default function NotificationRuleEditorPage() {
               gap: '12px',
             }}>
               <div>
-                <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
+                <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>
                   Правило активно
                 </div>
-                <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '2px' }}>
+                <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '2px' }}>
                   {form.enabled ? 'Уведомления отправляются' : 'Правило создано, но уведомления не отправляются'}
                 </div>
               </div>
@@ -296,6 +329,8 @@ export default function NotificationRuleEditorPage() {
                 checked={form.enabled}
                 onChange={() => setForm(p => ({ ...p, enabled: !p.enabled }))}
                 ariaLabel="Правило активно"
+                t={t}
+                dark={dark}
               />
             </div>
           </div>
@@ -305,8 +340,8 @@ export default function NotificationRuleEditorPage() {
             display: 'flex', justifyContent: 'flex-end', gap: '8px',
             marginTop: '20px',
           }}>
-            <OutlineButton onClick={goList}>Отмена</OutlineButton>
-            <PrimaryButton disabled={!valid} onClick={() => valid && goList()}>
+            <OutlineButton onClick={goList} t={t}>Отмена</OutlineButton>
+            <PrimaryButton disabled={!valid} onClick={() => valid && goList()} t={t} dark={dark}>
               Сохранить правило
             </PrimaryButton>
           </div>
@@ -316,15 +351,15 @@ export default function NotificationRuleEditorPage() {
           {/* Right column — preview + summary */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '20px' }}>
             <div style={cardStyle}>
-              <SectionTitle>Предпросмотр</SectionTitle>
-              <PreviewCard form={form} />
-              <div style={{ height: '1px', background: C.border, margin: '14px 0' }} />
-              <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+              <SectionTitle t={t}>Предпросмотр</SectionTitle>
+              <PreviewCard form={form} t={t} />
+              <div style={{ height: '1px', background: t.border, margin: '14px 0' }} />
+              <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
                 Предпросмотр с образцовыми данными. Переменные будут заменены реальными значениями при отправке.
               </div>
             </div>
 
-            <SummaryCard form={form} />
+            <SummaryCard form={form} t={t} summaryBg={summaryBg} />
           </div>
           {/* /right column */}
           </div>
@@ -359,18 +394,18 @@ function renderTemplate(tpl: string): string {
   return tpl.replace(/\{(\w+)\}/g, (_, key) => SAMPLE_VARS[key] ?? `{${key}}`);
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <h3 style={{
       margin: '0 0 12px', fontFamily: F.dm, fontSize: '13px', fontWeight: 600,
-      color: C.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
     }}>
       {children}
     </h3>
   );
 }
 
-function PreviewCard({ form }: { form: FormState }) {
+function PreviewCard({ form, t }: { form: FormState; t: T }) {
   const placeholderTitle = !form.name.trim();
   const placeholderBody  = !form.template.trim();
   const title = form.name.trim() || 'Название правила';
@@ -380,33 +415,33 @@ function PreviewCard({ form }: { form: FormState }) {
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: '12px',
       padding: '12px',
-      border: `1px solid ${C.border}`, borderRadius: '8px', background: C.surface,
+      border: `1px solid ${t.border}`, borderRadius: '8px', background: t.surface,
     }}>
       <div style={{
         width: '36px', height: '36px', borderRadius: '50%',
-        background: C.blueLt,
+        background: t.blueLt,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
       }}>
-        <Bell size={18} color={C.blue} strokeWidth={1.75} />
+        <Bell size={18} color={t.blue} strokeWidth={1.75} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-          color: placeholderTitle ? C.text4 : C.text1, lineHeight: 1.3,
+          color: placeholderTitle ? t.text4 : t.text1, lineHeight: 1.3,
         }}>
           🔔 {title}
         </div>
         <div style={{
           fontFamily: F.inter, fontSize: '13px',
-          color: placeholderBody ? C.text4 : C.text2,
+          color: placeholderBody ? t.text4 : t.text2,
           marginTop: '4px', lineHeight: 1.5, whiteSpace: 'pre-wrap',
           display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 4,
           overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {body}
         </div>
-        <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '6px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4, marginTop: '6px' }}>
           Только что
         </div>
       </div>
@@ -414,7 +449,7 @@ function PreviewCard({ form }: { form: FormState }) {
   );
 }
 
-function SummaryCard({ form }: { form: FormState }) {
+function SummaryCard({ form, t, summaryBg }: { form: FormState; t: T; summaryBg: string }) {
   const channels: string[] = ['In-app'];
   if (form.channels.push)  channels.push('Push');
   if (form.channels.email) channels.push('Email');
@@ -436,44 +471,47 @@ function SummaryCard({ form }: { form: FormState }) {
 
   return (
     <div style={{
-      background: '#F9FAFB',
-      border: `1px solid ${C.border}`,
+      background: summaryBg,
+      border: `1px solid ${t.border}`,
       borderRadius: '8px', padding: '14px',
       display: 'flex', flexDirection: 'column', gap: '8px',
     }}>
-      <SummaryRow label="Событие"  value={form.trigger || '—'} emphasize={!!form.trigger} />
-      <SummaryRow label="Каналы"   value={channels.join(', ')} />
+      <SummaryRow label="Событие"  value={form.trigger || '—'} emphasize={!!form.trigger} t={t} />
+      <SummaryRow label="Каналы"   value={channels.join(', ')} t={t} />
       <SummaryRow
         label="Получатели"
         value={recipients.length ? recipients.join(', ') : '—'}
         dim={recipients.length === 0}
+        t={t}
       />
-      {advance && <SummaryRow label="Напомнить за" value={advance} />}
-      <SummaryRow label="Расписание" value={schedule} />
+      {advance && <SummaryRow label="Напомнить за" value={advance} t={t} />}
+      <SummaryRow label="Расписание" value={schedule} t={t} />
       <SummaryRow
         label="Статус"
         value={form.enabled ? 'Активно' : 'Неактивно'}
         tone={form.enabled ? 'success' : 'muted'}
+        t={t}
       />
     </div>
   );
 }
 
-function SummaryRow({ label, value, emphasize, dim, tone }: {
+function SummaryRow({ label, value, emphasize, dim, tone, t }: {
   label: string; value: string;
   emphasize?: boolean; dim?: boolean;
   tone?: 'success' | 'muted';
+  t: T;
 }) {
-  const color = tone === 'success' ? C.success
-              : tone === 'muted'   ? C.text4
-              : dim                ? C.text4
-              : emphasize          ? C.text1
-              : C.text1;
+  const color = tone === 'success' ? t.success
+              : tone === 'muted'   ? t.text4
+              : dim                ? t.text4
+              : emphasize          ? t.text1
+              : t.text1;
   const weight = emphasize || tone === 'success' ? 500 : 400;
   return (
     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
       <span style={{
-        fontFamily: F.inter, fontSize: '12px', color: C.text3,
+        fontFamily: F.inter, fontSize: '12px', color: t.text3,
         minWidth: '110px',
       }}>
         {label}:
@@ -492,23 +530,12 @@ function SummaryRow({ label, value, emphasize, dim, tone }: {
    FORM PRIMITIVES
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const cardStyle: React.CSSProperties = {
-  background: C.surface,
-  border: `1px solid ${C.border}`,
-  borderRadius: '12px',
-  padding: '24px',
-};
-
-const crumbLink: React.CSSProperties = {
-  fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer',
-};
-
-function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+function FormSection({ title, children, t }: { title: string; children: React.ReactNode; t: T }) {
   return (
     <div>
       <h3 style={{
         margin: '0 0 12px', fontFamily: F.dm, fontSize: '13px', fontWeight: 600,
-        color: C.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
+        color: t.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
       }}>
         {title}
       </h3>
@@ -517,34 +544,34 @@ function FormSection({ title, children }: { title: string; children: React.React
   );
 }
 
-function FieldLabel({ children, required, style }: {
-  children: React.ReactNode; required?: boolean; style?: React.CSSProperties;
+function FieldLabel({ children, required, style, t }: {
+  children: React.ReactNode; required?: boolean; style?: React.CSSProperties; t: T;
 }) {
   return (
     <label style={{
       display: 'block', marginBottom: '6px',
-      fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text2,
+      fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text2,
       ...style,
     }}>
-      {children}{required && <span style={{ color: C.error, marginLeft: '3px' }}>*</span>}
+      {children}{required && <span style={{ color: t.error, marginLeft: '3px' }}>*</span>}
     </label>
   );
 }
 
-function Caption({ children }: { children: React.ReactNode }) {
+function Caption({ children, t }: { children: React.ReactNode; t: T }) {
   return (
-    <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '6px' }}>
+    <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '6px' }}>
       {children}
     </div>
   );
 }
 
-function Divider() {
-  return <div style={{ height: '1px', background: C.border, margin: '20px 0' }} />;
+function Divider({ t }: { t: T }) {
+  return <div style={{ height: '1px', background: t.border, margin: '20px 0' }} />;
 }
 
-function TextInput({ value, placeholder, onChange }: {
-  value: string; placeholder?: string; onChange: (v: string) => void;
+function TextInput({ value, placeholder, onChange, t }: {
+  value: string; placeholder?: string; onChange: (v: string) => void; t: T;
 }) {
   const [focus, setFocus] = useState(false);
   return (
@@ -557,10 +584,10 @@ function TextInput({ value, placeholder, onChange }: {
       onBlur={() => setFocus(false)}
       style={{
         width: '100%', height: '38px', padding: '0 12px',
-        border: `1px solid ${focus ? C.blue : C.inputBorder}`,
+        border: `1px solid ${focus ? t.blue : t.inputBorder}`,
         borderRadius: '8px', outline: 'none',
-        fontFamily: F.inter, fontSize: '14px', color: C.text1,
-        background: C.surface, boxSizing: 'border-box',
+        fontFamily: F.inter, fontSize: '14px', color: t.text1,
+        background: t.surface, boxSizing: 'border-box',
         transition: 'border-color 0.12s',
       }}
     />
@@ -575,8 +602,8 @@ const TEMPLATE_VARIABLES = [
   'seller_name', 'card_number', 'kpi_step', 'amount', 'org_name',
 ] as const;
 
-function TemplateField({ value, onChange }: {
-  value: string; onChange: (v: string) => void;
+function TemplateField({ value, onChange, t, dark }: {
+  value: string; onChange: (v: string) => void; t: T; dark: boolean;
 }) {
   const [focus, setFocus] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -608,10 +635,10 @@ function TemplateField({ value, onChange }: {
         rows={3}
         style={{
           width: '100%', padding: '10px 12px',
-          border: `1px solid ${focus ? C.blue : C.inputBorder}`,
+          border: `1px solid ${focus ? t.blue : t.inputBorder}`,
           borderRadius: '8px', outline: 'none', resize: 'vertical',
-          fontFamily: F.inter, fontSize: '13px', color: C.text1,
-          background: C.surface, boxSizing: 'border-box',
+          fontFamily: F.inter, fontSize: '13px', color: t.text1,
+          background: t.surface, boxSizing: 'border-box',
           transition: 'border-color 0.12s', minHeight: '76px', lineHeight: 1.5,
         }}
       />
@@ -622,20 +649,20 @@ function TemplateField({ value, onChange }: {
       }}>
         <span style={{
           fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-          color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+          color: t.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
           marginRight: '2px',
         }}>
           Переменные
         </span>
         {TEMPLATE_VARIABLES.map(v => (
-          <VariableChip key={v} name={v} onInsert={() => insertToken(v)} />
+          <VariableChip key={v} name={v} onInsert={() => insertToken(v)} t={t} dark={dark} />
         ))}
       </div>
     </div>
   );
 }
 
-function VariableChip({ name, onInsert }: { name: string; onInsert: () => void }) {
+function VariableChip({ name, onInsert, t }: { name: string; onInsert: () => void; t: T; dark: boolean }) {
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -646,10 +673,10 @@ function VariableChip({ name, onInsert }: { name: string; onInsert: () => void }
       title={`Вставить {${name}}`}
       style={{
         padding: '3px 8px',
-        border: `1px solid ${hov ? C.blue : C.border}`,
+        border: `1px solid ${hov ? t.blue : t.border}`,
         borderRadius: '6px',
-        background: hov ? C.blueLt : C.surface,
-        color: hov ? C.blue : C.text2,
+        background: hov ? t.blueLt : t.surface,
+        color: hov ? t.blue : t.text2,
         fontFamily: F.mono, fontSize: '11px',
         cursor: 'pointer', transition: 'all 0.12s',
       }}
@@ -663,7 +690,7 @@ function VariableChip({ name, onInsert }: { name: string; onInsert: () => void }
    TRIGGER + DIGEST SELECTS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function TriggerSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function TriggerSelect({ value, onChange, t, dark }: { value: string; onChange: (v: string) => void; t: T; dark: boolean }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
     usePopoverPosition({ alignRight: false });
   return (
@@ -674,17 +701,17 @@ function TriggerSelect({ value, onChange }: { value: string; onChange: (v: strin
         onClick={toggle}
         style={{
           width: '100%', height: '38px', padding: '0 12px',
-          border: `1px solid ${open ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
+          border: `1px solid ${open ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
           fontFamily: F.inter, fontSize: '14px',
-          color: value ? C.text1 : C.text4,
+          color: value ? t.text1 : t.text4,
           cursor: 'pointer', textAlign: 'left',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           transition: 'border-color 0.12s',
         }}
       >
         <span>{value || 'Выберите событие'}</span>
-        <ChevronDown size={16} color={C.text3} strokeWidth={1.75} />
+        <ChevronDown size={16} color={t.text3} strokeWidth={1.75} />
       </button>
       {open && (
         <div
@@ -693,26 +720,30 @@ function TriggerSelect({ value, onChange }: { value: string; onChange: (v: strin
             ...menuStyle,
             minWidth: '300px',
             maxHeight: '320px', overflowY: 'auto',
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: '8px', boxShadow: '0 8px 24px rgba(17,24,39,0.12)',
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: '8px',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.12)',
             padding: '4px 0',
           }}
         >
-          {TRIGGER_GROUPS.map(g => (
+          {TRIGGER_GROUPS.map((g, gi) => (
             <div key={g.group}>
+              {gi > 0 && <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />}
               <div style={{
                 padding: '8px 12px 4px',
                 fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-                color: C.text4, textTransform: 'uppercase', letterSpacing: '0.06em',
+                color: t.text4, textTransform: 'uppercase', letterSpacing: '0.06em',
               }}>
                 {g.group}
               </div>
-              {g.triggers.map(t => (
+              {g.triggers.map(tr => (
                 <OptionRow
-                  key={t}
-                  label={t}
-                  selected={value === t}
-                  onClick={() => { onChange(t); close(); }}
+                  key={tr}
+                  label={tr}
+                  selected={value === tr}
+                  onClick={() => { onChange(tr); close(); }}
+                  t={t}
+                  dark={dark}
                 />
               ))}
             </div>
@@ -723,10 +754,11 @@ function TriggerSelect({ value, onChange }: { value: string; onChange: (v: strin
   );
 }
 
-function DigestSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function DigestSelect({ value, onChange, t, dark }: { value: string; onChange: (v: string) => void; t: T; dark: boolean }) {
   const options = ['Ежедневно в 09:00', 'Еженедельно (понедельник)', 'Ежемесячно (1 число)'];
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
     usePopoverPosition({ alignRight: false });
+
   return (
     <div ref={rootRef} onClick={e => e.stopPropagation()}>
       <button
@@ -735,15 +767,15 @@ function DigestSelect({ value, onChange }: { value: string; onChange: (v: string
         onClick={toggle}
         style={{
           width: '100%', height: '34px', padding: '0 10px',
-          border: `1px solid ${open ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
-          fontFamily: F.inter, fontSize: '13px', color: C.text1,
+          border: `1px solid ${open ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
+          fontFamily: F.inter, fontSize: '13px', color: t.text1,
           cursor: 'pointer', textAlign: 'left',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}
       >
         {value}
-        <ChevronDown size={14} color={C.text3} strokeWidth={1.75} />
+        <ChevronDown size={14} color={t.text3} strokeWidth={1.75} />
       </button>
       {open && (
         <div
@@ -751,13 +783,14 @@ function DigestSelect({ value, onChange }: { value: string; onChange: (v: string
           style={{
             ...menuStyle,
             minWidth: '240px',
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: '8px', boxShadow: '0 8px 24px rgba(17,24,39,0.12)',
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: '8px',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.12)',
             padding: '4px 0',
           }}
         >
           {options.map(o => (
-            <OptionRow key={o} label={o} selected={value === o} onClick={() => { onChange(o); close(); }} />
+            <OptionRow key={o} label={o} selected={value === o} onClick={() => { onChange(o); close(); }} t={t} dark={dark} />
           ))}
         </div>
       )}
@@ -765,10 +798,11 @@ function DigestSelect({ value, onChange }: { value: string; onChange: (v: string
   );
 }
 
-function OptionRow({ label, selected, onClick }: {
-  label: string; selected: boolean; onClick: () => void;
+function OptionRow({ label, selected, onClick, t, dark }: {
+  label: string; selected: boolean; onClick: () => void; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
   return (
     <button
       type="button"
@@ -778,14 +812,14 @@ function OptionRow({ label, selected, onClick }: {
       style={{
         width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '8px 12px', border: 'none',
-        background: selected ? C.blueLt : hov ? '#F9FAFB' : 'transparent',
+        background: selected ? t.blueLt : hov ? hoverBg : 'transparent',
         fontFamily: F.inter, fontSize: '13px',
-        color: selected ? C.blue : C.text1,
+        color: selected ? t.blue : t.text1,
         cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
       }}
     >
       {label}
-      {selected && <Check size={14} strokeWidth={2} color={C.blue} />}
+      {selected && <Check size={14} strokeWidth={2} color={t.blue} />}
     </button>
   );
 }
@@ -794,8 +828,8 @@ function OptionRow({ label, selected, onClick }: {
    CHECKBOX / RADIO / SWITCH
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function CheckboxRow({ label, checked, onChange, disabled }: {
-  label: string; checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean;
+function CheckboxRow({ label, checked, onChange, disabled, t }: {
+  label: string; checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean; t: T;
 }) {
   const toggle = () => { if (!disabled && onChange) onChange(!checked); };
   return (
@@ -809,21 +843,21 @@ function CheckboxRow({ label, checked, onChange, disabled }: {
     >
       <span style={{
         width: '18px', height: '18px', borderRadius: '4px',
-        border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
-        background: checked ? C.blue : C.surface,
+        border: `1.5px solid ${checked ? t.blue : t.inputBorder}`,
+        background: checked ? t.blue : t.surface,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.12s', flexShrink: 0,
       }}>
         {checked && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
       </span>
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>{label}</span>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>{label}</span>
     </label>
   );
 }
 
-function RadioRow({ label, sub, checked, onSelect, children }: {
+function RadioRow({ label, sub, checked, onSelect, children, t }: {
   label: string; sub?: string; checked: boolean; onSelect: () => void;
-  children?: React.ReactNode;
+  children?: React.ReactNode; t: T;
 }) {
   return (
     <div
@@ -831,8 +865,8 @@ function RadioRow({ label, sub, checked, onSelect, children }: {
       style={{
         flex: 1, minWidth: 0,
         padding: '12px',
-        border: `1px solid ${checked ? C.blue : C.border}`,
-        background: checked ? C.blueLt : C.surface,
+        border: `1px solid ${checked ? t.blue : t.border}`,
+        background: checked ? t.blueLt : t.surface,
         borderRadius: '8px', cursor: 'pointer',
         transition: 'all 0.12s',
       }}
@@ -840,19 +874,19 @@ function RadioRow({ label, sub, checked, onSelect, children }: {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
         <span style={{
           width: '18px', height: '18px', borderRadius: '50%',
-          border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
-          background: C.surface, flexShrink: 0,
+          border: `1.5px solid ${checked ? t.blue : t.inputBorder}`,
+          background: t.surface, flexShrink: 0,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           marginTop: '1px',
         }}>
-          {checked && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.blue }} />}
+          {checked && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.blue }} />}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1 }}>
+          <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text1 }}>
             {label}
           </div>
           {sub && (
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '2px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '2px' }}>
               {sub}
             </div>
           )}
@@ -867,9 +901,10 @@ function RadioRow({ label, sub, checked, onSelect, children }: {
   );
 }
 
-function Switch({ checked, onChange, ariaLabel }: {
-  checked: boolean; onChange: () => void; ariaLabel: string;
+function Switch({ checked, onChange, ariaLabel, t, dark }: {
+  checked: boolean; onChange: () => void; ariaLabel: string; t: T; dark: boolean;
 }) {
+  const offBg = dark ? D.inputBorder : '#D1D5DB';
   return (
     <button
       role="switch"
@@ -878,14 +913,14 @@ function Switch({ checked, onChange, ariaLabel }: {
       onClick={onChange}
       style={{
         width: '44px', height: '24px', borderRadius: '12px',
-        background: checked ? C.blue : '#D1D5DB',
+        background: checked ? t.blue : offBg,
         border: 'none', cursor: 'pointer', position: 'relative',
         transition: 'background 0.2s', flexShrink: 0,
       }}
     >
       <div style={{
         width: '18px', height: '18px', borderRadius: '50%',
-        background: C.surface, position: 'absolute', top: '3px',
+        background: t.surface, position: 'absolute', top: '3px',
         left: checked ? '23px' : '3px',
         transition: 'left 0.2s',
         boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
@@ -898,8 +933,8 @@ function Switch({ checked, onChange, ariaLabel }: {
    ADVANCE DAYS CHIPS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function AdvanceDaysChips({ days, onChange }: {
-  days: number[]; onChange: (days: number[]) => void;
+function AdvanceDaysChips({ days, onChange, t, dark }: {
+  days: number[]; onChange: (days: number[]) => void; t: T; dark: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
@@ -913,6 +948,8 @@ function AdvanceDaysChips({ days, onChange }: {
     setAdding(false);
   };
 
+  const removeBtnBg = dark ? 'rgba(59,130,246,0.22)' : 'rgba(37,99,235,0.15)';
+
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
       {days.map(d => (
@@ -921,7 +958,7 @@ function AdvanceDaysChips({ days, onChange }: {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
             padding: '4px 6px 4px 10px', borderRadius: '16px',
-            background: C.blueLt, color: C.blue,
+            background: t.blueLt, color: t.blue,
             fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
           }}
         >
@@ -931,7 +968,7 @@ function AdvanceDaysChips({ days, onChange }: {
             aria-label={`Убрать ${d}`}
             style={{
               width: '16px', height: '16px', border: 'none', borderRadius: '50%',
-              background: 'rgba(37,99,235,0.15)', color: C.blue,
+              background: removeBtnBg, color: t.blue,
               cursor: 'pointer', display: 'inline-flex',
               alignItems: 'center', justifyContent: 'center',
             }}
@@ -952,8 +989,9 @@ function AdvanceDaysChips({ days, onChange }: {
           placeholder="дн."
           style={{
             width: '70px', height: '26px', padding: '0 8px',
-            border: `1px solid ${C.blue}`, borderRadius: '16px',
+            border: `1px solid ${t.blue}`, borderRadius: '16px',
             fontFamily: F.inter, fontSize: '12px', outline: 'none',
+            background: t.surface, color: t.text1,
           }}
         />
       ) : (
@@ -962,7 +1000,7 @@ function AdvanceDaysChips({ days, onChange }: {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '3px',
             padding: '4px 10px', border: 'none', borderRadius: '16px',
-            background: 'transparent', color: C.blue,
+            background: 'transparent', color: t.blue,
             fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
             cursor: 'pointer',
           }}
@@ -978,11 +1016,12 @@ function AdvanceDaysChips({ days, onChange }: {
    BUTTONS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function PrimaryButton({ children, onClick, disabled }: {
-  children: React.ReactNode; onClick?: () => void; disabled?: boolean;
+function PrimaryButton({ children, onClick, disabled, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; disabled?: boolean; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
-  const bg = disabled ? '#93C5FD' : hov ? C.blueHover : C.blue;
+  const disabledBg = dark ? 'rgba(59,130,246,0.35)' : '#93C5FD';
+  const bg = disabled ? disabledBg : hov ? t.blueHover : t.blue;
   return (
     <button
       type="button"
@@ -996,7 +1035,7 @@ function PrimaryButton({ children, onClick, disabled }: {
         background: bg,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: disabled ? 'not-allowed' : 'pointer',
-        boxShadow: disabled ? 'none' : hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+        boxShadow: disabled ? 'none' : dark ? 'none' : (hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)'),
         transition: 'all 0.15s', flexShrink: 0,
       }}
     >
@@ -1005,8 +1044,8 @@ function PrimaryButton({ children, onClick, disabled }: {
   );
 }
 
-function OutlineButton({ children, onClick }: {
-  children: React.ReactNode; onClick?: () => void;
+function OutlineButton({ children, onClick, t }: {
+  children: React.ReactNode; onClick?: () => void; t: T;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1017,10 +1056,10 @@ function OutlineButton({ children, onClick }: {
       onClick={onClick}
       style={{
         height: '38px', padding: '0 18px',
-        border: `1px solid ${hov ? C.text3 : C.inputBorder}`,
-        borderRadius: '8px', background: C.surface,
+        border: `1px solid ${hov ? t.text3 : t.inputBorder}`,
+        borderRadius: '8px', background: t.surface,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.text1, cursor: 'pointer',
+        color: t.text1, cursor: 'pointer',
         transition: 'all 0.12s', flexShrink: 0,
       }}
     >

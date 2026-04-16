@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import {
-  ChevronRight, ChevronDown, Search, Download,
+  ChevronRight, ChevronDown, Download,
   Clock, AlertTriangle, XCircle, Check,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { useExportToast } from '../components/useExportToast';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -50,22 +52,29 @@ const OVERDUE_RANGES = ['1–7 дней', '8–14 дней', '15–30 дней',
    STAT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const STAT_VARIANTS = {
+const STAT_VARIANTS_LIGHT = {
   error: { color: C.error,   bg: C.errorBg,    border: '#FECACA' },
   amber: { color: '#D97706', bg: '#FFFBEB',    border: '#FDE68A' },
   rose:  { color: '#E11D48', bg: '#FFF1F2',    border: '#FECDD3' },
 } as const;
 
-function StatCard({ icon: Icon, variant, label, value }: {
+const STAT_VARIANTS_DARK = {
+  error: { color: '#F87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.25)' },
+  amber: { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.25)' },
+  rose:  { color: '#FB7185', bg: 'rgba(251,113,133,0.12)', border: 'rgba(251,113,133,0.25)' },
+} as const;
+
+function StatCard({ icon: Icon, variant, label, value, t, dark }: {
   icon: React.ElementType;
-  variant: keyof typeof STAT_VARIANTS;
+  variant: keyof typeof STAT_VARIANTS_LIGHT;
   label: string;
   value: string;
+  t: T; dark: boolean;
 }) {
-  const v = STAT_VARIANTS[variant];
+  const v = (dark ? STAT_VARIANTS_DARK : STAT_VARIANTS_LIGHT)[variant];
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', padding: '20px',
       display: 'flex', flexDirection: 'column', gap: '14px', flex: 1,
     }}>
@@ -77,10 +86,10 @@ function StatCard({ icon: Icon, variant, label, value }: {
         <Icon size={20} color={v.color} strokeWidth={1.75} />
       </div>
       <div>
-        <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginBottom: '4px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginBottom: '4px' }}>
           {label}
         </div>
-        <div style={{ fontFamily: F.dm, fontSize: '26px', fontWeight: 700, color: C.text1, lineHeight: 1.2 }}>
+        <div style={{ fontFamily: F.dm, fontSize: '26px', fontWeight: 700, color: t.text1, lineHeight: 1.2 }}>
           {value}
         </div>
       </div>
@@ -92,8 +101,9 @@ function StatCard({ icon: Icon, variant, label, value }: {
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options, value, onChange, minWidth }: {
+function FilterSelect({ label, options, value, onChange, minWidth, t }: {
   label: string; options: string[]; value: string; onChange: (v: string) => void; minWidth?: string;
+  t: T;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -103,12 +113,12 @@ function FilterSelect({ label, options, value, onChange, minWidth }: {
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         style={{
           height: '40px', padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
           fontFamily: F.inter, fontSize: '13px',
-          color: value ? C.text1 : C.text3,
+          color: value ? t.text1 : t.text3,
           outline: 'none', appearance: 'none', cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
           minWidth: minWidth ?? '170px',
         }}
@@ -116,7 +126,7 @@ function FilterSelect({ label, options, value, onChange, minWidth }: {
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={13} color={C.text3} style={{
+      <ChevronDown size={13} color={t.text3} style={{
         position: 'absolute', right: '12px', top: '50%',
         transform: 'translateY(-50%)', pointerEvents: 'none',
       }} />
@@ -128,14 +138,17 @@ function FilterSelect({ label, options, value, onChange, minWidth }: {
    BADGES
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function BadgeError({ children }: { children: React.ReactNode }) {
+function BadgeError({ children, dark }: { children: React.ReactNode; dark: boolean }) {
+  const bg = dark ? 'rgba(248,113,113,0.12)' : C.errorBg;
+  const color = dark ? '#F87171' : '#B91C1C';
+  const border = dark ? 'rgba(248,113,113,0.25)' : '#FECACA';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 9px', borderRadius: '8px',
-      background: C.errorBg, color: '#B91C1C',
-      border: `1px solid #FECACA`,
+      background: bg, color,
+      border: `1px solid ${border}`,
       whiteSpace: 'nowrap',
     }}>
       {children}
@@ -143,13 +156,15 @@ function BadgeError({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BadgeSuccess({ children }: { children: React.ReactNode }) {
+function BadgeSuccess({ children, dark }: { children: React.ReactNode; dark: boolean }) {
+  const bg = dark ? 'rgba(52,211,153,0.12)' : C.successBg;
+  const color = dark ? '#34D399' : '#15803D';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 9px', borderRadius: '8px',
-      background: C.successBg, color: '#15803D',
+      background: bg, color,
       whiteSpace: 'nowrap',
     }}>
       <Check size={10} strokeWidth={3} />
@@ -165,6 +180,8 @@ function BadgeSuccess({ children }: { children: React.ReactNode }) {
 export default function OverdueKpiReportPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [org, setOrg] = useState('');
   const [kpiStage, setKpiStage] = useState('');
   const [overdueRange, setOverdueRange] = useState('');
@@ -173,6 +190,26 @@ export default function OverdueKpiReportPage() {
   const [exportHov, setExportHov] = useState(false);
   const navigate = useNavigate();
   const exportToast = useExportToast();
+
+  const th: React.CSSProperties = {
+    padding: '11px 14px', textAlign: 'left',
+    fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
+    color: t.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
+    whiteSpace: 'nowrap',
+  };
+  const td: React.CSSProperties = {
+    padding: '12px 14px', whiteSpace: 'nowrap',
+    fontFamily: F.inter, fontSize: '13px', color: t.text1,
+  };
+  const tdMono: React.CSSProperties = {
+    padding: '12px 14px', whiteSpace: 'nowrap',
+    fontFamily: F.mono, fontSize: '12px', color: t.text2,
+  };
+
+  const headerRowBg = dark ? D.tableHeaderBg : '#F9FAFB';
+  const rowHoverBg = dark ? D.tableHover : '#F9FAFB';
+  const clearHoverBg = dark ? D.tableHover : '#F3F4F6';
+  const errorColor = dark ? '#F87171' : C.error;
 
   const triggerExport = () => {
     exportToast.start({
@@ -209,7 +246,7 @@ export default function OverdueKpiReportPage() {
   const clearFilters = () => { setOrg(''); setKpiStage(''); setOverdueRange(''); };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -223,11 +260,11 @@ export default function OverdueKpiReportPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span onClick={() => navigate('/reports')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Отчёты</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Просроченные KPI</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span onClick={() => navigate('/reports')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Отчёты</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Просроченные KPI</span>
           </div>
 
           {/* Title + Export */}
@@ -236,10 +273,10 @@ export default function OverdueKpiReportPage() {
             gap: '16px', marginBottom: '22px', flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Просроченные KPI
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Карты с истёкшим сроком выполнения KPI
               </p>
             </div>
@@ -251,11 +288,11 @@ export default function OverdueKpiReportPage() {
               aria-label="Экспорт"
               style={{
                 height: '40px', padding: '0 16px',
-                border: `1px solid ${exportHov ? C.blue : C.border}`,
+                border: `1px solid ${exportHov ? t.blue : t.border}`,
                 borderRadius: '8px',
-                background: exportHov ? C.blueLt : C.surface,
+                background: exportHov ? t.blueLt : t.surface,
                 fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                color: exportHov ? C.blue : C.text1,
+                color: exportHov ? t.blue : t.text1,
                 display: 'inline-flex', alignItems: 'center', gap: '7px',
                 cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
               }}
@@ -267,49 +304,49 @@ export default function OverdueKpiReportPage() {
 
           {/* Stat cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
-            <StatCard icon={Clock}          variant="error" label="Всего просрочено"     value="127 карт" />
-            <StatCard icon={AlertTriangle}  variant="amber" label="KPI 1 просрочен"       value="23" />
-            <StatCard icon={XCircle}        variant="rose"  label="KPI 2–3 просрочены"    value="104" />
+            <StatCard icon={Clock}          variant="error" label="Всего просрочено"     value="127 карт" t={t} dark={dark} />
+            <StatCard icon={AlertTriangle}  variant="amber" label="KPI 1 просрочен"       value="23"       t={t} dark={dark} />
+            <StatCard icon={XCircle}        variant="rose"  label="KPI 2–3 просрочены"    value="104"      t={t} dark={dark} />
           </div>
 
           {/* Filter bar */}
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '18px' }}>
-            <FilterSelect label="Организация: Все"   options={ORG_LIST}        value={org}          onChange={setOrg} />
-            <FilterSelect label="KPI этап: Все"       options={KPI_STAGES}      value={kpiStage}     onChange={setKpiStage} />
-            <FilterSelect label="Дней просрочки: Все" options={OVERDUE_RANGES}  value={overdueRange} onChange={setOverdueRange} />
+            <FilterSelect label="Организация: Все"   options={ORG_LIST}        value={org}          onChange={setOrg}          t={t} />
+            <FilterSelect label="KPI этап: Все"       options={KPI_STAGES}      value={kpiStage}     onChange={setKpiStage}     t={t} />
+            <FilterSelect label="Дней просрочки: Все" options={OVERDUE_RANGES}  value={overdueRange} onChange={setOverdueRange} t={t} />
 
             {(org || kpiStage || overdueRange) && (
               <button
                 onClick={clearFilters}
                 style={{
                   border: 'none', background: 'none',
-                  fontFamily: F.inter, fontSize: '13px', color: C.text3,
+                  fontFamily: F.inter, fontSize: '13px', color: t.text3,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
                   padding: '4px 8px', borderRadius: '6px',
                   transition: 'color 0.12s, background 0.12s',
                 }}
-                onMouseEnter={e => { (e.currentTarget.style.color = C.text1); (e.currentTarget.style.background = '#F3F4F6'); }}
-                onMouseLeave={e => { (e.currentTarget.style.color = C.text3); (e.currentTarget.style.background = 'none'); }}
+                onMouseEnter={e => { (e.currentTarget.style.color = t.text1); (e.currentTarget.style.background = clearHoverBg); }}
+                onMouseLeave={e => { (e.currentTarget.style.color = t.text3); (e.currentTarget.style.background = 'none'); }}
               >
                 <span style={{ fontSize: '16px', lineHeight: 1 }}>×</span>
                 Сбросить
               </button>
             )}
 
-            <span style={{ marginLeft: 'auto', fontFamily: F.inter, fontSize: '13px', color: C.text4 }}>
-              <span style={{ fontFamily: F.mono, color: C.text2 }}>{visible.length}</span> из <span style={{ fontFamily: F.mono, color: C.text2 }}>{ROWS.length}</span>
+            <span style={{ marginLeft: 'auto', fontFamily: F.inter, fontSize: '13px', color: t.text4 }}>
+              <span style={{ fontFamily: F.mono, color: t.text2 }}>{visible.length}</span> из <span style={{ fontFamily: F.mono, color: t.text2 }}>{ROWS.length}</span>
             </span>
           </div>
 
           {/* Table */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '12px', overflow: 'hidden',
           }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1300px' }}>
                 <thead>
-                  <tr style={{ background: '#F9FAFB', borderBottom: `1px solid ${C.border}` }}>
+                  <tr style={{ background: headerRowBg, borderBottom: `1px solid ${t.border}` }}>
                     <th style={th}>Карта</th>
                     <th style={th}>Организация</th>
                     <th style={th}>Продавец</th>
@@ -324,7 +361,7 @@ export default function OverdueKpiReportPage() {
                           background: 'none', border: 'none', padding: 0,
                           display: 'inline-flex', alignItems: 'center', gap: '4px',
                           fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-                          color: C.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
+                          color: t.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
                           cursor: 'pointer',
                         }}
                       >
@@ -351,8 +388,8 @@ export default function OverdueKpiReportPage() {
                         onMouseLeave={() => setHovRow(null)}
                         onClick={() => navigate(`/card-detail/${r.id}`)}
                         style={{
-                          borderBottom: `1px solid ${C.border}`,
-                          background: hov ? '#F9FAFB' : C.surface,
+                          borderBottom: `1px solid ${t.border}`,
+                          background: hov ? rowHoverBg : t.surface,
                           cursor: 'pointer', transition: 'background 0.1s',
                         }}
                       >
@@ -362,14 +399,14 @@ export default function OverdueKpiReportPage() {
                         <td style={td}>{r.client}</td>
                         <td style={tdMono}>{r.soldDate}</td>
                         <td style={tdMono}>{r.dueDate}</td>
-                        <td style={{ ...td, color: C.error, fontWeight: 600 }}>
+                        <td style={{ ...td, color: errorColor, fontWeight: 600 }}>
                           {r.overdueDays} {r.overdueDays === 1 ? 'день' : r.overdueDays < 5 ? 'дня' : 'дней'}
                         </td>
-                        <td style={td}><BadgeError>{r.overdueKpi}</BadgeError></td>
+                        <td style={td}><BadgeError dark={dark}>{r.overdueKpi}</BadgeError></td>
                         <td style={td}>
                           {r.lastKpi === '—'
-                            ? <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>—</span>
-                            : <BadgeSuccess>{r.lastKpi.replace(' ✅', '')}</BadgeSuccess>
+                            ? <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4 }}>—</span>
+                            : <BadgeSuccess dark={dark}>{r.lastKpi.replace(' ✅', '')}</BadgeSuccess>
                           }
                         </td>
                         <td style={tdMono}>{r.topup}</td>
@@ -387,13 +424,13 @@ export default function OverdueKpiReportPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginTop: '14px', flexWrap: 'wrap', gap: '10px',
           }}>
-            <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Показано <span style={{ fontFamily: F.mono, color: C.text1 }}>1–{visible.length}</span> из{' '}
-              <span style={{ fontFamily: F.mono, color: C.text1 }}>127</span>
+            <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Показано <span style={{ fontFamily: F.mono, color: t.text1 }}>1–{visible.length}</span> из{' '}
+              <span style={{ fontFamily: F.mono, color: t.text1 }}>127</span>
             </span>
             <div style={{ display: 'flex', gap: '6px' }}>
               {[1, 2, 3, '...', 13].map((p, i) => (
-                <PageBtn key={i} active={p === 1}>{p}</PageBtn>
+                <PageBtn key={i} active={p === 1} t={t} dark={dark}>{p}</PageBtn>
               ))}
             </div>
           </div>
@@ -408,35 +445,21 @@ export default function OverdueKpiReportPage() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   CELL STYLES + PAGINATION
+   PAGINATION
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const th: React.CSSProperties = {
-  padding: '11px 14px', textAlign: 'left',
-  fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-  color: C.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
-  whiteSpace: 'nowrap',
-};
-const td: React.CSSProperties = {
-  padding: '12px 14px', whiteSpace: 'nowrap',
-  fontFamily: F.inter, fontSize: '13px', color: C.text1,
-};
-const tdMono: React.CSSProperties = {
-  padding: '12px 14px', whiteSpace: 'nowrap',
-  fontFamily: F.mono, fontSize: '12px', color: C.text2,
-};
-
-function PageBtn({ children, active }: { children: React.ReactNode; active?: boolean }) {
+function PageBtn({ children, active, t, dark }: { children: React.ReactNode; active?: boolean; t: T; dark: boolean }) {
   const [hov, setHov] = useState(false);
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
   return (
     <button
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
         minWidth: '32px', height: '32px', padding: '0 8px',
-        border: `1px solid ${active ? C.blue : C.border}`,
-        background: active ? C.blue : hov ? '#F9FAFB' : C.surface,
-        color: active ? '#fff' : C.text2,
+        border: `1px solid ${active ? t.blue : t.border}`,
+        background: active ? t.blue : hov ? hoverBg : t.surface,
+        color: active ? '#fff' : t.text2,
         fontFamily: F.inter, fontSize: '12px', fontWeight: active ? 600 : 500,
         borderRadius: '7px', cursor: 'pointer',
         transition: 'all 0.12s',

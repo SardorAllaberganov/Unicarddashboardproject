@@ -11,11 +11,13 @@ import {
 } from 'recharts';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { INITIAL_RULES, Rule } from './NotificationRulesPage';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & MOCK DATA
@@ -92,9 +94,9 @@ const BAR_DATA = [
   { day: '13.04', count: 22 }, { day: '14.04', count: 12 },
 ];
 
-const DONUT_DATA = [
-  { name: 'Push',   value: 347, pct: 50, color: C.blue },
-  { name: 'In-app', value: 347, pct: 50, color: '#60A5FA' },
+const DONUT_BASE = [
+  { name: 'Push',   value: 347, pct: 50 },
+  { name: 'In-app', value: 347, pct: 50 },
 ];
 
 const CHANNEL_OPTIONS: { value: ChannelFilter; label: string }[] = [
@@ -106,6 +108,19 @@ const CHANNEL_OPTIONS: { value: ChannelFilter; label: string }[] = [
 type TabId = 'log' | 'errors' | 'stats';
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   STATUS BADGE TOKEN MAPS (multi-state)
+═══════════════════════════════════════════════════════════════════════════ */
+
+const RULE_STATUS_LIGHT = {
+  active:   { bg: C.successBg, color: '#15803D', dot: C.success },
+  disabled: { bg: '#F3F4F6',   color: C.text3,   dot: C.text4   },
+};
+const RULE_STATUS_DARK = {
+  active:   { bg: D.successBg, color: D.success, dot: D.success },
+  disabled: { bg: D.tableAlt,  color: D.text2,   dot: D.text4   },
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -115,6 +130,8 @@ const TOTAL_FIRES = 347;
 export default function NotificationRuleDetailPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [tab, setTab] = useState<TabId>('log');
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all');
   const [query, setQuery] = useState('');
@@ -135,6 +152,11 @@ export default function NotificationRuleDetailPage() {
 
   const baseRule = INITIAL_RULES.find(r => r.id === id) ?? INITIAL_RULES[0];
   const [enabled, setEnabled] = useState(baseRule.enabled);
+
+  const donutData = useMemo(() => [
+    { ...DONUT_BASE[0], color: t.blue },
+    { ...DONUT_BASE[1], color: dark ? '#93C5FD' : '#60A5FA' },
+  ], [t.blue, dark]);
 
   const filteredFires = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -158,8 +180,6 @@ export default function NotificationRuleDetailPage() {
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   };
 
-  // Execute the sending → success/failed transition for one row.
-  // 75% success, 25% failure.
   const executeRetry = (id: number): Promise<boolean> =>
     new Promise(resolve => {
       patchRow(id, { retryState: 'sending' });
@@ -216,8 +236,21 @@ export default function NotificationRuleDetailPage() {
     setBulkResult(null);
   };
 
+  const crumbLink: React.CSSProperties = {
+    fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer',
+  };
+
+  const cardStyle: React.CSSProperties = {
+    background: t.surface, border: `1px solid ${t.border}`,
+    borderRadius: '12px', padding: '20px',
+  };
+
+  const statusCfg = enabled
+    ? (dark ? RULE_STATUS_DARK.active : RULE_STATUS_LIGHT.active)
+    : (dark ? RULE_STATUS_DARK.disabled : RULE_STATUS_LIGHT.disabled);
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>
       <Sidebar
         role="bank"
         collapsed={sidebarCollapsed}
@@ -233,10 +266,10 @@ export default function NotificationRuleDetailPage() {
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span onClick={() => navigate('/dashboard')} style={crumbLink}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
             <span onClick={() => navigate('/notification-rules')} style={crumbLink}>Правила уведомлений</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>{baseRule.title}</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>{baseRule.title}</span>
           </div>
 
           {/* Header */}
@@ -245,59 +278,59 @@ export default function NotificationRuleDetailPage() {
             gap: '16px', marginBottom: '20px', flexWrap: 'wrap',
           }}>
             <div style={{ minWidth: 0 }}>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 {baseRule.title}
               </h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
-                {enabled ? (
-                  <StatusBadge label="Активно"   bg={C.successBg} color="#15803D" dot={C.success} />
-                ) : (
-                  <StatusBadge label="Отключено" bg="#F3F4F6"     color={C.text3} dot={C.text4} />
-                )}
-                <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-                  Создано: <span style={{ fontFamily: F.mono, color: C.text2 }}>01.04.2026</span>
+                <StatusBadge
+                  label={enabled ? 'Активно' : 'Отключено'}
+                  bg={statusCfg.bg} color={statusCfg.color} dot={statusCfg.dot}
+                />
+                <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+                  Создано: <span style={{ fontFamily: F.mono, color: t.text2 }}>01.04.2026</span>
                 </span>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, flexWrap: 'wrap' }}>
-              <LargeSwitch checked={enabled} onChange={() => setEnabled(e => !e)} />
-              <OutlineButton icon={Pencil} onClick={() => navigate(`/notification-rules/${baseRule.id}/edit`)}>
+              <LargeSwitch checked={enabled} onChange={() => setEnabled(e => !e)} t={t} dark={dark} />
+              <OutlineButton icon={Pencil} onClick={() => navigate(`/notification-rules/${baseRule.id}/edit`)} t={t} dark={dark}>
                 Редактировать
               </OutlineButton>
               <ActionMenu
                 onDuplicate={() => navigate('/notification-rules')}
                 onDelete={() => setDeleteOpen(true)}
+                t={t} dark={dark}
               />
             </div>
           </div>
 
           {/* Config summary card */}
           <div className="rd-config" style={{
-            background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px',
+            background: t.tableHeaderBg, border: `1px solid ${t.border}`, borderRadius: '12px',
             padding: '16px',
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
             gap: '16px 24px',
             marginBottom: '20px',
           }}>
-            <ConfigCell label="Триггер">
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, fontWeight: 500 }}>
+            <ConfigCell label="Триггер" t={t}>
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, fontWeight: 500 }}>
                 {baseRule.title}
               </span>
             </ConfigCell>
-            <ConfigCell label="Каналы">
+            <ConfigCell label="Каналы" t={t}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {baseRule.channels.map(c => <BlueBadge key={c} label={c} />)}
+                {baseRule.channels.map(c => <BlueBadge key={c} label={c} t={t} />)}
               </div>
             </ConfigCell>
-            <ConfigCell label="Получатели">
+            <ConfigCell label="Получатели" t={t}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                {baseRule.recipients.map(r => <DefaultBadge key={r} label={r} />)}
+                {baseRule.recipients.map(r => <DefaultBadge key={r} label={r} t={t} dark={dark} />)}
               </div>
             </ConfigCell>
-            <ConfigCell label="Расписание">
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+            <ConfigCell label="Расписание" t={t}>
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>
                 {baseRule.timing ?? 'Мгновенно'}
               </span>
             </ConfigCell>
@@ -308,14 +341,14 @@ export default function NotificationRuleDetailPage() {
             display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
             marginBottom: '20px',
           }}>
-            <StatCard tone="blue"  icon={Bell}         label="Всего сработало" value="347"                 />
-            <StatCard tone="green" icon={CheckCircle2} label="Доставлено"       value="694" hint="347 × 2 канала" />
-            <StatCard tone="amber" icon={Eye}          label="Прочитано"        value="612" hint="88.2%"    />
-            <StatCard tone="red"   icon={XCircle}      label="Ошибки"           value="4"   hint="0.6%"     />
+            <StatCard tone="blue"  icon={Bell}         label="Всего сработало" value="347"                 t={t} dark={dark} />
+            <StatCard tone="green" icon={CheckCircle2} label="Доставлено"       value="694" hint="347 × 2 канала" t={t} dark={dark} />
+            <StatCard tone="amber" icon={Eye}          label="Прочитано"        value="612" hint="88.2%"    t={t} dark={dark} />
+            <StatCard tone="red"   icon={XCircle}      label="Ошибки"           value="4"   hint="0.6%"     t={t} dark={dark} />
           </div>
 
           {/* Tabs */}
-          <TabsBar active={tab} onChange={setTab} errorCount={countRetriableErrors()} />
+          <TabsBar active={tab} onChange={setTab} errorCount={countRetriableErrors()} t={t} dark={dark} />
 
           {/* Tab content */}
           {tab === 'log' && (
@@ -328,48 +361,50 @@ export default function NotificationRuleDetailPage() {
                 <FilterSelect
                   label="Канал" value={channelFilter} options={CHANNEL_OPTIONS}
                   onChange={v => { setChannelFilter(v); setPage(1); }}
+                  t={t} dark={dark}
                 />
-                <SearchInput value={query} onChange={v => { setQuery(v); setPage(1); }} />
+                <SearchInput value={query} onChange={v => { setQuery(v); setPage(1); }} t={t} dark={dark} />
               </div>
 
               <div style={{
-                background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px',
+                background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px',
                 overflow: 'hidden',
               }}>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: F.inter }}>
                     <thead>
-                      <tr style={{ background: '#F9FAFB', borderBottom: `1px solid ${C.border}` }}>
-                        <Th width="112px">Дата</Th>
-                        <Th>Событие-триггер</Th>
-                        <Th>Получатель</Th>
-                        <Th width="90px">Канал</Th>
-                        <Th width="130px">Статус</Th>
-                        <Th width="110px">Прочитано</Th>
+                      <tr style={{ background: t.tableHeaderBg, borderBottom: `1px solid ${t.border}` }}>
+                        <Th width="112px" t={t}>Дата</Th>
+                        <Th t={t}>Событие-триггер</Th>
+                        <Th t={t}>Получатель</Th>
+                        <Th width="90px" t={t}>Канал</Th>
+                        <Th width="130px" t={t}>Статус</Th>
+                        <Th width="110px" t={t}>Прочитано</Th>
                       </tr>
                     </thead>
                     <tbody>
-                      {visibleFires.map(r => <FireRowView key={r.id} row={r} />)}
+                      {visibleFires.map(r => <FireRowView key={r.id} row={r} t={t} dark={dark} />)}
                     </tbody>
                   </table>
                 </div>
 
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '12px 16px', borderTop: `1px solid ${C.border}`,
-                  fontFamily: F.inter, fontSize: '13px', color: C.text3,
+                  padding: '12px 16px', borderTop: `1px solid ${t.border}`,
+                  fontFamily: F.inter, fontSize: '13px', color: t.text3,
                 }}>
                   <div>Показано {pageStart + 1}–{visibleEnd} из {TOTAL_FIRES}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <PageBtn disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                    <PageBtn disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} t={t} dark={dark}>
                       <ChevronLeft size={14} strokeWidth={1.75} />
                     </PageBtn>
-                    <span style={{ padding: '0 10px', color: C.text1 }}>
+                    <span style={{ padding: '0 10px', color: t.text1 }}>
                       {pageSafe} / {Math.ceil(TOTAL_FIRES / FIRE_PAGE_SIZE)}
                     </span>
                     <PageBtn
                       disabled={pageSafe >= Math.ceil(TOTAL_FIRES / FIRE_PAGE_SIZE)}
                       onClick={() => setPage(p => p + 1)}
+                      t={t} dark={dark}
                     >
                       <ChevronRight size={14} strokeWidth={1.75} />
                     </PageBtn>
@@ -393,22 +428,23 @@ export default function NotificationRuleDetailPage() {
                   errorCount={countRetriableErrors()}
                   onOpen={() => setBulkModalOpen(true)}
                   onReset={resetBulk}
+                  t={t} dark={dark}
                 />
               </div>
 
               <div style={{
-                background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px',
+                background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px',
                 overflow: 'hidden',
               }}>
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: F.inter }}>
                     <thead>
-                      <tr style={{ background: '#F9FAFB', borderBottom: `1px solid ${C.border}` }}>
-                        <Th width="112px">Дата</Th>
-                        <Th>Получатель</Th>
-                        <Th width="90px">Канал</Th>
-                        <Th>Ошибка / статус</Th>
-                        <Th width="220px" />
+                      <tr style={{ background: t.tableHeaderBg, borderBottom: `1px solid ${t.border}` }}>
+                        <Th width="112px" t={t}>Дата</Th>
+                        <Th t={t}>Получатель</Th>
+                        <Th width="90px" t={t}>Канал</Th>
+                        <Th t={t}>Ошибка / статус</Th>
+                        <Th width="220px" t={t} />
                       </tr>
                     </thead>
                     <tbody>
@@ -419,6 +455,7 @@ export default function NotificationRuleDetailPage() {
                           onStart={() => onRowRetryStart(r.id)}
                           onCancel={() => onRowRetryCancel(r.id)}
                           onConfirm={() => onRowRetryConfirm(r.id)}
+                          t={t} dark={dark}
                         />
                       ))}
                     </tbody>
@@ -434,28 +471,29 @@ export default function NotificationRuleDetailPage() {
             }}>
               {/* Bar chart */}
               <div style={cardStyle}>
-                <SectionHeading>Срабатывания за 30 дней</SectionHeading>
+                <SectionHeading t={t}>Срабатывания за 30 дней</SectionHeading>
                 <div style={{ width: '100%', height: '260px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={BAR_DATA} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                      <CartesianGrid vertical={false} stroke="#F3F4F6" />
+                      <CartesianGrid vertical={false} stroke={t.border} />
                       <XAxis
                         dataKey="day"
-                        tick={{ fontFamily: F.inter, fontSize: 11, fill: C.text3 }}
-                        tickLine={false} axisLine={{ stroke: C.border }}
+                        tick={{ fontFamily: F.inter, fontSize: 11, fill: t.text3 }}
+                        tickLine={false} axisLine={{ stroke: t.border }}
                       />
                       <YAxis
-                        tick={{ fontFamily: F.inter, fontSize: 11, fill: C.text3 }}
-                        tickLine={false} axisLine={{ stroke: C.border }}
+                        tick={{ fontFamily: F.inter, fontSize: 11, fill: t.text3 }}
+                        tickLine={false} axisLine={{ stroke: t.border }}
                       />
                       <Tooltip
-                        cursor={{ fill: 'rgba(37,99,235,0.06)' }}
+                        cursor={{ fill: dark ? 'rgba(59,130,246,0.12)' : 'rgba(37,99,235,0.06)' }}
                         contentStyle={{
                           fontFamily: F.inter, fontSize: '12px',
-                          borderRadius: '8px', border: `1px solid ${C.border}`,
+                          borderRadius: '8px', border: `1px solid ${t.border}`,
+                          background: t.surface, color: t.text1,
                         }}
                       />
-                      <Bar dataKey="count" fill={C.blue} radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="count" fill={t.blue} radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -463,7 +501,7 @@ export default function NotificationRuleDetailPage() {
 
               {/* Donut */}
               <div style={cardStyle}>
-                <SectionHeading>По каналам</SectionHeading>
+                <SectionHeading t={t}>По каналам</SectionHeading>
                 <div style={{
                   display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap',
                 }}>
@@ -471,11 +509,11 @@ export default function NotificationRuleDetailPage() {
                     <ResponsiveContainer width={180} height={180}>
                       <PieChart>
                         <Pie
-                          data={DONUT_DATA} cx="50%" cy="50%"
+                          data={donutData} cx="50%" cy="50%"
                           innerRadius={58} outerRadius={82}
-                          dataKey="value" strokeWidth={2} stroke={C.surface}
+                          dataKey="value" strokeWidth={2} stroke={t.surface}
                         >
-                          {DONUT_DATA.map((entry, i) => (
+                          {donutData.map((entry, i) => (
                             <Cell key={i} fill={entry.color} />
                           ))}
                         </Pie>
@@ -483,7 +521,8 @@ export default function NotificationRuleDetailPage() {
                           formatter={(v: any) => `${Number(v).toLocaleString()} срабатываний`}
                           contentStyle={{
                             fontFamily: F.inter, fontSize: '12px',
-                            borderRadius: '8px', border: `1px solid ${C.border}`,
+                            borderRadius: '8px', border: `1px solid ${t.border}`,
+                            background: t.surface, color: t.text1,
                           }}
                         />
                       </PieChart>
@@ -492,36 +531,36 @@ export default function NotificationRuleDetailPage() {
                       position: 'absolute', top: '50%', left: '50%',
                       transform: 'translate(-50%,-50%)', textAlign: 'center', pointerEvents: 'none',
                     }}>
-                      <div style={{ fontFamily: F.dm, fontSize: '20px', fontWeight: 600, color: C.text1, lineHeight: 1.1 }}>
+                      <div style={{ fontFamily: F.dm, fontSize: '20px', fontWeight: 600, color: t.text1, lineHeight: 1.1 }}>
                         694
                       </div>
-                      <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text3 }}>всего</div>
+                      <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text3 }}>всего</div>
                     </div>
                   </div>
 
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '160px' }}>
-                    {DONUT_DATA.map(item => (
+                    {donutData.map(item => (
                       <div key={item.name} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.color, flexShrink: 0 }} />
-                          <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{item.name}</span>
+                          <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{item.name}</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                          <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: C.text1 }}>
+                          <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: t.text1 }}>
                             {item.value}
                           </span>
-                          <span style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>{item.pct}%</span>
+                          <span style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4 }}>{item.pct}%</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div style={{ height: '1px', background: C.border, margin: '16px 0' }} />
+                <div style={{ height: '1px', background: t.border, margin: '16px 0' }} />
                 <div style={{
-                  fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1,
+                  fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1,
                 }}>
                   Средняя скорость прочтения: <span style={{ fontFamily: F.mono }}>3 мин 22 сек</span>
                 </div>
@@ -550,6 +589,7 @@ export default function NotificationRuleDetailPage() {
         title={baseRule.title}
         onClose={() => setDeleteOpen(false)}
         onConfirm={() => { setDeleteOpen(false); navigate('/notification-rules'); }}
+        t={t} dark={dark}
       />
 
       <BulkRetryModal
@@ -560,6 +600,7 @@ export default function NotificationRuleDetailPage() {
           .map(r => r.recipient)).size}
         onClose={() => setBulkModalOpen(false)}
         onConfirm={() => { startBulkRetry(); }}
+        t={t} dark={dark}
       />
 
       <style>{`
@@ -580,12 +621,12 @@ export default function NotificationRuleDetailPage() {
    CONFIG SUMMARY
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ConfigCell({ label, children }: { label: string; children: React.ReactNode }) {
+function ConfigCell({ label, children, t }: { label: string; children: React.ReactNode; t: T }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
       <span style={{
         fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-        color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+        color: t.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
       }}>
         {label}
       </span>
@@ -598,23 +639,33 @@ function ConfigCell({ label, children }: { label: string; children: React.ReactN
    STAT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatCard({ tone, icon: Icon, label, value, hint }: {
+const STAT_PALETTE_LIGHT = {
+  blue:  { bg: C.blueLt,    ring: '#BFDBFE', fg: C.blue    },
+  green: { bg: C.successBg, ring: '#A7F3D0', fg: C.success },
+  amber: { bg: C.warningBg, ring: '#FDE68A', fg: C.warning },
+  red:   { bg: C.errorBg,   ring: '#FECACA', fg: C.error   },
+};
+const STAT_PALETTE_DARK = {
+  blue:  { bg: D.blueLt,    ring: 'rgba(59,130,246,0.30)',  fg: D.blue    },
+  green: { bg: D.successBg, ring: 'rgba(52,211,153,0.30)',  fg: D.success },
+  amber: { bg: D.warningBg, ring: 'rgba(251,191,36,0.30)',  fg: D.warning },
+  red:   { bg: D.errorBg,   ring: 'rgba(248,113,113,0.30)', fg: D.error   },
+};
+
+function StatCard({ tone, icon: Icon, label, value, hint, t, dark }: {
   tone: 'blue' | 'green' | 'amber' | 'red';
   icon: React.ElementType;
   label: string;
   value: string;
   hint?: string;
+  t: T;
+  dark: boolean;
 }) {
-  const palette = {
-    blue:  { bg: C.blueLt,    ring: '#BFDBFE', fg: C.blue    },
-    green: { bg: C.successBg, ring: '#A7F3D0', fg: C.success },
-    amber: { bg: C.warningBg, ring: '#FDE68A', fg: C.warning },
-    red:   { bg: C.errorBg,   ring: '#FECACA', fg: C.error   },
-  }[tone];
+  const palette = (dark ? STAT_PALETTE_DARK : STAT_PALETTE_LIGHT)[tone];
 
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px',
+      background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px',
       padding: '16px', display: 'flex', alignItems: 'flex-start', gap: '12px',
     }}>
       <div style={{
@@ -625,17 +676,17 @@ function StatCard({ tone, icon: Icon, label, value, hint }: {
         <Icon size={18} color={palette.fg} strokeWidth={1.75} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+        <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
           {label}
         </div>
         <div style={{
           fontFamily: F.dm, fontSize: '22px', fontWeight: 700,
-          color: C.text1, lineHeight: 1.1, marginTop: '4px',
+          color: t.text1, lineHeight: 1.1, marginTop: '4px',
         }}>
           {value}
         </div>
         {hint && (
-          <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '3px' }}>
+          <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '3px' }}>
             {hint}
           </div>
         )}
@@ -648,8 +699,8 @@ function StatCard({ tone, icon: Icon, label, value, hint }: {
    TABS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function TabsBar({ active, onChange, errorCount }: {
-  active: TabId; onChange: (v: TabId) => void; errorCount: number;
+function TabsBar({ active, onChange, errorCount, t, dark }: {
+  active: TabId; onChange: (v: TabId) => void; errorCount: number; t: T; dark: boolean;
 }) {
   const items: { id: TabId; label: string; badge?: string }[] = [
     { id: 'log',    label: 'Лог срабатываний' },
@@ -658,7 +709,7 @@ function TabsBar({ active, onChange, errorCount }: {
   ];
   return (
     <div style={{
-      display: 'flex', gap: '4px', borderBottom: `1px solid ${C.border}`,
+      display: 'flex', gap: '4px', borderBottom: `1px solid ${t.border}`,
       marginBottom: '20px',
     }}>
       {items.map(item => {
@@ -670,12 +721,16 @@ function TabsBar({ active, onChange, errorCount }: {
             onClick={() => onChange(item.id)}
             style={{
               position: 'relative',
-              padding: '10px 14px', background: 'transparent', border: 'none',
+              padding: '10px 14px',
+              background: is ? t.blueLt : 'transparent',
+              border: 'none',
               fontFamily: F.inter, fontSize: '13px', fontWeight: is ? 600 : 500,
-              color: is ? C.text1 : C.text3, cursor: 'pointer',
+              color: is ? t.blue : t.text3, cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               marginBottom: '-1px',
-              borderBottom: `2px solid ${is ? C.blue : 'transparent'}`,
+              borderBottom: `2px solid ${is ? t.blue : 'transparent'}`,
+              borderTopLeftRadius: '6px', borderTopRightRadius: '6px',
+              transition: 'all 0.12s',
             }}
           >
             {item.label}
@@ -683,8 +738,8 @@ function TabsBar({ active, onChange, errorCount }: {
               <span style={{
                 fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                 padding: '1px 6px', borderRadius: '10px',
-                background: is ? C.errorBg : '#F3F4F6',
-                color: is ? C.error : C.text3,
+                background: is ? t.errorBg : (dark ? D.tableAlt : '#F3F4F6'),
+                color: is ? t.error : t.text3,
               }}>
                 {item.badge}
               </span>
@@ -700,45 +755,47 @@ function TabsBar({ active, onChange, errorCount }: {
    TABLE ROWS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FireRowView({ row }: { row: FireRow }) {
+function FireRowView({ row, t, dark }: { row: FireRow; t: T; dark: boolean }) {
   return (
-    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-      <Td><span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>{row.date}</span></Td>
-      <Td><span style={{ color: C.text2, fontSize: '13px' }}>{row.event}</span></Td>
-      <Td>
+    <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+      <Td t={t}><span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text1 }}>{row.date}</span></Td>
+      <Td t={t}><span style={{ color: t.text2, fontSize: '13px' }}>{row.event}</span></Td>
+      <Td t={t}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Avatar initials={row.initials} />
-          <span style={{ color: C.text1, fontWeight: 500 }}>{row.recipient}</span>
+          <Avatar initials={row.initials} t={t} />
+          <span style={{ color: t.text1, fontWeight: 500 }}>{row.recipient}</span>
         </div>
       </Td>
-      <Td><BlueBadge label={row.channel} /></Td>
-      <Td>
+      <Td t={t}><BlueBadge label={row.channel} t={t} /></Td>
+      <Td t={t}>
         {row.delivered
-          ? <SuccessBadge label="Доставлено" />
-          : <ErrorBadge   label="Ошибка" />}
+          ? <SuccessBadge label="Доставлено" t={t} dark={dark} />
+          : <ErrorRedBadge label="Ошибка" t={t} />}
       </Td>
-      <Td>
+      <Td t={t}>
         {row.readAt ? (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
-            fontFamily: F.inter, fontSize: '12px', color: C.text1,
+            fontFamily: F.inter, fontSize: '12px', color: t.text1,
           }}>
-            <Check size={13} strokeWidth={2.25} color={C.success} />
+            <Check size={13} strokeWidth={2.25} color={t.success} />
             <span style={{ fontFamily: F.mono }}>{row.readAt}</span>
           </span>
         ) : (
-          <span style={{ color: C.text4 }}>—</span>
+          <span style={{ color: t.text4 }}>—</span>
         )}
       </Td>
     </tr>
   );
 }
 
-function ErrorRowStateful({ row, onStart, onCancel, onConfirm }: {
+function ErrorRowStateful({ row, onStart, onCancel, onConfirm, t, dark }: {
   row: ErrorRow;
   onStart: () => void;
   onCancel: () => void;
   onConfirm: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const isSuccess = row.retryState === 'success';
   const isConfirming = row.retryState === 'confirming';
@@ -746,29 +803,37 @@ function ErrorRowStateful({ row, onStart, onCancel, onConfirm }: {
   const isFailed = row.retryState === 'failed';
   const isIdle = row.retryState === 'idle';
 
+  const successRowBg = dark ? 'rgba(52,211,153,0.07)' : 'rgba(16,185,129,0.04)';
+  const errorLeftColor = dark ? '#F87171' : C.error;
+  const showErrorLeft = isIdle || isFailed;
+
   return (
     <tr style={{
-      borderBottom: `1px solid ${C.border}`,
-      background: isSuccess ? 'rgba(16,185,129,0.04)' : isConfirming ? C.blueLt : 'transparent',
-      boxShadow: isConfirming ? `inset 3px 0 0 ${C.blue}` : undefined,
+      borderBottom: `1px solid ${t.border}`,
+      background: isSuccess ? successRowBg : isConfirming ? t.blueLt : t.surface,
+      boxShadow: isConfirming
+        ? `inset 3px 0 0 ${t.blue}`
+        : showErrorLeft
+          ? `inset 3px 0 0 ${errorLeftColor}`
+          : undefined,
       transition: 'background 0.2s, box-shadow 0.2s',
     }}>
-      <Td><span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>{row.date}</span></Td>
-      <Td>
+      <Td t={t}><span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text1 }}>{row.date}</span></Td>
+      <Td t={t}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Avatar initials={row.initials} />
-          <span style={{ color: C.text1, fontWeight: 500 }}>{row.recipient}</span>
+          <Avatar initials={row.initials} t={t} />
+          <span style={{ color: t.text1, fontWeight: 500 }}>{row.recipient}</span>
         </div>
       </Td>
-      <Td><BlueBadge label={row.channel} /></Td>
-      <Td>
+      <Td t={t}><BlueBadge label={row.channel} t={t} /></Td>
+      <Td t={t}>
         {isSuccess ? (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
           }}>
-            <SuccessBadge label="Доставлено" />
+            <SuccessBadge label="Доставлено" t={t} dark={dark} />
             {row.deliveredAt && (
-              <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text3 }}>
+              <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text3 }}>
                 {row.deliveredAt}
               </span>
             )}
@@ -779,38 +844,38 @@ function ErrorRowStateful({ row, onStart, onCancel, onConfirm }: {
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
               padding: '3px 8px', borderRadius: '10px',
-              background: C.errorBg, color: C.error,
+              background: t.errorBg, color: t.error,
             }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.error }} />
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.error }} />
               Ошибка{row.retryCount > 0 ? ` (${row.retryCount + 1})` : ''}
             </span>
-            <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+            <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
               {row.reason}
             </span>
           </div>
         )}
       </Td>
-      <Td>
+      <Td t={t}>
         {isIdle && (
-          <OutlineButton size="sm" icon={RefreshCw} onClick={onStart}>Повторить</OutlineButton>
+          <OutlineButton size="sm" icon={RefreshCw} onClick={onStart} t={t} dark={dark}>Повторить</OutlineButton>
         )}
         {isFailed && (
-          <OutlineButton size="sm" icon={RefreshCw} onClick={onStart}>Повторить</OutlineButton>
+          <OutlineButton size="sm" icon={RefreshCw} onClick={onStart} t={t} dark={dark}>Повторить</OutlineButton>
         )}
         {isConfirming && (
           <div style={{ display: 'inline-flex', gap: '6px' }}>
-            <GhostSmButton onClick={onCancel}>Отмена</GhostSmButton>
-            <PrimarySmButton onClick={onConfirm}>Да, повторить</PrimarySmButton>
+            <GhostSmButton onClick={onCancel} t={t} dark={dark}>Отмена</GhostSmButton>
+            <PrimarySmButton onClick={onConfirm} t={t} dark={dark}>Да, повторить</PrimarySmButton>
           </div>
         )}
         {isSending && (
-          <PrimarySmButton disabled icon={Loader2} spinning>Отправка…</PrimarySmButton>
+          <PrimarySmButton disabled icon={Loader2} spinning t={t} dark={dark}>Отправка…</PrimarySmButton>
         )}
         {isSuccess && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '6px',
             fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
-            color: C.success,
+            color: t.success,
           }}>
             <Check size={14} strokeWidth={2.25} />
             Повторено{row.deliveredAt ? ` · ${row.deliveredAt}` : ''}
@@ -825,12 +890,12 @@ function ErrorRowStateful({ row, onStart, onCancel, onConfirm }: {
    TABLE PRIMITIVES
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Th({ children, width }: { children?: React.ReactNode; width?: string }) {
+function Th({ children, width, t }: { children?: React.ReactNode; width?: string; t: T }) {
   return (
     <th style={{
       textAlign: 'left', padding: '10px 14px', width,
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-      color: C.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
       whiteSpace: 'nowrap',
     }}>
       {children}
@@ -838,22 +903,22 @@ function Th({ children, width }: { children?: React.ReactNode; width?: string })
   );
 }
 
-function Td({ children }: { children: React.ReactNode }) {
+function Td({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <td style={{
       padding: '12px 14px', fontFamily: F.inter, fontSize: '13px',
-      color: C.text1, verticalAlign: 'middle',
+      color: t.text1, verticalAlign: 'middle',
     }}>
       {children}
     </td>
   );
 }
 
-function Avatar({ initials }: { initials: string }) {
+function Avatar({ initials, t }: { initials: string; t: T }) {
   return (
     <div style={{
       width: '28px', height: '28px', borderRadius: '50%',
-      background: C.blueLt, color: C.blue,
+      background: t.blueLt, color: t.blue,
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexShrink: 0,
@@ -883,53 +948,54 @@ function StatusBadge({ label, bg, color, dot }: {
   );
 }
 
-function BlueBadge({ label }: { label: string }) {
+function BlueBadge({ label, t }: { label: string; t: T }) {
   return (
     <span style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 8px', borderRadius: '6px',
-      background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+      background: t.blueLt, color: t.blue, whiteSpace: 'nowrap',
     }}>
       {label}
     </span>
   );
 }
 
-function DefaultBadge({ label }: { label: string }) {
+function DefaultBadge({ label, t, dark }: { label: string; t: T; dark: boolean }) {
   return (
     <span style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 8px', borderRadius: '6px',
-      background: '#F3F4F6', color: C.text2, whiteSpace: 'nowrap',
+      background: dark ? D.tableAlt : '#F3F4F6',
+      color: t.text2, whiteSpace: 'nowrap',
     }}>
       {label}
     </span>
   );
 }
 
-function SuccessBadge({ label }: { label: string }) {
+function SuccessBadge({ label, t, dark }: { label: string; t: T; dark: boolean }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 8px', borderRadius: '10px',
-      background: C.successBg, color: '#15803D',
+      background: t.successBg, color: dark ? D.success : '#15803D',
     }}>
-      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.success }} />
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success }} />
       {label}
     </span>
   );
 }
 
-function ErrorBadge({ label }: { label: string }) {
+function ErrorRedBadge({ label, t }: { label: string; t: T }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 8px', borderRadius: '10px',
-      background: C.errorBg, color: C.error,
+      background: t.errorBg, color: t.error,
     }}>
-      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.error }} />
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.error }} />
       {label}
     </span>
   );
@@ -939,7 +1005,7 @@ function ErrorBadge({ label }: { label: string }) {
    SWITCH (LARGE)
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function LargeSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function LargeSwitch({ checked, onChange, t, dark }: { checked: boolean; onChange: () => void; t: T; dark: boolean }) {
   return (
     <button
       role="switch"
@@ -948,17 +1014,18 @@ function LargeSwitch({ checked, onChange }: { checked: boolean; onChange: () => 
       onClick={onChange}
       style={{
         width: '52px', height: '28px', borderRadius: '14px',
-        background: checked ? C.blue : '#D1D5DB',
+        background: checked ? t.blue : (dark ? D.tableHover : '#D1D5DB'),
         border: 'none', cursor: 'pointer', position: 'relative',
         transition: 'background 0.2s', flexShrink: 0,
       }}
     >
       <div style={{
         width: '22px', height: '22px', borderRadius: '50%',
-        background: C.surface, position: 'absolute', top: '3px',
+        background: dark ? '#F1F2F6' : C.surface,
+        position: 'absolute', top: '3px',
         left: checked ? '27px' : '3px',
         transition: 'left 0.2s',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+        boxShadow: dark ? '0 1px 3px rgba(0,0,0,0.5)' : '0 1px 3px rgba(0,0,0,0.2)',
       }} />
     </button>
   );
@@ -968,8 +1035,8 @@ function LargeSwitch({ checked, onChange }: { checked: boolean; onChange: () => 
    ACTION MENU
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ActionMenu({ onDuplicate, onDelete }: {
-  onDuplicate: () => void; onDelete: () => void;
+function ActionMenu({ onDuplicate, onDelete, t, dark }: {
+  onDuplicate: () => void; onDelete: () => void; t: T; dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } = usePopoverPosition();
   const [hov, setHov] = useState<string | null>(null);
@@ -984,10 +1051,10 @@ function ActionMenu({ onDuplicate, onDelete }: {
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         width: '100%', padding: '9px 12px',
-        background: hov === label ? (destructive ? C.errorBg : C.blueLt) : 'transparent',
+        background: hov === label ? (destructive ? t.errorBg : t.blueLt) : 'transparent',
         border: 'none', cursor: 'pointer',
         fontFamily: F.inter, fontSize: '13px',
-        color: destructive ? C.error : C.text2, textAlign: 'left',
+        color: destructive ? t.error : t.text2, textAlign: 'left',
         transition: 'background 0.1s',
       }}
     >
@@ -1004,14 +1071,14 @@ function ActionMenu({ onDuplicate, onDelete }: {
         aria-label="Действия"
         style={{
           width: '38px', height: '38px', borderRadius: '8px',
-          border: `1px solid ${open ? C.text3 : C.inputBorder}`,
-          background: open ? '#F3F4F6' : C.surface,
+          border: `1px solid ${open ? t.text3 : t.inputBorder}`,
+          background: open ? (dark ? D.tableHover : '#F3F4F6') : t.surface,
           cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'all 0.12s',
         }}
       >
-        <MoreVertical size={16} color={C.text3} />
+        <MoreVertical size={16} color={t.text3} />
       </button>
       {open && (
         <div
@@ -1019,15 +1086,15 @@ function ActionMenu({ onDuplicate, onDelete }: {
           style={{
             ...menuStyle,
             minWidth: '180px',
-            background: C.surface,
-            border: `1px solid ${C.border}`,
+            background: t.surface,
+            border: `1px solid ${t.border}`,
             borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(17,24,39,0.08)',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.08)',
             padding: '4px 0',
           }}
         >
           {item('Дублировать', Copy, onDuplicate)}
-          <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+          <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />
           {item('Удалить', Trash2, onDelete, true)}
         </div>
       )}
@@ -1039,11 +1106,13 @@ function ActionMenu({ onDuplicate, onDelete }: {
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, value, options, onChange }: {
+function FilterSelect({ label, value, options, onChange, t, dark }: {
   label: string;
   value: ChannelFilter;
   options: { value: ChannelFilter; label: string }[];
   onChange: (v: ChannelFilter) => void;
+  t: T;
+  dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
     usePopoverPosition({ alignRight: false });
@@ -1056,17 +1125,17 @@ function FilterSelect({ label, value, options, onChange }: {
         onClick={toggle}
         style={{
           height: '36px', padding: '0 12px',
-          border: `1px solid ${open ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
-          fontFamily: F.inter, fontSize: '13px', color: C.text1,
+          border: `1px solid ${open ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
+          fontFamily: F.inter, fontSize: '13px', color: t.text1,
           cursor: 'pointer',
           display: 'inline-flex', alignItems: 'center', gap: '8px',
           transition: 'border-color 0.12s',
         }}
       >
-        <span style={{ color: C.text3 }}>{label}:</span>
+        <span style={{ color: t.text3 }}>{label}:</span>
         <span style={{ fontWeight: 500 }}>{current}</span>
-        <ChevronRight size={13} style={{ transform: 'rotate(90deg)', marginLeft: '2px' }} color={C.text3} />
+        <ChevronRight size={13} style={{ transform: 'rotate(90deg)', marginLeft: '2px' }} color={t.text3} />
       </button>
       {open && (
         <div
@@ -1074,10 +1143,10 @@ function FilterSelect({ label, value, options, onChange }: {
           style={{
             ...menuStyle,
             minWidth: '180px',
-            background: C.surface,
-            border: `1px solid ${C.border}`,
+            background: t.surface,
+            border: `1px solid ${t.border}`,
             borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(17,24,39,0.08)',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.08)',
             padding: '4px 0',
           }}
         >
@@ -1088,10 +1157,10 @@ function FilterSelect({ label, value, options, onChange }: {
               onClick={() => { onChange(o.value); close(); }}
               style={{
                 display: 'flex', width: '100%', padding: '8px 12px', gap: '10px',
-                background: value === o.value ? C.blueLt : 'transparent',
+                background: value === o.value ? t.blueLt : 'transparent',
                 border: 'none', cursor: 'pointer',
                 fontFamily: F.inter, fontSize: '13px',
-                color: value === o.value ? C.blue : C.text2, textAlign: 'left',
+                color: value === o.value ? t.blue : t.text2, textAlign: 'left',
               }}
             >
               {o.label}
@@ -1107,17 +1176,17 @@ function FilterSelect({ label, value, options, onChange }: {
    SEARCH INPUT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function SearchInput({ value, onChange, t, dark }: { value: string; onChange: (v: string) => void; t: T; dark: boolean }) {
   const [focus, setFocus] = useState(false);
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: '8px',
       height: '36px', width: '260px', padding: '0 12px',
-      border: `1px solid ${focus ? C.blue : C.inputBorder}`,
-      borderRadius: '8px', background: C.surface,
+      border: `1px solid ${focus ? t.blue : t.inputBorder}`,
+      borderRadius: '8px', background: t.surface,
       transition: 'border-color 0.12s',
     }}>
-      <Search size={14} color={C.text3} strokeWidth={1.75} />
+      <Search size={14} color={t.text3} strokeWidth={1.75} />
       <input
         type="text"
         value={value}
@@ -1127,7 +1196,7 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
         placeholder="Поиск по событию или получателю…"
         style={{
           flex: 1, border: 'none', outline: 'none', background: 'transparent',
-          fontFamily: F.inter, fontSize: '13px', color: C.text1, minWidth: 0,
+          fontFamily: F.inter, fontSize: '13px', color: t.text1, minWidth: 0,
         }}
       />
     </div>
@@ -1138,18 +1207,21 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
    BUTTONS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function OutlineButton({ children, onClick, icon: Icon, size = 'md', disabled, spinning }: {
+function OutlineButton({ children, onClick, icon: Icon, size = 'md', disabled, spinning, t, dark }: {
   children: React.ReactNode;
   onClick?: () => void;
   icon?: React.ElementType;
   size?: 'sm' | 'md';
   disabled?: boolean;
   spinning?: boolean;
+  t: T;
+  dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   const h = size === 'sm' ? '30px' : '38px';
   const px = size === 'sm' ? '10px' : '16px';
   const fs = size === 'sm' ? '12px' : '13px';
+  const disabledBg = dark ? D.tableAlt : '#F9FAFB';
   return (
     <button
       type="button"
@@ -1159,11 +1231,11 @@ function OutlineButton({ children, onClick, icon: Icon, size = 'md', disabled, s
       onClick={onClick}
       style={{
         height: h, padding: `0 ${px}`,
-        border: `1px solid ${disabled ? C.border : (hov ? C.text3 : C.inputBorder)}`,
+        border: `1px solid ${disabled ? t.border : (hov ? t.text3 : t.inputBorder)}`,
         borderRadius: '8px',
-        background: disabled ? '#F9FAFB' : C.surface,
+        background: disabled ? disabledBg : (hov ? t.tableHover : t.surface),
         fontFamily: F.inter, fontSize: fs, fontWeight: 500,
-        color: disabled ? C.text3 : C.text1,
+        color: disabled ? t.text3 : t.text2,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         transition: 'all 0.12s', flexShrink: 0,
@@ -1179,14 +1251,17 @@ function OutlineButton({ children, onClick, icon: Icon, size = 'md', disabled, s
   );
 }
 
-function PrimarySmButton({ children, onClick, icon: Icon, disabled, spinning }: {
+function PrimarySmButton({ children, onClick, icon: Icon, disabled, spinning, t, dark }: {
   children: React.ReactNode;
   onClick?: () => void;
   icon?: React.ElementType;
   disabled?: boolean;
   spinning?: boolean;
+  t: T;
+  dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
+  const disabledBg = dark ? 'rgba(59,130,246,0.40)' : '#93C5FD';
   return (
     <button
       type="button"
@@ -1197,12 +1272,12 @@ function PrimarySmButton({ children, onClick, icon: Icon, disabled, spinning }: 
       style={{
         height: '30px', padding: '0 12px',
         border: 'none', borderRadius: '8px',
-        background: disabled ? '#93C5FD' : (hov ? C.blueHover : C.blue),
+        background: disabled ? disabledBg : (hov ? t.blueHover : t.blue),
         fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
         color: '#FFFFFF',
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
-        boxShadow: disabled ? 'none' : '0 1px 3px rgba(37,99,235,0.16)',
+        boxShadow: disabled ? 'none' : (dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 1px 3px rgba(37,99,235,0.16)'),
         transition: 'all 0.15s', flexShrink: 0,
       }}
     >
@@ -1216,9 +1291,11 @@ function PrimarySmButton({ children, onClick, icon: Icon, disabled, spinning }: 
   );
 }
 
-function GhostSmButton({ children, onClick }: {
+function GhostSmButton({ children, onClick, t, dark }: {
   children: React.ReactNode;
   onClick?: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1230,9 +1307,9 @@ function GhostSmButton({ children, onClick }: {
       style={{
         height: '30px', padding: '0 10px',
         border: 'none', borderRadius: '8px',
-        background: hov ? '#F3F4F6' : 'transparent',
+        background: hov ? (dark ? D.tableHover : '#F3F4F6') : 'transparent',
         fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
-        color: C.text2, cursor: 'pointer',
+        color: t.text2, cursor: 'pointer',
         transition: 'background 0.12s', flexShrink: 0,
       }}
     >
@@ -1241,10 +1318,11 @@ function GhostSmButton({ children, onClick }: {
   );
 }
 
-function PageBtn({ children, onClick, disabled }: {
-  children: React.ReactNode; onClick: () => void; disabled?: boolean;
+function PageBtn({ children, onClick, disabled, t, dark }: {
+  children: React.ReactNode; onClick: () => void; disabled?: boolean; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
+  const disabledBg = dark ? D.tableAlt : '#F9FAFB';
   return (
     <button
       type="button"
@@ -1254,10 +1332,10 @@ function PageBtn({ children, onClick, disabled }: {
       onMouseLeave={() => setHov(false)}
       style={{
         width: '32px', height: '32px', borderRadius: '8px',
-        border: `1px solid ${C.inputBorder}`,
-        background: disabled ? '#F9FAFB' : (hov ? '#F3F4F6' : C.surface),
+        border: `1px solid ${t.inputBorder}`,
+        background: disabled ? disabledBg : (hov ? (dark ? D.tableHover : '#F3F4F6') : t.surface),
         cursor: disabled ? 'not-allowed' : 'pointer',
-        color: disabled ? C.text4 : C.text2,
+        color: disabled ? t.text4 : t.text2,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.12s',
       }}
@@ -1268,24 +1346,22 @@ function PageBtn({ children, onClick, disabled }: {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   DELETE CONFIRM
-═══════════════════════════════════════════════════════════════════════════ */
-
-/* ═══════════════════════════════════════════════════════════════════════════
    BULK RETRY — HEADER CONTROL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function BulkHeaderControl({ bulkState, progress, result, errorCount, onOpen, onReset }: {
+function BulkHeaderControl({ bulkState, progress, result, errorCount, onOpen, onReset, t, dark }: {
   bulkState: 'idle' | 'running' | 'done';
   progress: { current: number; total: number };
   result: { success: number; failed: number } | null;
   errorCount: number;
   onOpen: () => void;
   onReset: () => void;
+  t: T;
+  dark: boolean;
 }) {
   if (bulkState === 'running') {
     return (
-      <OutlineButton icon={Loader2} spinning disabled>
+      <OutlineButton icon={Loader2} spinning disabled t={t} dark={dark}>
         Повторяем… {progress.current}/{progress.total}
       </OutlineButton>
     );
@@ -1294,28 +1370,28 @@ function BulkHeaderControl({ bulkState, progress, result, errorCount, onOpen, on
   if (bulkState === 'done' && result) {
     return (
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-        <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1 }}>
+        <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text1 }}>
           Повторено:
         </span>
-        <SuccessBadge label={`${result.success} успешно`} />
+        <SuccessBadge label={`${result.success} успешно`} t={t} dark={dark} />
         {result.failed > 0 && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '5px',
             fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
             padding: '3px 8px', borderRadius: '10px',
-            background: C.errorBg, color: C.error,
+            background: t.errorBg, color: t.error,
           }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.error }} />
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.error }} />
             {result.failed} ошибка
           </span>
         )}
-        <GhostSmButton onClick={onReset}>Готово</GhostSmButton>
+        <GhostSmButton onClick={onReset} t={t} dark={dark}>Готово</GhostSmButton>
       </div>
     );
   }
 
   return (
-    <OutlineButton icon={RefreshCw} disabled={errorCount === 0} onClick={onOpen}>
+    <OutlineButton icon={RefreshCw} disabled={errorCount === 0} onClick={onOpen} t={t} dark={dark}>
       Повторить все ошибки ({errorCount})
     </OutlineButton>
   );
@@ -1325,12 +1401,14 @@ function BulkHeaderControl({ bulkState, progress, result, errorCount, onOpen, on
    BULK RETRY — CONFIRMATION MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function BulkRetryModal({ open, count, recipientCount, onClose, onConfirm }: {
+function BulkRetryModal({ open, count, recipientCount, onClose, onConfirm, t, dark }: {
   open: boolean;
   count: number;
   recipientCount: number;
   onClose: () => void;
   onConfirm: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
   const [cancelHov, setCancelHov] = useState(false);
@@ -1345,11 +1423,13 @@ function BulkRetryModal({ open, count, recipientCount, onClose, onConfirm }: {
 
   if (!open) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        position: 'fixed', inset: 0, background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -1358,18 +1438,19 @@ function BulkRetryModal({ open, count, recipientCount, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '480px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '12px',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
         }}
       >
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <RefreshCw size={20} color={C.blue} strokeWidth={1.75} />
+          <RefreshCw size={20} color={t.blue} strokeWidth={1.75} />
           <h2 style={{
-            flex: 1, margin: 0, fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            flex: 1, margin: 0, fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Повторить отправку
           </h2>
@@ -1381,30 +1462,30 @@ function BulkRetryModal({ open, count, recipientCount, onClose, onConfirm }: {
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? (dark ? D.tableHover : '#F3F4F6') : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
         <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, lineHeight: 1.5 }}>
+          <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, lineHeight: 1.5 }}>
             Повторить отправку для <span style={{ fontWeight: 500 }}>{count}</span> неудачных уведомлений?
           </div>
-          <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+          <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
             Push: {count} уведомления · {recipientCount} получателя
           </div>
-          <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>
+          <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4 }}>
             Повторная отправка может занять до 30 секунд.
           </div>
         </div>
 
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '14px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '14px 20px', borderTop: `1px solid ${t.border}`,
         }}>
           <button
             type="button"
@@ -1413,10 +1494,10 @@ function BulkRetryModal({ open, count, recipientCount, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 16px',
-              border: `1px solid ${cancelHov ? C.text3 : C.inputBorder}`,
-              borderRadius: '8px', background: C.surface,
+              border: `1px solid ${cancelHov ? t.text3 : t.inputBorder}`,
+              borderRadius: '8px', background: t.surface,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer', transition: 'all 0.12s',
+              color: t.text1, cursor: 'pointer', transition: 'all 0.12s',
             }}
           >
             Отмена
@@ -1429,11 +1510,13 @@ function BulkRetryModal({ open, count, recipientCount, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 16px',
               border: 'none', borderRadius: '8px',
-              background: confirmHov ? C.blueHover : C.blue,
+              background: confirmHov ? t.blueHover : t.blue,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              boxShadow: confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+              boxShadow: dark
+                ? '0 2px 8px rgba(0,0,0,0.3)'
+                : (confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)'),
               transition: 'all 0.15s',
             }}
           >
@@ -1446,8 +1529,8 @@ function BulkRetryModal({ open, count, recipientCount, onClose, onConfirm }: {
   );
 }
 
-function DeleteConfirm({ open, title, onClose, onConfirm }: {
-  open: boolean; title: string; onClose: () => void; onConfirm: () => void;
+function DeleteConfirm({ open, title, onClose, onConfirm, t, dark }: {
+  open: boolean; title: string; onClose: () => void; onConfirm: () => void; t: T; dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
   const [cancelHov, setCancelHov] = useState(false);
@@ -1462,11 +1545,13 @@ function DeleteConfirm({ open, title, onClose, onConfirm }: {
 
   if (!open) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        position: 'fixed', inset: 0, background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -1475,18 +1560,19 @@ function DeleteConfirm({ open, title, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '440px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '12px',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
         }}
       >
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <Trash2 size={20} color={C.error} strokeWidth={1.75} />
+          <Trash2 size={20} color={t.error} strokeWidth={1.75} />
           <h2 style={{
-            flex: 1, margin: 0, fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            flex: 1, margin: 0, fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Удалить правило
           </h2>
@@ -1498,18 +1584,18 @@ function DeleteConfirm({ open, title, onClose, onConfirm }: {
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? (dark ? D.tableHover : '#F3F4F6') : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
         <div style={{ padding: '18px 20px' }}>
           <div style={{
-            fontFamily: F.inter, fontSize: '13px', color: C.text1, lineHeight: 1.5,
+            fontFamily: F.inter, fontSize: '13px', color: t.text1, lineHeight: 1.5,
           }}>
             Удалить правило «<span style={{ fontWeight: 500 }}>{title}</span>»? Срабатывания будут остановлены. Действие нельзя отменить.
           </div>
@@ -1517,7 +1603,7 @@ function DeleteConfirm({ open, title, onClose, onConfirm }: {
 
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '14px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '14px 20px', borderTop: `1px solid ${t.border}`,
         }}>
           <button
             type="button"
@@ -1526,10 +1612,10 @@ function DeleteConfirm({ open, title, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 16px',
-              border: `1px solid ${cancelHov ? C.text3 : C.inputBorder}`,
-              borderRadius: '8px', background: C.surface,
+              border: `1px solid ${cancelHov ? t.text3 : t.inputBorder}`,
+              borderRadius: '8px', background: t.surface,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer', transition: 'all 0.12s',
+              color: t.text1, cursor: 'pointer', transition: 'all 0.12s',
             }}
           >
             Отмена
@@ -1542,11 +1628,13 @@ function DeleteConfirm({ open, title, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 16px',
               border: 'none', borderRadius: '8px',
-              background: confirmHov ? '#DC2626' : C.error,
+              background: confirmHov ? (dark ? '#DC2626' : '#DC2626') : t.error,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              boxShadow: confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)',
+              boxShadow: dark
+                ? '0 2px 8px rgba(0,0,0,0.3)'
+                : (confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)'),
               transition: 'all 0.15s',
             }}
           >
@@ -1563,22 +1651,13 @@ function DeleteConfirm({ open, title, onClose, onConfirm }: {
    HELPERS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function SectionHeading({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <h3 style={{
       margin: '0 0 14px', fontFamily: F.dm, fontSize: '14px', fontWeight: 600,
-      color: C.text1,
+      color: t.text1,
     }}>
       {children}
     </h3>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: C.surface, border: `1px solid ${C.border}`,
-  borderRadius: '12px', padding: '20px',
-};
-
-const crumbLink: React.CSSProperties = {
-  fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer',
-};

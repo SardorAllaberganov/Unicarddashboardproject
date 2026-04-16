@@ -1,18 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import {
   ChevronRight, ChevronLeft, ChevronDown, Search, Download, Check,
-  Bell, CheckCircle2, Clock, XCircle, Inbox, AlertTriangle,
+  Bell, CheckCircle2, Clock, XCircle, Inbox,
   RefreshCw, Info,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { EmptyState } from '../components/EmptyState';
 import { useExportToast } from '../components/useExportToast';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -117,10 +119,10 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   BADGES
+   BADGES — light + dark sibling maps
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const TYPE_STYLES: Record<EventType, { bg: string; fg: string; outline?: boolean }> = {
+const TYPE_STYLES_LIGHT: Record<EventType, { bg: string; fg: string; outline?: boolean }> = {
   'KPI':         { bg: C.blueLt,     fg: C.blue },
   'Финансы':     { bg: C.warningBg,  fg: '#B45309' },
   'Карты':       { bg: C.infoBg,     fg: '#0E7490' },
@@ -128,41 +130,57 @@ const TYPE_STYLES: Record<EventType, { bg: string; fg: string; outline?: boolean
   'Объявление':  { bg: 'transparent', fg: C.text2, outline: true },
 };
 
-function TypeBadge({ type }: { type: EventType }) {
-  const s = TYPE_STYLES[type];
+const TYPE_STYLES_DARK: Record<EventType, { bg: string; fg: string; outline?: boolean }> = {
+  'KPI':         { bg: 'rgba(59,130,246,0.15)',  fg: '#3B82F6' },
+  'Финансы':     { bg: 'rgba(251,191,36,0.12)',  fg: '#FBBF24' },
+  'Карты':       { bg: 'rgba(34,211,238,0.12)',  fg: '#22D3EE' },
+  'Система':     { bg: D.tableAlt,                fg: D.text2 },
+  'Объявление':  { bg: 'transparent',             fg: D.text2, outline: true },
+};
+
+function TypeBadge({ type, t, dark }: { type: EventType; t: T; dark: boolean }) {
+  const s = (dark ? TYPE_STYLES_DARK : TYPE_STYLES_LIGHT)[type];
   const short = type === 'Объявление' ? 'Объявл.' : type;
   return (
     <span style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 8px', borderRadius: '6px',
       background: s.bg, color: s.fg, whiteSpace: 'nowrap',
-      border: s.outline ? `1px solid ${C.inputBorder}` : 'none',
+      border: s.outline ? `1px solid ${t.inputBorder}` : 'none',
     }}>
       {short}
     </span>
   );
 }
 
-function ChannelBadge({ label }: { label: Channel }) {
+function ChannelBadge({ label, t, dark }: { label: Channel; t: T; dark: boolean }) {
+  const bg = dark ? 'rgba(59,130,246,0.15)' : C.blueLt;
+  const fg = dark ? '#3B82F6' : C.blue;
   return (
     <span style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 8px', borderRadius: '6px',
-      background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+      background: bg, color: fg, whiteSpace: 'nowrap',
     }}>
       {label}
     </span>
   );
 }
 
-const DELIVERY_STYLES: Record<Delivery, { bg: string; fg: string; dot: string; label: string }> = {
+const DELIVERY_STYLES_LIGHT: Record<Delivery, { bg: string; fg: string; dot: string; label: string }> = {
   delivered: { bg: C.successBg, fg: '#15803D', dot: C.success, label: 'Доставлено' },
   queued:    { bg: C.warningBg, fg: '#B45309', dot: C.warning, label: 'В очереди' },
   error:     { bg: C.errorBg,   fg: '#DC2626', dot: C.error,   label: 'Ошибка' },
 };
 
-function DeliveryBadge({ status }: { status: Delivery }) {
-  const s = DELIVERY_STYLES[status];
+const DELIVERY_STYLES_DARK: Record<Delivery, { bg: string; fg: string; dot: string; label: string }> = {
+  delivered: { bg: 'rgba(52,211,153,0.12)',  fg: '#34D399', dot: '#34D399', label: 'Доставлено' },
+  queued:    { bg: 'rgba(251,191,36,0.12)',  fg: '#FBBF24', dot: '#FBBF24', label: 'В очереди' },
+  error:     { bg: 'rgba(248,113,113,0.12)', fg: '#F87171', dot: '#F87171', label: 'Ошибка' },
+};
+
+function DeliveryBadge({ status, dark }: { status: Delivery; dark: boolean }) {
+  const s = (dark ? DELIVERY_STYLES_DARK : DELIVERY_STYLES_LIGHT)[status];
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -182,36 +200,44 @@ function DeliveryBadge({ status }: { status: Delivery }) {
 
 type Tone = 'blue' | 'green' | 'amber' | 'red';
 
-const STAT_TONES: Record<Tone, { bg: string; fg: string }> = {
+const STAT_TONES_LIGHT: Record<Tone, { bg: string; fg: string }> = {
   blue:  { bg: C.blueLt,     fg: C.blue },
   green: { bg: C.successBg,  fg: C.success },
   amber: { bg: C.warningBg,  fg: C.warning },
   red:   { bg: C.errorBg,    fg: C.error },
 };
 
-function StatCard({ icon: Icon, tone, label, value }: {
+const STAT_TONES_DARK: Record<Tone, { bg: string; fg: string }> = {
+  blue:  { bg: 'rgba(59,130,246,0.15)',  fg: '#3B82F6' },
+  green: { bg: 'rgba(52,211,153,0.15)',  fg: '#34D399' },
+  amber: { bg: 'rgba(251,191,36,0.15)',  fg: '#FBBF24' },
+  red:   { bg: 'rgba(248,113,113,0.15)', fg: '#F87171' },
+};
+
+function StatCard({ icon: Icon, tone, label, value, t, dark }: {
   icon: React.ElementType; tone: Tone; label: string; value: string;
+  t: T; dark: boolean;
 }) {
-  const t = STAT_TONES[tone];
+  const tc = (dark ? STAT_TONES_DARK : STAT_TONES_LIGHT)[tone];
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', padding: '20px',
       display: 'flex', flexDirection: 'column', gap: '14px',
       flex: '1 1 0', minWidth: 0,
     }}>
       <div style={{
         width: '40px', height: '40px', borderRadius: '10px',
-        background: t.bg,
+        background: tc.bg,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <Icon size={20} color={t.fg} strokeWidth={2} />
+        <Icon size={20} color={tc.fg} strokeWidth={2} />
       </div>
       <div>
-        <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginBottom: '6px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginBottom: '6px' }}>
           {label}
         </div>
-        <div style={{ fontFamily: F.dm, fontSize: '26px', fontWeight: 700, color: C.text1, lineHeight: 1 }}>
+        <div style={{ fontFamily: F.dm, fontSize: '26px', fontWeight: 700, color: t.text1, lineHeight: 1 }}>
           {value}
         </div>
       </div>
@@ -223,15 +249,19 @@ function StatCard({ icon: Icon, tone, label, value }: {
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect<T extends string>({ label, value, options, onChange }: {
+function FilterSelect<V extends string>({ label, value, options, onChange, t, dark }: {
   label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
+  value: V;
+  options: { value: V; label: string }[];
+  onChange: (v: V) => void;
+  t: T;
+  dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
     usePopoverPosition({ alignRight: false });
   const current = options.find(o => o.value === value);
+  const menuShadow = dark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(17,24,39,0.12)';
+  const hoverBg = dark ? D.tableHover : C.blueLt;
   return (
     <div ref={rootRef}>
       <button
@@ -240,16 +270,16 @@ function FilterSelect<T extends string>({ label, value, options, onChange }: {
         onClick={toggle}
         style={{
           height: '36px', padding: '0 12px',
-          border: `1px solid ${open ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
+          border: `1px solid ${open ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
           display: 'inline-flex', alignItems: 'center', gap: '6px',
-          fontFamily: F.inter, fontSize: '13px', color: C.text1,
+          fontFamily: F.inter, fontSize: '13px', color: t.text1,
           cursor: 'pointer', transition: 'border-color 0.12s',
         }}
       >
-        <span style={{ color: C.text3 }}>{label}:</span>
+        <span style={{ color: t.text3 }}>{label}:</span>
         <span style={{ fontWeight: 500 }}>{current?.label}</span>
-        <ChevronDown size={14} color={C.text3} strokeWidth={1.75} />
+        <ChevronDown size={14} color={t.text3} strokeWidth={1.75} />
       </button>
       {open && (
         <div
@@ -257,8 +287,8 @@ function FilterSelect<T extends string>({ label, value, options, onChange }: {
           style={{
             ...menuStyle,
             minWidth: '160px',
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: '8px', boxShadow: '0 8px 24px rgba(17,24,39,0.12)',
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: '8px', boxShadow: menuShadow,
             padding: '4px 0',
           }}
         >
@@ -271,14 +301,16 @@ function FilterSelect<T extends string>({ label, value, options, onChange }: {
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '8px 12px', border: 'none',
-                  background: sel ? C.blueLt : 'transparent',
+                  background: sel ? (dark ? D.blueLt : C.blueLt) : 'transparent',
                   fontFamily: F.inter, fontSize: '13px',
-                  color: sel ? C.blue : C.text1,
+                  color: sel ? t.blue : t.text1,
                   cursor: 'pointer', textAlign: 'left',
                 }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = hoverBg; }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent'; }}
               >
                 {o.label}
-                {sel && <Check size={14} strokeWidth={2} color={C.blue} />}
+                {sel && <Check size={14} strokeWidth={2} color={t.blue} />}
               </button>
             );
           })}
@@ -295,6 +327,8 @@ function FilterSelect<T extends string>({ label, value, options, onChange }: {
 export default function NotificationDeliveryLogPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all');
@@ -305,6 +339,8 @@ export default function NotificationDeliveryLogPage() {
   const [rows, setRows] = useState<LogRow[]>(SEED_ROWS);
   const navigate = useNavigate();
   const exportToast = useExportToast();
+
+  const headerRowBg = dark ? D.tableHeaderBg : '#F9FAFB';
 
   const retryRow = (id: number) => {
     setRows(prev => prev.map(r => r.id === id
@@ -341,8 +377,12 @@ export default function NotificationDeliveryLogPage() {
     });
   };
 
+  const crumbLink: React.CSSProperties = {
+    fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer',
+  };
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar
         role="bank"
         collapsed={sidebarCollapsed}
@@ -358,8 +398,8 @@ export default function NotificationDeliveryLogPage() {
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span onClick={() => navigate('/dashboard')} style={crumbLink}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Лог доставки</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Лог доставки</span>
           </div>
 
           {/* Top bar */}
@@ -368,14 +408,14 @@ export default function NotificationDeliveryLogPage() {
             gap: '16px', marginBottom: '20px', flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Лог доставки уведомлений
               </h1>
-              <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
+              <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '6px' }}>
                 Все уведомления системы с состоянием доставки
               </div>
             </div>
-            <OutlineButton icon={Download} onClick={handleExport}>Экспорт</OutlineButton>
+            <OutlineButton icon={Download} onClick={handleExport} t={t} dark={dark}>Экспорт</OutlineButton>
           </div>
 
           {/* Stat cards */}
@@ -383,10 +423,10 @@ export default function NotificationDeliveryLogPage() {
             display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
             marginBottom: '20px',
           }}>
-            <StatCard icon={Bell}         tone="blue"  label="Всего за период"  value={fmtNum(TOTAL_COUNT)} />
-            <StatCard icon={CheckCircle2} tone="green" label="Доставлено"        value={`${fmtNum(DELIVERED_COUNT)} (${pctStr(DELIVERED_COUNT, TOTAL_COUNT)}%)`} />
-            <StatCard icon={Clock}        tone="amber" label="В очереди"         value={fmtNum(QUEUED_COUNT)} />
-            <StatCard icon={XCircle}      tone="red"   label="Ошибки доставки"   value={`${fmtNum(ERROR_COUNT)} (${pctStr(ERROR_COUNT, TOTAL_COUNT)}%)`} />
+            <StatCard icon={Bell}         tone="blue"  label="Всего за период"  value={fmtNum(TOTAL_COUNT)}                                           t={t} dark={dark} />
+            <StatCard icon={CheckCircle2} tone="green" label="Доставлено"        value={`${fmtNum(DELIVERED_COUNT)} (${pctStr(DELIVERED_COUNT, TOTAL_COUNT)}%)`} t={t} dark={dark} />
+            <StatCard icon={Clock}        tone="amber" label="В очереди"         value={fmtNum(QUEUED_COUNT)}                                          t={t} dark={dark} />
+            <StatCard icon={XCircle}      tone="red"   label="Ошибки доставки"   value={`${fmtNum(ERROR_COUNT)} (${pctStr(ERROR_COUNT, TOTAL_COUNT)}%)`}         t={t} dark={dark} />
           </div>
 
           {/* Filter bar */}
@@ -394,29 +434,29 @@ export default function NotificationDeliveryLogPage() {
             display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
             marginBottom: '16px',
           }}>
-            <SearchInput value={query} onChange={setQuery} />
-            <FilterSelect label="Тип"    value={typeFilter}    options={TYPE_OPTIONS}    onChange={setTypeFilter} />
-            <FilterSelect label="Канал"  value={channelFilter} options={CHANNEL_OPTIONS} onChange={setChannelFilter} />
-            <FilterSelect label="Статус" value={statusFilter}  options={STATUS_OPTIONS}  onChange={setStatusFilter} />
+            <SearchInput value={query} onChange={setQuery} t={t} />
+            <FilterSelect label="Тип"    value={typeFilter}    options={TYPE_OPTIONS}    onChange={setTypeFilter}    t={t} dark={dark} />
+            <FilterSelect label="Канал"  value={channelFilter} options={CHANNEL_OPTIONS} onChange={setChannelFilter} t={t} dark={dark} />
+            <FilterSelect label="Статус" value={statusFilter}  options={STATUS_OPTIONS}  onChange={setStatusFilter}  t={t} dark={dark} />
             <DateRangePicker value={dateRange} onChange={setDateRange} />
           </div>
 
           {/* Table */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px',
+            background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px',
             overflow: 'hidden',
           }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: F.inter }}>
                 <thead>
-                  <tr style={{ background: '#F9FAFB', borderBottom: `1px solid ${C.border}` }}>
-                    <Th width="130px">Дата</Th>
-                    <Th width="100px">Тип</Th>
-                    <Th>Событие</Th>
-                    <Th>Получатель</Th>
-                    <Th width="100px">Канал</Th>
-                    <Th width="150px">Статус доставки</Th>
-                    <Th width="120px">Прочитано</Th>
+                  <tr style={{ background: headerRowBg, borderBottom: `1px solid ${t.border}` }}>
+                    <Th width="130px" t={t}>Дата</Th>
+                    <Th width="100px" t={t}>Тип</Th>
+                    <Th t={t}>Событие</Th>
+                    <Th t={t}>Получатель</Th>
+                    <Th width="100px" t={t}>Канал</Th>
+                    <Th width="150px" t={t}>Статус доставки</Th>
+                    <Th width="120px" t={t}>Прочитано</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -440,9 +480,11 @@ export default function NotificationDeliveryLogPage() {
                           if (r.status !== 'error') return;
                           setExpandedId(id => id === r.id ? null : r.id);
                         }}
+                        t={t}
+                        dark={dark}
                       />
                       {r.status === 'error' && expandedId === r.id && (
-                        <ErrorDetailRow row={r} onRetry={() => retryRow(r.id)} />
+                        <ErrorDetailRow row={r} onRetry={() => retryRow(r.id)} t={t} dark={dark} />
                       )}
                     </React.Fragment>
                   ))}
@@ -453,8 +495,8 @@ export default function NotificationDeliveryLogPage() {
             {/* Pagination */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '12px 16px', borderTop: `1px solid ${C.border}`,
-              fontFamily: F.inter, fontSize: '13px', color: C.text3,
+              padding: '12px 16px', borderTop: `1px solid ${t.border}`,
+              fontFamily: F.inter, fontSize: '13px', color: t.text3,
             }}>
               <div>
                 {filtered.length === 0
@@ -462,13 +504,13 @@ export default function NotificationDeliveryLogPage() {
                   : `Показано ${(pageSafe - 1) * PAGE_SIZE + 1}–${Math.min(pageSafe * PAGE_SIZE, filtered.length)} из ${fmtNum(TOTAL_COUNT)}`}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <PageBtn disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                <PageBtn disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} t={t}>
                   <ChevronLeft size={14} strokeWidth={1.75} />
                 </PageBtn>
-                <span style={{ padding: '0 10px', fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+                <span style={{ padding: '0 10px', fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>
                   {pageSafe} / {pageCount}
                 </span>
-                <PageBtn disabled={pageSafe >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                <PageBtn disabled={pageSafe >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))} t={t}>
                   <ChevronRight size={14} strokeWidth={1.75} />
                 </PageBtn>
               </div>
@@ -492,11 +534,18 @@ export default function NotificationDeliveryLogPage() {
    ROW
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function LogRowView({ row, expanded, onToggle }: {
-  row: LogRow; expanded: boolean; onToggle: () => void;
+function LogRowView({ row, expanded, onToggle, t, dark }: {
+  row: LogRow; expanded: boolean; onToggle: () => void; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   const isError = row.status === 'error';
+
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
+  const errorHoverBg = dark ? 'rgba(248,113,113,0.08)' : C.errorBg;
+  const errorEdge = dark ? '#F87171' : C.error;
+  const avatarBg = dark ? 'rgba(59,130,246,0.15)' : C.blueLt;
+  const avatarFg = dark ? '#3B82F6' : C.blue;
+  const successColor = dark ? '#34D399' : C.success;
 
   return (
     <tr
@@ -504,49 +553,49 @@ function LogRowView({ row, expanded, onToggle }: {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        borderBottom: `1px solid ${expanded ? 'transparent' : C.border}`,
+        borderBottom: `1px solid ${expanded ? 'transparent' : t.border}`,
         cursor: isError ? 'pointer' : 'default',
-        background: hov && isError ? C.errorBg : hov ? '#F9FAFB' : 'transparent',
-        boxShadow: isError ? `inset 3px 0 0 ${C.error}` : 'none',
+        background: hov && isError ? errorHoverBg : hov ? hoverBg : 'transparent',
+        boxShadow: isError ? `inset 3px 0 0 ${errorEdge}` : 'none',
         transition: 'background 0.1s',
       }}
     >
-      <Td><span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>{row.date}</span></Td>
-      <Td><TypeBadge type={row.type} /></Td>
-      <Td><span style={{ color: C.text1 }}>{row.event}</span></Td>
-      <Td>
+      <Td t={t}><span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text1 }}>{row.date}</span></Td>
+      <Td t={t}><TypeBadge type={row.type} t={t} dark={dark} /></Td>
+      <Td t={t}><span style={{ color: t.text1 }}>{row.event}</span></Td>
+      <Td t={t}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{
             width: '28px', height: '28px', borderRadius: '50%',
-            background: C.blueLt, color: C.blue,
+            background: avatarBg, color: avatarFg,
             fontFamily: F.inter, fontSize: '10px', fontWeight: 600,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
             {row.initials}
           </div>
-          <span style={{ color: C.text1 }}>{row.recipient}</span>
+          <span style={{ color: t.text1 }}>{row.recipient}</span>
         </div>
       </Td>
-      <Td><ChannelBadge label={row.channel} /></Td>
-      <Td><DeliveryBadge status={row.status} /></Td>
-      <Td>
+      <Td t={t}><ChannelBadge label={row.channel} t={t} dark={dark} /></Td>
+      <Td t={t}><DeliveryBadge status={row.status} dark={dark} /></Td>
+      <Td t={t}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
           {row.readAt
             ? (
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: '5px',
-                fontFamily: F.inter, fontSize: '12px', color: C.text1,
+                fontFamily: F.inter, fontSize: '12px', color: t.text1,
               }}>
-                <Check size={12} strokeWidth={2.5} color={C.success} />
+                <Check size={12} strokeWidth={2.5} color={successColor} />
                 <span style={{ fontFamily: F.mono }}>{row.readAt}</span>
               </span>
             )
-            : <span style={{ color: C.text4 }}>—</span>}
+            : <span style={{ color: t.text4 }}>—</span>}
           {isError && (
             <ChevronDown
               size={14}
-              color={C.text3}
+              color={t.text3}
               strokeWidth={1.75}
               style={{
                 transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -561,18 +610,25 @@ function LogRowView({ row, expanded, onToggle }: {
   );
 }
 
-function ErrorDetailRow({ row, onRetry }: { row: LogRow; onRetry: () => void }) {
+function ErrorDetailRow({ row, onRetry, t, dark }: { row: LogRow; onRetry: () => void; t: T; dark: boolean }) {
   const d = row.errorDetail;
   const fallbackTitle = row.error ?? 'Не удалось доставить';
   const title = d?.title ?? fallbackTitle;
 
+  const panelBg = dark ? 'rgba(248,113,113,0.06)' : '#FEF7F7';
+  const panelBorder = dark ? 'rgba(248,113,113,0.25)' : t.border;
+  const errorEdge = dark ? '#F87171' : C.error;
+  const titleColor = dark ? '#F87171' : C.error;
+  const dividerColor = dark ? 'rgba(248,113,113,0.25)' : '#FECACA';
+  const infoColor = dark ? '#22D3EE' : C.info;
+
   return (
-    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-      <td colSpan={7} style={{ padding: '0 20px 16px 24px', background: C.surface }}>
+    <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+      <td colSpan={7} style={{ padding: '0 20px 16px 24px', background: t.surface }}>
         <div style={{
-          border: `1px solid ${C.border}`,
-          borderLeft: `3px solid ${C.error}`,
-          background: '#FEF7F7',
+          border: `1px solid ${panelBorder}`,
+          borderLeft: `3px solid ${errorEdge}`,
+          background: panelBg,
           borderRadius: '10px',
           padding: '16px',
         }}>
@@ -581,32 +637,32 @@ function ErrorDetailRow({ row, onRetry }: { row: LogRow; onRetry: () => void }) 
           }}>
             {/* LEFT — details */}
             <div style={{ minWidth: 0 }}>
-              <DetailHeading>Детали ошибки</DetailHeading>
+              <DetailHeading t={t}>Детали ошибки</DetailHeading>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <KVPair label="Ошибка">
+                <KVPair label="Ошибка" t={t}>
                   <span style={{
                     fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                    color: C.error, lineHeight: 1.4,
+                    color: titleColor, lineHeight: 1.4,
                   }}>
                     {title}
                   </span>
                 </KVPair>
-                {d?.device && <KVPair label="Устройство"><PlainValue>{d.device}</PlainValue></KVPair>}
+                {d?.device && <KVPair label="Устройство" t={t}><PlainValue t={t}>{d.device}</PlainValue></KVPair>}
                 {d?.lastPushAt && (
-                  <KVPair label={row.channel === 'Push' ? 'Последний push' : 'Последняя отправка'}>
-                    <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text2 }}>
+                  <KVPair label={row.channel === 'Push' ? 'Последний push' : 'Последняя отправка'} t={t}>
+                    <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text2 }}>
                       {d.lastPushAt}
                     </span>
                   </KVPair>
                 )}
                 {d && (
-                  <KVPair label="Попыток">
-                    <PlainValue>{d.attempts[0]} из {d.attempts[1]}</PlainValue>
+                  <KVPair label="Попыток" t={t}>
+                    <PlainValue t={t}>{d.attempts[0]} из {d.attempts[1]}</PlainValue>
                   </KVPair>
                 )}
                 {d && (
-                  <KVPair label="Следующая попытка">
-                    <PlainValue>{d.nextAttempt}</PlainValue>
+                  <KVPair label="Следующая попытка" t={t}>
+                    <PlainValue t={t}>{d.nextAttempt}</PlainValue>
                   </KVPair>
                 )}
               </div>
@@ -614,27 +670,29 @@ function ErrorDetailRow({ row, onRetry }: { row: LogRow; onRetry: () => void }) 
 
             {/* RIGHT — actions */}
             <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <DetailHeading>Действия</DetailHeading>
+              <DetailHeading t={t}>Действия</DetailHeading>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                <OutlineButton icon={RefreshCw} onClick={onRetry}>
+                <OutlineButton icon={RefreshCw} onClick={onRetry} t={t} dark={dark}>
                   Повторить отправку
                 </OutlineButton>
                 <AltChannelDropdown
                   channel={row.channel}
                   onPick={() => onRetry()}
+                  t={t}
+                  dark={dark}
                 />
               </div>
 
               {d?.recommendation && (
                 <>
-                  <div style={{ height: '1px', background: '#FECACA', margin: '4px 0' }} />
+                  <div style={{ height: '1px', background: dividerColor, margin: '4px 0' }} />
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '8px',
-                    fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.5,
+                    fontFamily: F.inter, fontSize: '12px', color: t.text3, lineHeight: 1.5,
                   }}>
-                    <Info size={14} color={C.info} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <Info size={14} color={infoColor} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '2px' }} />
                     <span>
-                      <span style={{ fontWeight: 500, color: C.text2 }}>Рекомендация: </span>
+                      <span style={{ fontWeight: 500, color: t.text2 }}>Рекомендация: </span>
                       {d.recommendation}
                     </span>
                   </div>
@@ -648,13 +706,13 @@ function ErrorDetailRow({ row, onRetry }: { row: LogRow; onRetry: () => void }) 
   );
 }
 
-function KVPair({ label, children }: { label: string; children: React.ReactNode }) {
+function KVPair({ label, children, t }: { label: string; children: React.ReactNode; t: T }) {
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: '140px 1fr', gap: '12px',
       alignItems: 'baseline',
     }}>
-      <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+      <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
         {label}
       </span>
       <div style={{ minWidth: 0 }}>{children}</div>
@@ -662,19 +720,19 @@ function KVPair({ label, children }: { label: string; children: React.ReactNode 
   );
 }
 
-function PlainValue({ children }: { children: React.ReactNode }) {
+function PlainValue({ children, t }: { children: React.ReactNode; t: T }) {
   return (
-    <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text2 }}>
+    <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text2 }}>
       {children}
     </span>
   );
 }
 
-function DetailHeading({ children }: { children: React.ReactNode }) {
+function DetailHeading({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <div style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-      color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
       marginBottom: '10px',
     }}>
       {children}
@@ -682,14 +740,20 @@ function DetailHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AltChannelDropdown({ channel, onPick }: {
+function AltChannelDropdown({ channel, onPick, t, dark }: {
   channel: Channel;
   onPick: (alt: Channel) => void;
+  t: T;
+  dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
     usePopoverPosition({ alignRight: false });
   const [hov, setHov] = useState(false);
   const [hovItem, setHovItem] = useState<string | null>(null);
+
+  const triggerBg = dark ? 'rgba(59,130,246,0.15)' : C.blueLt;
+  const menuShadow = dark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(17,24,39,0.08)';
+  const itemHoverBg = dark ? D.tableHover : C.blueLt;
 
   // Alt channels that make sense based on the failing channel
   const alts: Channel[] = channel === 'Push'
@@ -709,9 +773,9 @@ function AltChannelDropdown({ channel, onPick }: {
         style={{
           height: '38px', padding: '0 14px',
           border: 'none', borderRadius: '8px',
-          background: hov || open ? C.blueLt : 'transparent',
+          background: hov || open ? triggerBg : 'transparent',
           fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-          color: C.blue, cursor: 'pointer',
+          color: t.blue, cursor: 'pointer',
           display: 'inline-flex', alignItems: 'center', gap: '6px',
           transition: 'background 0.12s',
         }}
@@ -727,10 +791,10 @@ function AltChannelDropdown({ channel, onPick }: {
           style={{
             ...menuStyle,
             minWidth: '220px',
-            background: C.surface,
-            border: `1px solid ${C.border}`,
+            background: t.surface,
+            border: `1px solid ${t.border}`,
             borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(17,24,39,0.08)',
+            boxShadow: menuShadow,
             padding: '4px 0',
           }}
         >
@@ -746,14 +810,14 @@ function AltChannelDropdown({ channel, onPick }: {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   width: '100%', padding: '9px 12px',
-                  background: hovItem === key ? C.blueLt : 'transparent',
+                  background: hovItem === key ? itemHoverBg : 'transparent',
                   border: 'none', cursor: 'pointer',
                   fontFamily: F.inter, fontSize: '13px',
-                  color: C.text2, textAlign: 'left',
+                  color: t.text2, textAlign: 'left',
                   transition: 'background 0.1s',
                 }}
               >
-                <ChannelBadge label={alt} />
+                <ChannelBadge label={alt} t={t} dark={dark} />
                 <span>вместо {channel}</span>
               </button>
             );
@@ -768,12 +832,12 @@ function AltChannelDropdown({ channel, onPick }: {
    PRIMITIVES
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Th({ children, width }: { children?: React.ReactNode; width?: string }) {
+function Th({ children, width, t }: { children?: React.ReactNode; width?: string; t: T }) {
   return (
     <th style={{
       textAlign: 'left', padding: '10px 14px', width,
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-      color: C.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
       whiteSpace: 'nowrap',
     }}>
       {children}
@@ -781,28 +845,28 @@ function Th({ children, width }: { children?: React.ReactNode; width?: string })
   );
 }
 
-function Td({ children }: { children: React.ReactNode }) {
+function Td({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <td style={{
       padding: '12px 14px', fontFamily: F.inter, fontSize: '13px',
-      color: C.text1, verticalAlign: 'middle',
+      color: t.text1, verticalAlign: 'middle',
     }}>
       {children}
     </td>
   );
 }
 
-function SearchInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function SearchInput({ value, onChange, t }: { value: string; onChange: (v: string) => void; t: T }) {
   const [focus, setFocus] = useState(false);
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: '8px',
       height: '36px', width: '320px', padding: '0 12px',
-      border: `1px solid ${focus ? C.blue : C.inputBorder}`,
-      borderRadius: '8px', background: C.surface,
+      border: `1px solid ${focus ? t.blue : t.inputBorder}`,
+      borderRadius: '8px', background: t.surface,
       transition: 'border-color 0.12s',
     }}>
-      <Search size={14} color={C.text3} strokeWidth={1.75} />
+      <Search size={14} color={t.text3} strokeWidth={1.75} />
       <input
         type="text"
         value={value}
@@ -812,23 +876,23 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
         placeholder="Поиск по получателю или тексту..."
         style={{
           flex: 1, border: 'none', outline: 'none',
-          fontFamily: F.inter, fontSize: '13px', color: C.text1, background: 'transparent',
+          fontFamily: F.inter, fontSize: '13px', color: t.text1, background: 'transparent',
         }}
       />
     </div>
   );
 }
 
-function PageBtn({ children, disabled, onClick }: {
-  children: React.ReactNode; disabled?: boolean; onClick: () => void;
+function PageBtn({ children, disabled, onClick, t }: {
+  children: React.ReactNode; disabled?: boolean; onClick: () => void; t: T;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       style={{
-        width: '32px', height: '32px', border: `1px solid ${C.border}`, borderRadius: '6px',
-        background: C.surface, color: disabled ? C.text4 : C.text2,
+        width: '32px', height: '32px', border: `1px solid ${t.border}`, borderRadius: '6px',
+        background: t.surface, color: disabled ? t.text4 : t.text2,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         opacity: disabled ? 0.6 : 1,
@@ -839,10 +903,12 @@ function PageBtn({ children, disabled, onClick }: {
   );
 }
 
-function OutlineButton({ children, onClick, icon: Icon }: {
+function OutlineButton({ children, onClick, icon: Icon, t, dark }: {
   children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+  t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
+  const hoverBorder = dark ? t.text4 : t.text3;
   return (
     <button
       type="button"
@@ -851,10 +917,10 @@ function OutlineButton({ children, onClick, icon: Icon }: {
       onClick={onClick}
       style={{
         height: '38px', padding: '0 16px',
-        border: `1px solid ${hov ? C.text3 : C.inputBorder}`,
-        borderRadius: '8px', background: C.surface,
+        border: `1px solid ${hov ? hoverBorder : t.inputBorder}`,
+        borderRadius: '8px', background: t.surface,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.text1, cursor: 'pointer',
+        color: t.text1, cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         transition: 'all 0.12s', flexShrink: 0,
       }}
@@ -864,10 +930,6 @@ function OutlineButton({ children, onClick, icon: Icon }: {
     </button>
   );
 }
-
-const crumbLink: React.CSSProperties = {
-  fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer',
-};
 
 /* ═══════════════════════════════════════════════════════════════════════════
    HELPERS

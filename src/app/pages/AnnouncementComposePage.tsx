@@ -7,10 +7,12 @@ import {
 import { useLocation, useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { renderMarkdown, FormatToolbar } from '../components/renderMarkdown';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MOCK DATA
@@ -69,6 +71,8 @@ const EMPTY_FORM: FormState = {
 export default function AnnouncementComposePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [draftState, setDraftState] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -82,7 +86,6 @@ export default function AnnouncementComposePage() {
 
   const patch = (p: Partial<FormState>) => setForm(s => ({ ...s, ...p }));
 
-  // Consume nav-state handoff from history → compose (draft edit)
   const draftConsumedRef = useRef(false);
   useEffect(() => {
     if (draftConsumedRef.current) return;
@@ -106,12 +109,11 @@ export default function AnnouncementComposePage() {
     setDraftState('saved');
     setLastSavedAt('12.04 15:30');
     setDraftMeta({ id: s.draft.id, savedAt: '12.04.2026 15:30', savedAtShort: '12.04 15:30' });
-    didMountRef.current = true; // skip initial auto-save fire for the pre-filled body
+    didMountRef.current = true;
 
     navigate(location.pathname, { replace: true, state: null });
   }, [location, navigate]);
 
-  // Auto-save: 3s debounce on title/body edits → saving → saved with HH:MM stamp
   const didMountRef = useRef(false);
   useEffect(() => {
     if (!didMountRef.current) { didMountRef.current = true; return; }
@@ -193,8 +195,19 @@ export default function AnnouncementComposePage() {
     (form.mode === 'users' && form.selectedUsers.length > 0)
   );
 
+  const cardStyle: React.CSSProperties = {
+    background: t.surface,
+    border: `1px solid ${t.border}`,
+    borderRadius: '12px',
+    padding: '24px',
+  };
+
+  const crumbLink: React.CSSProperties = {
+    fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer',
+  };
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>
       <Sidebar
         role="bank"
         collapsed={sidebarCollapsed}
@@ -210,39 +223,56 @@ export default function AnnouncementComposePage() {
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span onClick={() => navigate('/dashboard')} style={crumbLink}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
             {draftMeta ? (
               <>
                 <span onClick={() => navigate('/announcements')} style={crumbLink}>История объявлений</span>
-                <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Редактирование черновика</span>
+                <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Редактирование черновика</span>
               </>
             ) : (
               <>
                 <span onClick={() => navigate('/notification-rules')} style={crumbLink}>Уведомления</span>
-                <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Новое объявление</span>
+                <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Новое объявление</span>
               </>
             )}
           </div>
 
           {/* Header */}
           <div style={{ marginBottom: '24px' }}>
-            <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
               {draftMeta ? 'Редактирование черновика' : 'Отправить объявление'}
             </h1>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '6px' }}>
               {draftMeta
-                ? <>Черновик сохранён: <span style={{ fontFamily: F.mono, color: C.text2 }}>{draftMeta.savedAt}</span></>
+                ? <>Черновик сохранён: <span style={{ fontFamily: F.mono, color: t.text2 }}>{draftMeta.savedAt}</span></>
                 : 'Отправьте сообщение организациям и пользователям'}
             </div>
           </div>
+
+          {/* Draft-edit banner (warning when entering via history → edit) */}
+          {draftMeta && (
+            <div style={{
+              marginBottom: '16px',
+              display: 'flex', alignItems: 'flex-start', gap: '10px',
+              padding: '10px 14px',
+              background: t.warningBg,
+              border: `1px solid ${t.border}`,
+              borderLeft: `3px solid ${t.warning}`,
+              borderRadius: '8px',
+            }}>
+              <AlertTriangle size={16} color={t.warning} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '1px' }} />
+              <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2, lineHeight: 1.45 }}>
+                Вы редактируете черновик. Изменения сохраняются автоматически; отправьте или удалите, когда закончите.
+              </div>
+            </div>
+          )}
 
           {/* Two-column grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: '24px', paddingBottom: '96px' }}>
             {/* ── LEFT: compose ── */}
             <div style={{ ...cardStyle, position: 'relative' }}>
-              {/* Draft badge + auto-save indicator (top-right of compose card) */}
               <div style={{
                 position: 'absolute', top: '14px', right: '16px',
                 display: 'flex', alignItems: 'center', gap: '10px',
@@ -254,32 +284,32 @@ export default function AnnouncementComposePage() {
                       display: 'inline-flex', alignItems: 'center', gap: '5px',
                       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                       padding: '3px 8px', borderRadius: '10px',
-                      background: '#F3F4F6', color: C.text3,
+                      background: dark ? D.tableAlt : '#F3F4F6', color: t.text3,
                     }}>
-                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.text4 }} />
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.text4 }} />
                       Черновик
                     </span>
-                    <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+                    <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
                       Сохранён {draftMeta.savedAtShort}
                     </span>
                   </>
                 )}
-                {/* Hide the duplicate "Черновик сохранён HH:MM" in draft mode (badge + caption already cover it); still show "Сохранение…" while auto-saving */}
                 {(!draftMeta || draftState === 'saving') && (
-                  <AutoSaveIndicator state={draftState} savedAt={lastSavedAt} />
+                  <AutoSaveIndicator state={draftState} savedAt={lastSavedAt} t={t} />
                 )}
               </div>
 
               {/* § Содержание */}
-              <FormSection title="Содержание">
-                <FieldLabel required>Заголовок</FieldLabel>
+              <FormSection title="Содержание" t={t}>
+                <FieldLabel required t={t}>Заголовок</FieldLabel>
                 <TextInput
                   value={form.title}
                   placeholder="Тема объявления..."
                   onChange={v => patch({ title: v })}
+                  t={t}
                 />
 
-                <FieldLabel required style={{ marginTop: '14px' }}>Текст сообщения</FieldLabel>
+                <FieldLabel required style={{ marginTop: '14px' }} t={t}>Текст сообщения</FieldLabel>
                 <FormatToolbar
                   textareaRef={bodyRef}
                   value={form.body}
@@ -291,32 +321,36 @@ export default function AnnouncementComposePage() {
                   placeholder="Введите текст объявления..."
                   onChange={v => patch({ body: v })}
                   height={160}
+                  t={t}
                 />
-                <Caption>Поддерживается простое форматирование: **жирный**, _курсив_, • списки</Caption>
+                <Caption t={t}>Поддерживается простое форматирование: **жирный**, _курсив_, • списки</Caption>
               </FormSection>
 
-              <Divider />
+              <Divider t={t} />
 
               {/* § Получатели */}
-              <FormSection title="Получатели">
+              <FormSection title="Получатели" t={t}>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'stretch' }}>
                   <RadioRow
                     label="Все организации"
                     sub="Отправить всем активным администраторам организаций"
                     checked={form.mode === 'all'}
                     onSelect={() => patch({ mode: 'all' })}
+                    t={t}
                   />
                   <RadioRow
                     label="Выбранные организации"
                     sub="Выбрать конкретные организации из списка"
                     checked={form.mode === 'orgs'}
                     onSelect={() => patch({ mode: 'orgs' })}
+                    t={t}
                   />
                   <RadioRow
                     label="Конкретные пользователи"
                     sub="Поиск отдельных получателей по имени"
                     checked={form.mode === 'users'}
                     onSelect={() => patch({ mode: 'users' })}
+                    t={t}
                   />
                 </div>
 
@@ -328,6 +362,7 @@ export default function AnnouncementComposePage() {
                       onChange={v => patch({ selectedOrgs: v })}
                       placeholder="Выберите организации"
                       searchPlaceholder="Поиск организаций…"
+                      t={t} dark={dark}
                     />
                   </div>
                 )}
@@ -340,33 +375,36 @@ export default function AnnouncementComposePage() {
                       placeholder="Выберите пользователей"
                       searchPlaceholder="Поиск по имени…"
                       searchable
+                      t={t} dark={dark}
                     />
                   </div>
                 )}
               </FormSection>
 
-              <Divider />
+              <Divider t={t} />
 
               {/* § Каналы */}
-              <FormSection title="Каналы доставки">
+              <FormSection title="Каналы доставки" t={t}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 20px' }}>
-                  <CheckboxRow label="In-app уведомление" checked disabled />
+                  <CheckboxRow label="In-app уведомление" checked disabled t={t} />
                   <CheckboxRow
                     label="Email"
                     checked={form.channels.email}
                     onChange={v => patch({ channels: { ...form.channels, email: v } })}
+                    t={t}
                   />
                   <CheckboxRow
                     label="SMS"
                     checked={form.channels.sms}
                     onChange={v => patch({ channels: { ...form.channels, sms: v } })}
+                    t={t}
                   />
                 </div>
                 {form.channels.sms && (
                   <div style={{
                     marginTop: '10px',
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    fontFamily: F.inter, fontSize: '12px', color: C.warning,
+                    fontFamily: F.inter, fontSize: '12px', color: t.warning,
                   }}>
                     <AlertTriangle size={13} strokeWidth={1.75} />
                     SMS будет отправлено на {smsRecipients} номеров. Стоимость: ~{fmtUzs(smsRecipients * SMS_COST_PER_MSG)} UZS
@@ -374,22 +412,24 @@ export default function AnnouncementComposePage() {
                 )}
               </FormSection>
 
-              <Divider />
+              <Divider t={t} />
 
               {/* § Расписание */}
-              <FormSection title="Расписание">
+              <FormSection title="Расписание" t={t}>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'stretch' }}>
                   <RadioRow
                     label="Отправить сейчас"
                     sub="Объявление уйдёт сразу после подтверждения"
                     checked={form.schedule === 'now'}
                     onSelect={() => patch({ schedule: 'now' })}
+                    t={t}
                   />
                   <RadioRow
                     label="Запланировать"
                     sub="Объявление будет отправлено в указанное время"
                     checked={form.schedule === 'scheduled'}
                     onSelect={() => patch({ schedule: 'scheduled' })}
+                    t={t}
                   >
                     <div
                       onClick={e => e.stopPropagation()}
@@ -399,11 +439,13 @@ export default function AnnouncementComposePage() {
                         value={form.scheduleDate}
                         onChange={v => patch({ scheduleDate: v })}
                         disabled={form.schedule !== 'scheduled'}
+                        t={t} dark={dark}
                       />
                       <TimeField
                         value={form.scheduleTime}
                         onChange={v => patch({ scheduleTime: v })}
                         disabled={form.schedule !== 'scheduled'}
+                        t={t} dark={dark}
                       />
                     </div>
                   </RadioRow>
@@ -414,19 +456,20 @@ export default function AnnouncementComposePage() {
             {/* ── RIGHT: preview ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div style={cardStyle}>
-                <SectionTitle>Предпросмотр</SectionTitle>
+                <SectionTitle t={t}>Предпросмотр</SectionTitle>
 
                 <PreviewCard
                   title={form.title || 'Тема объявления'}
                   body={form.body || 'Введите текст объявления...'}
                   placeholder={form.title.trim() === ''}
                   dark={darkMode}
+                  t={t}
                 />
 
-                <div style={{ height: '1px', background: C.border, margin: '14px 0' }} />
+                <div style={{ height: '1px', background: t.border, margin: '14px 0' }} />
 
-                <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-                  От: <span style={{ color: C.text2 }}>Админ Камолов (Universalbank)</span>
+                <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+                  От: <span style={{ color: t.text2 }}>Админ Камолов (Universalbank)</span>
                 </div>
               </div>
 
@@ -436,6 +479,7 @@ export default function AnnouncementComposePage() {
                 schedule={form.schedule}
                 scheduleDate={form.scheduleDate}
                 scheduleTime={form.scheduleTime}
+                t={t}
               />
             </div>
           </div>
@@ -444,27 +488,27 @@ export default function AnnouncementComposePage() {
         {/* Sticky footer */}
         <div style={{
           position: 'sticky', bottom: 0, zIndex: 20,
-          background: C.surface, borderTop: `1px solid ${C.border}`,
+          background: t.surface, borderTop: `1px solid ${t.border}`,
           padding: '12px 32px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: '8px', flexShrink: 0,
         }}>
           {draftMeta ? (
             <>
-              <DestructiveOutlineButton icon={Trash2} onClick={() => setDeleteDraftOpen(true)}>
+              <DestructiveOutlineButton icon={Trash2} onClick={() => setDeleteDraftOpen(true)} t={t} dark={dark}>
                 Удалить черновик
               </DestructiveOutlineButton>
-              <GhostButton icon={Save} onClick={saveDraftNow}>Сохранить черновик</GhostButton>
-              <PrimaryButton disabled={!canSend} onClick={() => setConfirmOpen(true)}>
+              <GhostButton icon={Save} onClick={saveDraftNow} t={t} dark={dark}>Сохранить черновик</GhostButton>
+              <PrimaryButton disabled={!canSend} onClick={() => setConfirmOpen(true)} t={t} dark={dark}>
                 Отправить объявление
               </PrimaryButton>
             </>
           ) : (
             <>
-              <GhostButton icon={Save} onClick={saveDraftNow}>Сохранить как черновик</GhostButton>
+              <GhostButton icon={Save} onClick={saveDraftNow} t={t} dark={dark}>Сохранить как черновик</GhostButton>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <OutlineButton onClick={() => navigate('/notification-rules')}>Отмена</OutlineButton>
-                <PrimaryButton disabled={!canSend} onClick={() => setConfirmOpen(true)}>
+                <OutlineButton onClick={() => navigate('/notification-rules')} t={t} dark={dark}>Отмена</OutlineButton>
+                <PrimaryButton disabled={!canSend} onClick={() => setConfirmOpen(true)} t={t} dark={dark}>
                   Отправить объявление
                 </PrimaryButton>
               </div>
@@ -479,6 +523,7 @@ export default function AnnouncementComposePage() {
         channels={form.channels}
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleSendConfirm}
+        t={t} dark={dark}
       />
 
       {draftToastOpen && (
@@ -486,6 +531,7 @@ export default function AnnouncementComposePage() {
           title={form.title}
           onClose={() => setDraftToastOpen(false)}
           onOpenDrafts={() => { setDraftToastOpen(false); navigate('/announcements'); }}
+          t={t} dark={dark}
         />
       )}
 
@@ -494,6 +540,7 @@ export default function AnnouncementComposePage() {
         title={form.title}
         onClose={() => setDeleteDraftOpen(false)}
         onConfirm={() => { setDeleteDraftOpen(false); navigate('/announcements'); }}
+        t={t} dark={dark}
       />
     </div>
   );
@@ -503,16 +550,17 @@ export default function AnnouncementComposePage() {
    DRAFT AUTO-SAVE INDICATOR + SUCCESS TOAST
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function AutoSaveIndicator({ state, savedAt }: {
+function AutoSaveIndicator({ state, savedAt, t }: {
   state: 'idle' | 'saving' | 'saved';
   savedAt: string | null;
+  t: T;
 }) {
   if (state === 'idle') return null;
 
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: '6px',
-      fontFamily: F.inter, fontSize: '12px', color: C.text3,
+      fontFamily: F.inter, fontSize: '12px', color: t.text3,
       lineHeight: 1.2,
     }}>
       <style>{`
@@ -524,13 +572,13 @@ function AutoSaveIndicator({ state, savedAt }: {
       {state === 'saving' ? (
         <>
           <span style={{ display: 'inline-flex', animation: 'draftSpin 0.9s linear infinite' }}>
-            <Loader2 size={16} color={C.text3} strokeWidth={1.75} />
+            <Loader2 size={16} color={t.blue} strokeWidth={1.75} />
           </span>
           <span>Сохранение…</span>
         </>
       ) : (
         <>
-          <CheckCircle2 size={16} color={C.success} strokeWidth={1.75} />
+          <CheckCircle2 size={16} color={t.success} strokeWidth={1.75} />
           <span>Черновик сохранён{savedAt ? ` ${savedAt}` : ''}</span>
         </>
       )}
@@ -538,15 +586,19 @@ function AutoSaveIndicator({ state, savedAt }: {
   );
 }
 
-function DraftSavedToast({ title, onClose, onOpenDrafts }: {
+function DraftSavedToast({ title, onClose, onOpenDrafts, t, dark }: {
   title: string;
   onClose: () => void;
   onOpenDrafts: () => void;
+  t: T;
+  dark: boolean;
 }) {
   useEffect(() => {
-    const t = window.setTimeout(onClose, 6000);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(onClose, 6000);
+    return () => window.clearTimeout(timer);
   }, [onClose]);
+
+  const [linkHov, setLinkHov] = useState(false);
 
   const subtitle = title.trim() !== ''
     ? `«${title.trim()}» — вы можете продолжить редактирование позже`
@@ -559,15 +611,15 @@ function DraftSavedToast({ title, onClose, onOpenDrafts }: {
       style={{
         position: 'fixed', top: '24px', right: '24px',
         width: '380px', maxWidth: 'calc(100vw - 48px)',
-        background: C.surface,
-        borderTop: `1px solid ${C.border}`,
-        borderRight: `1px solid ${C.border}`,
-        borderBottom: `1px solid ${C.border}`,
-        borderLeft: `3px solid ${C.success}`,
+        background: t.surface,
+        borderTop: `1px solid ${t.border}`,
+        borderRight: `1px solid ${t.border}`,
+        borderBottom: `1px solid ${t.border}`,
+        borderLeft: `3px solid ${t.success}`,
         borderRadius: '10px',
         padding: '12px 14px',
         display: 'flex', alignItems: 'flex-start', gap: '10px',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 12px 32px rgba(0,0,0,0.12)',
         zIndex: 300,
         animation: 'draftToastIn 0.2s ease-out',
       }}
@@ -579,26 +631,24 @@ function DraftSavedToast({ title, onClose, onOpenDrafts }: {
         }
       `}</style>
 
-      {/* Icon */}
       <div style={{
         width: '24px', height: '24px', borderRadius: '50%',
-        background: C.successBg, border: '1px solid #A7F3D0',
+        background: t.successBg, border: `1px solid ${dark ? 'rgba(52,211,153,0.30)' : '#A7F3D0'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, marginTop: '1px',
       }}>
-        <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+        <CheckCircle2 size={14} color={t.success} strokeWidth={2} />
       </div>
 
-      {/* Body */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
-          color: C.text1, lineHeight: 1.4,
+          color: t.text1, lineHeight: 1.4,
         }}>
           Черновик сохранён
         </div>
         <div style={{
-          fontFamily: F.inter, fontSize: '12px', color: C.text3,
+          fontFamily: F.inter, fontSize: '12px', color: t.text3,
           marginTop: '3px', lineHeight: 1.45,
         }}>
           {subtitle}
@@ -606,27 +656,26 @@ function DraftSavedToast({ title, onClose, onOpenDrafts }: {
         <button
           type="button"
           onClick={onOpenDrafts}
+          onMouseEnter={() => setLinkHov(true)}
+          onMouseLeave={() => setLinkHov(false)}
           style={{
             marginTop: '8px',
             background: 'transparent', border: 'none', padding: 0,
             fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-            color: C.blue, cursor: 'pointer',
+            color: linkHov ? t.blueHover : t.blue, cursor: 'pointer',
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = C.blueHover)}
-          onMouseLeave={e => (e.currentTarget.style.color = C.blue)}
         >
           Перейти к черновикам →
         </button>
       </div>
 
-      {/* Close */}
       <button
         type="button"
         onClick={onClose}
         aria-label="Закрыть"
         style={{
           background: 'transparent', border: 'none', padding: '2px',
-          color: C.text3, cursor: 'pointer', flexShrink: 0,
+          color: t.text3, cursor: 'pointer', flexShrink: 0,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -640,25 +689,28 @@ function DraftSavedToast({ title, onClose, onOpenDrafts }: {
    PREVIEW + SUMMARY
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function PreviewCard({ title, body, placeholder, dark = false }: { title: string; body: string; placeholder: boolean; dark?: boolean }) {
+function PreviewCard({ title, body, placeholder, dark = false, t }: {
+  title: string; body: string; placeholder: boolean; dark?: boolean; t: T;
+}) {
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: '12px',
       padding: '12px',
-      border: `1px solid ${C.border}`, borderRadius: '8px', background: C.surface,
+      border: `1px solid ${t.border}`, borderRadius: '8px',
+      background: dark ? D.tableHeaderBg : t.surface,
     }}>
       <div style={{
         width: '36px', height: '36px', borderRadius: '50%',
-        background: C.blueLt,
+        background: t.blueLt,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
       }}>
-        <Bell size={18} color={C.blue} strokeWidth={1.75} />
+        <Bell size={18} color={t.blue} strokeWidth={1.75} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-          color: placeholder ? C.text4 : C.text1, lineHeight: 1.3,
+          color: placeholder ? t.text4 : t.text1, lineHeight: 1.3,
         }}>
           📢 {title}
         </div>
@@ -666,7 +718,7 @@ function PreviewCard({ title, body, placeholder, dark = false }: { title: string
           {body.trim() === ''
             ? (
               <div style={{
-                fontFamily: F.inter, fontSize: '13px', color: C.text4,
+                fontFamily: F.inter, fontSize: '13px', color: t.text4,
                 lineHeight: 1.45,
               }}>
                 Введите текст объявления...
@@ -674,7 +726,7 @@ function PreviewCard({ title, body, placeholder, dark = false }: { title: string
             )
             : renderMarkdown(body, dark)}
         </div>
-        <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '6px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4, marginTop: '6px' }}>
           Только что
         </div>
       </div>
@@ -682,12 +734,13 @@ function PreviewCard({ title, body, placeholder, dark = false }: { title: string
   );
 }
 
-function SummaryCard({ recipients, channels, schedule, scheduleDate, scheduleTime }: {
+function SummaryCard({ recipients, channels, schedule, scheduleDate, scheduleTime, t }: {
   recipients: { orgs: number; users: number };
   channels: { inapp: boolean; email: boolean; sms: boolean };
   schedule: ScheduleMode;
   scheduleDate: string;
   scheduleTime: string;
+  t: T;
 }) {
   const channelList = ['In-app', channels.email ? 'Email' : null, channels.sms ? 'SMS' : null]
     .filter(Boolean).join(', ');
@@ -700,25 +753,25 @@ function SummaryCard({ recipients, channels, schedule, scheduleDate, scheduleTim
 
   return (
     <div style={{
-      background: '#F9FAFB',
-      border: `1px solid ${C.border}`,
+      background: t.tableHeaderBg,
+      border: `1px solid ${t.border}`,
       borderRadius: '8px', padding: '12px',
       display: 'flex', flexDirection: 'column', gap: '6px',
     }}>
-      <SummaryRow label="Получатели" value={recipientsLabel} />
-      <SummaryRow label="Каналы" value={channelList} />
-      <SummaryRow label="Расписание" value={scheduleLabel} />
+      <SummaryRow label="Получатели" value={recipientsLabel} t={t} />
+      <SummaryRow label="Каналы" value={channelList} t={t} />
+      <SummaryRow label="Расписание" value={scheduleLabel} t={t} />
     </div>
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({ label, value, t }: { label: string; value: string; t: T }) {
   return (
     <div style={{ display: 'flex', gap: '8px' }}>
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, minWidth: '100px' }}>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, minWidth: '100px' }}>
         {label}:
       </span>
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, fontWeight: 500 }}>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, fontWeight: 500 }}>
         {value}
       </span>
     </div>
@@ -729,10 +782,11 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
    MULTI-SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function MultiSelect({ options, selected, onChange, placeholder, searchPlaceholder, searchable }: {
+function MultiSelect({ options, selected, onChange, placeholder, searchPlaceholder, searchable, t, dark }: {
   options: string[]; selected: string[];
   onChange: (v: string[]) => void;
   placeholder: string; searchPlaceholder: string; searchable?: boolean;
+  t: T; dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
     usePopoverPosition({ alignRight: false });
@@ -745,13 +799,15 @@ function MultiSelect({ options, selected, onChange, placeholder, searchPlacehold
     onChange([...selected, v]);
   };
 
+  const chipXBg = dark ? 'rgba(59,130,246,0.25)' : 'rgba(37,99,235,0.15)';
+
   return (
     <div ref={rootRef}>
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center',
         minHeight: '38px', padding: '6px 8px',
-        border: `1px solid ${open ? C.blue : C.inputBorder}`,
-        borderRadius: '8px', background: C.surface,
+        border: `1px solid ${open ? t.blue : t.inputBorder}`,
+        borderRadius: '8px', background: t.surface,
         transition: 'border-color 0.12s',
       }}>
         {selected.map(s => (
@@ -760,7 +816,7 @@ function MultiSelect({ options, selected, onChange, placeholder, searchPlacehold
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               padding: '3px 4px 3px 10px', borderRadius: '16px',
-              background: C.blueLt, color: C.blue,
+              background: t.blueLt, color: t.blue,
               fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
             }}
           >
@@ -770,7 +826,7 @@ function MultiSelect({ options, selected, onChange, placeholder, searchPlacehold
               aria-label={`Убрать ${s}`}
               style={{
                 width: '16px', height: '16px', border: 'none', borderRadius: '50%',
-                background: 'rgba(37,99,235,0.15)', color: C.blue,
+                background: chipXBg, color: t.blue,
                 cursor: 'pointer', display: 'inline-flex',
                 alignItems: 'center', justifyContent: 'center',
               }}
@@ -786,7 +842,7 @@ function MultiSelect({ options, selected, onChange, placeholder, searchPlacehold
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '3px',
             padding: '4px 8px', border: 'none', borderRadius: '16px',
-            background: 'transparent', color: C.blue,
+            background: 'transparent', color: t.blue,
             fontFamily: F.inter, fontSize: '12px', fontWeight: 500, cursor: 'pointer',
           }}
         >
@@ -800,19 +856,20 @@ function MultiSelect({ options, selected, onChange, placeholder, searchPlacehold
           style={{
             ...menuStyle,
             minWidth: '280px', maxHeight: '280px', overflowY: 'auto',
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: '8px', boxShadow: '0 8px 24px rgba(17,24,39,0.12)',
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: '8px',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.12)',
             padding: searchable ? '0' : '4px 0',
           }}
         >
           {searchable && (
             <div style={{
               position: 'sticky', top: 0,
-              padding: '8px 10px', background: C.surface,
-              borderBottom: `1px solid ${C.border}`,
+              padding: '8px 10px', background: t.surface,
+              borderBottom: `1px solid ${t.border}`,
               display: 'flex', alignItems: 'center', gap: '8px',
             }}>
-              <Search size={14} color={C.text4} strokeWidth={1.75} />
+              <Search size={14} color={t.text4} strokeWidth={1.75} />
               <input
                 autoFocus
                 type="text"
@@ -821,14 +878,14 @@ function MultiSelect({ options, selected, onChange, placeholder, searchPlacehold
                 placeholder={searchPlaceholder}
                 style={{
                   flex: 1, border: 'none', outline: 'none',
-                  fontFamily: F.inter, fontSize: '13px', color: C.text1, background: 'transparent',
+                  fontFamily: F.inter, fontSize: '13px', color: t.text1, background: 'transparent',
                 }}
               />
             </div>
           )}
 
           {filtered.length === 0 ? (
-            <div style={{ padding: '12px', fontFamily: F.inter, fontSize: '13px', color: C.text3, textAlign: 'center' }}>
+            <div style={{ padding: '12px', fontFamily: F.inter, fontSize: '13px', color: t.text3, textAlign: 'center' }}>
               Ничего не найдено
             </div>
           ) : filtered.map(o => {
@@ -839,6 +896,7 @@ function MultiSelect({ options, selected, onChange, placeholder, searchPlacehold
                 label={o}
                 selected={sel}
                 onClick={() => { sel ? remove(o) : add(o); }}
+                t={t} dark={dark}
               />
             );
           })}
@@ -848,8 +906,8 @@ function MultiSelect({ options, selected, onChange, placeholder, searchPlacehold
   );
 }
 
-function OptionRow({ label, selected, onClick }: {
-  label: string; selected: boolean; onClick: () => void;
+function OptionRow({ label, selected, onClick, t, dark }: {
+  label: string; selected: boolean; onClick: () => void; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -861,21 +919,17 @@ function OptionRow({ label, selected, onClick }: {
       style={{
         width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '8px 12px', border: 'none',
-        background: selected ? C.blueLt : hov ? '#F9FAFB' : 'transparent',
+        background: selected ? t.blueLt : hov ? t.tableHover : 'transparent',
         fontFamily: F.inter, fontSize: '13px',
-        color: selected ? C.blue : C.text1,
+        color: selected ? t.blue : t.text1,
         cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
       }}
     >
       {label}
-      {selected && <Check size={14} strokeWidth={2} color={C.blue} />}
+      {selected && <Check size={14} strokeWidth={2} color={t.blue} />}
     </button>
   );
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   DATE / TIME FIELD
-═══════════════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATE PICKER
@@ -900,8 +954,8 @@ function formatDDMMYYYY(d: Date): string {
   return `${dd}.${mm}.${d.getFullYear()}`;
 }
 
-function DatePickerField({ value, onChange, disabled }: {
-  value: string; onChange: (v: string) => void; disabled?: boolean;
+function DatePickerField({ value, onChange, disabled, t, dark }: {
+  value: string; onChange: (v: string) => void; disabled?: boolean; t: T; dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } =
     usePopoverPosition({ alignRight: false });
@@ -929,14 +983,16 @@ function DatePickerField({ value, onChange, disabled }: {
     close();
   };
 
-  const borderColor = disabled ? C.border : open ? C.blue : C.inputBorder;
+  const borderColor = disabled ? t.border : open ? t.blue : t.inputBorder;
   const isToday = (d: number) => {
-    const t = new Date();
-    return t.getFullYear() === viewYear && t.getMonth() === viewMonth && t.getDate() === d;
+    const today2 = new Date();
+    return today2.getFullYear() === viewYear && today2.getMonth() === viewMonth && today2.getDate() === d;
   };
   const isSelected = (d: number) =>
     !!selected && selected.getFullYear() === viewYear &&
     selected.getMonth() === viewMonth && selected.getDate() === d;
+
+  const disabledBg = dark ? D.tableHeaderBg : '#F3F4F6';
 
   return (
     <div ref={rootRef} style={{ flex: 1, minWidth: 0 }}>
@@ -951,18 +1007,18 @@ function DatePickerField({ value, onChange, disabled }: {
           height: '38px', padding: '0 10px 0 12px',
           border: `1px solid ${borderColor}`,
           borderRadius: '8px',
-          background: disabled ? '#F3F4F6' : C.surface,
+          background: disabled ? disabledBg : t.surface,
           transition: 'border-color 0.12s', boxSizing: 'border-box',
           opacity: disabled ? 0.7 : 1,
           cursor: disabled ? 'not-allowed' : 'pointer',
           fontFamily: F.inter, fontSize: '13px',
-          color: disabled ? C.text4 : C.text1,
+          color: disabled ? t.text4 : t.text1,
           textAlign: 'left',
         }}
       >
-        <CalendarIcon size={14} color={disabled ? C.text4 : C.text3} strokeWidth={1.75} />
+        <CalendarIcon size={14} color={disabled ? t.text4 : t.text3} strokeWidth={1.75} />
         <span style={{ flex: 1 }}>{value || 'Выберите дату'}</span>
-        <ChevronDown size={13} color={C.text3} strokeWidth={1.75} />
+        <ChevronDown size={13} color={t.text3} strokeWidth={1.75} />
       </button>
 
       {open && (
@@ -971,8 +1027,9 @@ function DatePickerField({ value, onChange, disabled }: {
           style={{
             ...menuStyle,
             minWidth: '280px',
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: '10px', boxShadow: '0 8px 24px rgba(17,24,39,0.12)',
+            background: t.surface, border: `1px solid ${t.border}`,
+            borderRadius: '10px',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.12)',
             padding: '12px',
           }}
         >
@@ -983,17 +1040,17 @@ function DatePickerField({ value, onChange, disabled }: {
             <NavBtn onClick={() => {
               if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
               else setViewMonth(m => m - 1);
-            }} ariaLabel="Предыдущий месяц">
-              <ChevronLeft size={14} color={C.text2} strokeWidth={2} />
+            }} ariaLabel="Предыдущий месяц" t={t} dark={dark}>
+              <ChevronLeft size={14} color={t.text2} strokeWidth={2} />
             </NavBtn>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.text1 }}>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: t.text1 }}>
               {MONTH_NAMES[viewMonth]} {viewYear}
             </div>
             <NavBtn onClick={() => {
               if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
               else setViewMonth(m => m + 1);
-            }} ariaLabel="Следующий месяц">
-              <ChevronRight size={14} color={C.text2} strokeWidth={2} />
+            }} ariaLabel="Следующий месяц" t={t} dark={dark}>
+              <ChevronRight size={14} color={t.text2} strokeWidth={2} />
             </NavBtn>
           </div>
 
@@ -1005,7 +1062,7 @@ function DatePickerField({ value, onChange, disabled }: {
               <div key={l} style={{
                 textAlign: 'center', padding: '4px 0',
                 fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-                color: C.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
+                color: t.text4, textTransform: 'uppercase', letterSpacing: '0.04em',
               }}>
                 {l}
               </div>
@@ -1021,6 +1078,7 @@ function DatePickerField({ value, onChange, disabled }: {
                 selected={isSelected(d)}
                 today={isToday(d)}
                 onClick={() => pick(d)}
+                t={t} dark={dark}
               />
             ))}
           </div>
@@ -1030,8 +1088,8 @@ function DatePickerField({ value, onChange, disabled }: {
   );
 }
 
-function NavBtn({ children, onClick, ariaLabel }: {
-  children: React.ReactNode; onClick: () => void; ariaLabel: string;
+function NavBtn({ children, onClick, ariaLabel, t, dark }: {
+  children: React.ReactNode; onClick: () => void; ariaLabel: string; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1043,7 +1101,8 @@ function NavBtn({ children, onClick, ariaLabel }: {
       aria-label={ariaLabel}
       style={{
         width: '28px', height: '28px', border: 'none', borderRadius: '6px',
-        background: hov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+        background: hov ? (dark ? D.tableHover : '#F3F4F6') : 'transparent',
+        cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         transition: 'background 0.12s',
       }}
@@ -1053,12 +1112,13 @@ function NavBtn({ children, onClick, ariaLabel }: {
   );
 }
 
-function DayCell({ day, selected, today, onClick }: {
-  day: number; selected: boolean; today: boolean; onClick: () => void;
+function DayCell({ day, selected, today, onClick, t, dark }: {
+  day: number; selected: boolean; today: boolean; onClick: () => void; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
-  const bg = selected ? C.blue : hov ? C.blueLt : today ? '#F3F4F6' : 'transparent';
-  const color = selected ? '#FFFFFF' : today ? C.blue : C.text1;
+  const todayBg = dark ? D.tableHover : '#F3F4F6';
+  const bg = selected ? t.blue : hov ? t.blueLt : today ? todayBg : 'transparent';
+  const color = selected ? '#FFFFFF' : today ? t.blue : t.text1;
   return (
     <button
       type="button"
@@ -1096,11 +1156,12 @@ function clampTime(s: string): string {
   return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
-function TimeField({ value, onChange, disabled }: {
-  value: string; onChange: (v: string) => void; disabled?: boolean;
+function TimeField({ value, onChange, disabled, t, dark }: {
+  value: string; onChange: (v: string) => void; disabled?: boolean; t: T; dark: boolean;
 }) {
   const [focus, setFocus] = useState(false);
-  const borderColor = disabled ? C.border : focus ? C.blue : C.inputBorder;
+  const borderColor = disabled ? t.border : focus ? t.blue : t.inputBorder;
+  const disabledBg = dark ? D.tableHeaderBg : '#F3F4F6';
   return (
     <div style={{
       flex: 1, minWidth: 0,
@@ -1108,12 +1169,12 @@ function TimeField({ value, onChange, disabled }: {
       height: '38px', padding: '0 10px 0 12px',
       border: `1px solid ${borderColor}`,
       borderRadius: '8px',
-      background: disabled ? '#F3F4F6' : C.surface,
+      background: disabled ? disabledBg : t.surface,
       transition: 'border-color 0.12s', boxSizing: 'border-box',
       opacity: disabled ? 0.7 : 1,
       cursor: disabled ? 'not-allowed' : 'text',
     }}>
-      <Clock size={14} color={disabled ? C.text4 : C.text3} strokeWidth={1.75} />
+      <Clock size={14} color={disabled ? t.text4 : t.text3} strokeWidth={1.75} />
       <input
         type="text"
         inputMode="numeric"
@@ -1129,45 +1190,7 @@ function TimeField({ value, onChange, disabled }: {
           flex: 1, width: '100%', border: 'none', outline: 'none',
           fontFamily: F.mono, fontSize: '13px',
           letterSpacing: '0.02em',
-          color: disabled ? C.text4 : C.text1,
-          background: 'transparent',
-          cursor: disabled ? 'not-allowed' : 'text',
-        }}
-      />
-    </div>
-  );
-}
-
-function DateTimeField({ icon: Icon, value, onChange, width, flex, disabled }: {
-  icon: React.ElementType; value: string; onChange: (v: string) => void;
-  width?: number; flex?: boolean; disabled?: boolean;
-}) {
-  const [focus, setFocus] = useState(false);
-  const borderColor = disabled ? C.border : focus ? C.blue : C.inputBorder;
-  return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: '8px',
-      height: '38px', padding: '0 10px 0 12px',
-      ...(flex ? { flex: 1, minWidth: 0 } : { width }),
-      border: `1px solid ${borderColor}`,
-      borderRadius: '8px',
-      background: disabled ? '#F3F4F6' : C.surface,
-      transition: 'border-color 0.12s', boxSizing: 'border-box',
-      opacity: disabled ? 0.7 : 1,
-      cursor: disabled ? 'not-allowed' : 'text',
-    }}>
-      <Icon size={14} color={disabled ? C.text4 : C.text3} strokeWidth={1.75} />
-      <input
-        type="text"
-        value={value}
-        disabled={disabled}
-        onChange={e => onChange(e.target.value)}
-        onFocus={() => setFocus(true)}
-        onBlur={() => setFocus(false)}
-        style={{
-          flex: 1, width: '100%', border: 'none', outline: 'none',
-          fontFamily: F.inter, fontSize: '13px',
-          color: disabled ? C.text4 : C.text1,
+          color: disabled ? t.text4 : t.text1,
           background: 'transparent',
           cursor: disabled ? 'not-allowed' : 'text',
         }}
@@ -1180,10 +1203,11 @@ function DateTimeField({ icon: Icon, value, onChange, width, flex, disabled }: {
    CONFIRMATION DIALOG
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SendConfirmDialog({ open, userCount, channels, onClose, onConfirm }: {
+function SendConfirmDialog({ open, userCount, channels, onClose, onConfirm, t, dark }: {
   open: boolean; userCount: number;
   channels: { inapp: boolean; email: boolean; sms: boolean };
   onClose: () => void; onConfirm: () => void;
+  t: T; dark: boolean;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -1197,11 +1221,13 @@ function SendConfirmDialog({ open, userCount, channels, onClose, onConfirm }: {
   const channelList = ['In-app', channels.email ? 'Email' : null, channels.sms ? 'SMS' : null]
     .filter(Boolean).join(', ');
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        position: 'fixed', inset: 0, background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -1210,23 +1236,24 @@ function SendConfirmDialog({ open, userCount, channels, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '440px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '12px',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
           padding: '22px',
         }}
       >
         <div style={{
           fontFamily: F.dm, fontSize: '16px', fontWeight: 600,
-          color: C.text1, marginBottom: '6px',
+          color: t.text1, marginBottom: '6px',
         }}>
           Отправить объявление {userCount} {plural(userCount, 'пользователю', 'пользователям', 'пользователям')}?
         </div>
-        <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginBottom: '20px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginBottom: '20px' }}>
           Каналы: {channelList}
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <OutlineButton onClick={onClose}>Отмена</OutlineButton>
-          <PrimaryButton onClick={onConfirm}>Отправить</PrimaryButton>
+          <OutlineButton onClick={onClose} t={t} dark={dark}>Отмена</OutlineButton>
+          <PrimaryButton onClick={onConfirm} t={t} dark={dark}>Отправить</PrimaryButton>
         </div>
       </div>
     </div>
@@ -1237,65 +1264,54 @@ function SendConfirmDialog({ open, userCount, channels, onClose, onConfirm }: {
    FORM PRIMITIVES
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const cardStyle: React.CSSProperties = {
-  background: C.surface,
-  border: `1px solid ${C.border}`,
-  borderRadius: '12px',
-  padding: '24px',
-};
-
-const crumbLink: React.CSSProperties = {
-  fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer',
-};
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <h3 style={{
       margin: '0 0 12px', fontFamily: F.dm, fontSize: '13px', fontWeight: 600,
-      color: C.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text1, textTransform: 'uppercase', letterSpacing: '0.04em',
     }}>
       {children}
     </h3>
   );
 }
 
-function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+function FormSection({ title, children, t }: { title: string; children: React.ReactNode; t: T }) {
   return (
     <div style={{ padding: '4px 0' }}>
-      <SectionTitle>{title}</SectionTitle>
+      <SectionTitle t={t}>{title}</SectionTitle>
       {children}
     </div>
   );
 }
 
-function FieldLabel({ children, required, style }: {
-  children: React.ReactNode; required?: boolean; style?: React.CSSProperties;
+function FieldLabel({ children, required, style, t }: {
+  children: React.ReactNode; required?: boolean; style?: React.CSSProperties; t: T;
 }) {
   return (
     <label style={{
       display: 'block', marginBottom: '6px',
-      fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text2,
+      fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text2,
       ...style,
     }}>
-      {children}{required && <span style={{ color: C.error, marginLeft: '3px' }}>*</span>}
+      {children}{required && <span style={{ color: t.error, marginLeft: '3px' }}>*</span>}
     </label>
   );
 }
 
-function Caption({ children }: { children: React.ReactNode }) {
+function Caption({ children, t }: { children: React.ReactNode; t: T }) {
   return (
-    <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '6px' }}>
+    <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '6px' }}>
       {children}
     </div>
   );
 }
 
-function Divider() {
-  return <div style={{ height: '1px', background: C.border, margin: '20px 0' }} />;
+function Divider({ t }: { t: T }) {
+  return <div style={{ height: '1px', background: t.border, margin: '20px 0' }} />;
 }
 
-function TextInput({ value, placeholder, onChange }: {
-  value: string; placeholder?: string; onChange: (v: string) => void;
+function TextInput({ value, placeholder, onChange, t }: {
+  value: string; placeholder?: string; onChange: (v: string) => void; t: T;
 }) {
   const [focus, setFocus] = useState(false);
   return (
@@ -1308,10 +1324,10 @@ function TextInput({ value, placeholder, onChange }: {
       onBlur={() => setFocus(false)}
       style={{
         width: '100%', height: '38px', padding: '0 12px',
-        border: `1px solid ${focus ? C.blue : C.inputBorder}`,
+        border: `1px solid ${focus ? t.blue : t.inputBorder}`,
         borderRadius: '8px', outline: 'none',
-        fontFamily: F.inter, fontSize: '14px', color: C.text1,
-        background: C.surface, boxSizing: 'border-box',
+        fontFamily: F.inter, fontSize: '14px', color: t.text1,
+        background: t.surface, boxSizing: 'border-box',
         transition: 'border-color 0.12s',
       }}
     />
@@ -1323,7 +1339,8 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, {
   placeholder?: string;
   onChange: (v: string) => void;
   height?: number;
-}>(function TextArea({ value, placeholder, onChange, height }, ref) {
+  t: T;
+}>(function TextArea({ value, placeholder, onChange, height, t }, ref) {
   const [focus, setFocus] = useState(false);
   return (
     <textarea
@@ -1335,10 +1352,10 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, {
       onBlur={() => setFocus(false)}
       style={{
         width: '100%', padding: '10px 12px',
-        border: `1px solid ${focus ? C.blue : C.inputBorder}`,
+        border: `1px solid ${focus ? t.blue : t.inputBorder}`,
         borderRadius: '8px', outline: 'none', resize: 'vertical',
-        fontFamily: F.inter, fontSize: '13px', color: C.text1,
-        background: C.surface, boxSizing: 'border-box',
+        fontFamily: F.inter, fontSize: '13px', color: t.text1,
+        background: t.surface, boxSizing: 'border-box',
         transition: 'border-color 0.12s',
         height: height ? `${height}px` : '120px',
         minHeight: '80px', lineHeight: 1.5,
@@ -1347,8 +1364,8 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, {
   );
 });
 
-function CheckboxRow({ label, checked, onChange, disabled }: {
-  label: string; checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean;
+function CheckboxRow({ label, checked, onChange, disabled, t }: {
+  label: string; checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean; t: T;
 }) {
   const toggle = () => { if (!disabled && onChange) onChange(!checked); };
   return (
@@ -1362,21 +1379,21 @@ function CheckboxRow({ label, checked, onChange, disabled }: {
     >
       <span style={{
         width: '18px', height: '18px', borderRadius: '4px',
-        border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
-        background: checked ? C.blue : C.surface,
+        border: `1.5px solid ${checked ? t.blue : t.inputBorder}`,
+        background: checked ? t.blue : t.surface,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.12s', flexShrink: 0,
       }}>
         {checked && <Check size={12} color="#FFFFFF" strokeWidth={3} />}
       </span>
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>{label}</span>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>{label}</span>
     </label>
   );
 }
 
-function RadioRow({ label, sub, checked, onSelect, children }: {
+function RadioRow({ label, sub, checked, onSelect, children, t }: {
   label: string; sub?: string; checked: boolean; onSelect: () => void;
-  children?: React.ReactNode;
+  children?: React.ReactNode; t: T;
 }) {
   return (
     <div
@@ -1384,8 +1401,8 @@ function RadioRow({ label, sub, checked, onSelect, children }: {
       style={{
         flex: 1, minWidth: 0,
         padding: '12px',
-        border: `1px solid ${checked ? C.blue : C.border}`,
-        background: checked ? C.blueLt : C.surface,
+        border: `1px solid ${checked ? t.blue : t.border}`,
+        background: checked ? t.blueLt : t.surface,
         borderRadius: '8px', cursor: 'pointer',
         transition: 'all 0.12s',
       }}
@@ -1393,19 +1410,19 @@ function RadioRow({ label, sub, checked, onSelect, children }: {
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
         <span style={{
           width: '18px', height: '18px', borderRadius: '50%',
-          border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
-          background: C.surface, flexShrink: 0,
+          border: `1.5px solid ${checked ? t.blue : t.inputBorder}`,
+          background: t.surface, flexShrink: 0,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           marginTop: '1px',
         }}>
-          {checked && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.blue }} />}
+          {checked && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.blue }} />}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text1 }}>
+          <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text1 }}>
             {label}
           </div>
           {sub && (
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '2px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '2px' }}>
               {sub}
             </div>
           )}
@@ -1424,11 +1441,12 @@ function RadioRow({ label, sub, checked, onSelect, children }: {
    BUTTONS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function PrimaryButton({ children, onClick, disabled }: {
-  children: React.ReactNode; onClick?: () => void; disabled?: boolean;
+function PrimaryButton({ children, onClick, disabled, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; disabled?: boolean; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
-  const bg = disabled ? '#93C5FD' : hov ? C.blueHover : C.blue;
+  const disabledBg = dark ? 'rgba(59,130,246,0.40)' : '#93C5FD';
+  const bg = disabled ? disabledBg : hov ? t.blueHover : t.blue;
   return (
     <button
       type="button"
@@ -1442,7 +1460,11 @@ function PrimaryButton({ children, onClick, disabled }: {
         background: bg,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: disabled ? 'not-allowed' : 'pointer',
-        boxShadow: disabled ? 'none' : hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+        boxShadow: disabled
+          ? 'none'
+          : dark
+            ? '0 2px 8px rgba(0,0,0,0.3)'
+            : (hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)'),
         transition: 'all 0.15s', flexShrink: 0,
       }}
     >
@@ -1451,8 +1473,8 @@ function PrimaryButton({ children, onClick, disabled }: {
   );
 }
 
-function OutlineButton({ children, onClick }: {
-  children: React.ReactNode; onClick?: () => void;
+function OutlineButton({ children, onClick, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1463,10 +1485,11 @@ function OutlineButton({ children, onClick }: {
       onClick={onClick}
       style={{
         height: '38px', padding: '0 18px',
-        border: `1px solid ${hov ? C.text3 : C.inputBorder}`,
-        borderRadius: '8px', background: C.surface,
+        border: `1px solid ${hov ? t.text3 : t.inputBorder}`,
+        borderRadius: '8px',
+        background: hov ? t.tableHover : t.surface,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.text1, cursor: 'pointer',
+        color: t.text1, cursor: 'pointer',
         transition: 'all 0.12s', flexShrink: 0,
       }}
     >
@@ -1475,8 +1498,8 @@ function OutlineButton({ children, onClick }: {
   );
 }
 
-function GhostButton({ children, onClick, icon: Icon }: {
-  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+function GhostButton({ children, onClick, icon: Icon, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1488,9 +1511,9 @@ function GhostButton({ children, onClick, icon: Icon }: {
       style={{
         height: '38px', padding: '0 14px',
         border: 'none', borderRadius: '8px',
-        background: hov ? C.blueLt : 'transparent',
+        background: hov ? t.blueLt : 'transparent',
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.blue, cursor: 'pointer',
+        color: t.blue, cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         transition: 'background 0.12s',
       }}
@@ -1501,8 +1524,8 @@ function GhostButton({ children, onClick, icon: Icon }: {
   );
 }
 
-function DestructiveOutlineButton({ children, onClick, icon: Icon }: {
-  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+function DestructiveOutlineButton({ children, onClick, icon: Icon, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -1513,10 +1536,10 @@ function DestructiveOutlineButton({ children, onClick, icon: Icon }: {
       onClick={onClick}
       style={{
         height: '38px', padding: '0 16px',
-        border: `1px solid ${C.error}`, borderRadius: '8px',
-        background: hov ? C.errorBg : C.surface,
+        border: `1px solid ${t.error}`, borderRadius: '8px',
+        background: hov ? t.errorBg : t.surface,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.error, cursor: 'pointer',
+        color: t.error, cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         transition: 'all 0.12s', flexShrink: 0,
       }}
@@ -1531,11 +1554,13 @@ function DestructiveOutlineButton({ children, onClick, icon: Icon }: {
    DELETE DRAFT MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DeleteDraftModal({ open, title, onClose, onConfirm }: {
+function DeleteDraftModal({ open, title, onClose, onConfirm, t, dark }: {
   open: boolean;
   title: string;
   onClose: () => void;
   onConfirm: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
   const [confirmHov, setConfirmHov] = useState(false);
@@ -1550,11 +1575,13 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
 
   if (!open) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(17, 24, 39, 0.50)',
+        position: 'fixed', inset: 0, background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -1563,19 +1590,20 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '440px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px', boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '12px',
+          boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
         }}
       >
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <Trash2 size={20} color={C.error} strokeWidth={1.75} />
+          <Trash2 size={20} color={t.error} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Удалить черновик
           </h2>
@@ -1587,18 +1615,18 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? (dark ? D.tableHover : '#F3F4F6') : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
         <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{
-            fontFamily: F.inter, fontSize: '13px', color: C.text1, lineHeight: 1.5,
+            fontFamily: F.inter, fontSize: '13px', color: t.text1, lineHeight: 1.5,
           }}>
             Удалить черновик {title.trim() !== '' && <>«<span style={{ fontWeight: 500 }}>{title}</span>»</>}? Действие нельзя отменить.
           </div>
@@ -1606,7 +1634,7 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
 
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '14px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '14px 20px', borderTop: `1px solid ${t.border}`,
         }}>
           <button
             type="button"
@@ -1615,10 +1643,10 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 16px',
-              border: `1px solid ${cancelHov ? C.text3 : C.inputBorder}`,
-              borderRadius: '8px', background: C.surface,
+              border: `1px solid ${cancelHov ? t.text3 : t.inputBorder}`,
+              borderRadius: '8px', background: t.surface,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer',
+              color: t.text1, cursor: 'pointer',
               transition: 'all 0.12s',
             }}
           >
@@ -1632,11 +1660,13 @@ function DeleteDraftModal({ open, title, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 16px',
               border: 'none', borderRadius: '8px',
-              background: confirmHov ? '#DC2626' : C.error,
+              background: confirmHov ? '#DC2626' : t.error,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              boxShadow: confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)',
+              boxShadow: dark
+                ? '0 2px 8px rgba(0,0,0,0.3)'
+                : (confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)'),
               transition: 'all 0.15s',
             }}
           >

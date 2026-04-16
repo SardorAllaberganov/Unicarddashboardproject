@@ -1,14 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import {
   ChevronRight, ChevronDown, Search, Plus, MoreVertical, X,
   ShieldAlert, ShieldCheck, Check, KeyRound,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -150,11 +152,12 @@ const STATUSES = ['Активен', 'Заблокирован', 'Ожидает'
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options, value, onChange }: {
+function FilterSelect({ label, options, value, onChange, t }: {
   label: string;
   options: string[];
   value: string;
   onChange: (v: string) => void;
+  t: T;
 }) {
   const [focused, setFocused] = useState(false);
 
@@ -168,16 +171,16 @@ function FilterSelect({ label, options, value, onChange }: {
         style={{
           height: '40px',
           padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
           borderRadius: '8px',
-          background: C.surface,
+          background: t.surface,
           fontFamily: F.inter,
           fontSize: '14px',
-          color: C.text2,
+          color: t.text2,
           outline: 'none',
           appearance: 'none',
           cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
           minWidth: '160px',
         }}
@@ -185,7 +188,7 @@ function FilterSelect({ label, options, value, onChange }: {
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={14} color={C.text3} style={{
+      <ChevronDown size={14} color={t.text3} style={{
         position: 'absolute',
         right: '10px',
         top: '50%',
@@ -200,15 +203,22 @@ function FilterSelect({ label, options, value, onChange }: {
    ROLE BADGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function RoleBadge({ role }: { role: UserRole }) {
-  const configs: Record<UserRole, { bg: string; color: string }> = {
-    'Банк-админ': { bg: C.blueLt, color: C.blue },
-    'Менеджер орг.': { bg: C.warningBg, color: C.warning },
-    'Оператор': { bg: '#F3F4F6', color: '#374151' },
-    'Наблюдатель': { bg: '#F3F4F6', color: '#374151' },
-  };
+const ROLE_STYLE_LIGHT: Record<UserRole, { bg: string; color: string; bordered: boolean }> = {
+  'Банк-админ':     { bg: C.blueLt,      color: C.blue,    bordered: false },
+  'Менеджер орг.':  { bg: C.warningBg,   color: C.warning, bordered: false },
+  'Оператор':       { bg: '#F3F4F6',     color: '#374151', bordered: true  },
+  'Наблюдатель':    { bg: '#F3F4F6',     color: '#374151', bordered: true  },
+};
 
-  const cfg = configs[role];
+const ROLE_STYLE_DARK: Record<UserRole, { bg: string; color: string; bordered: boolean }> = {
+  'Банк-админ':     { bg: D.blueLt,                     color: D.blue,    bordered: false },
+  'Менеджер орг.':  { bg: 'rgba(251,191,36,0.12)',      color: '#FBBF24', bordered: false },
+  'Оператор':       { bg: D.tableAlt,                   color: D.text2,   bordered: true  },
+  'Наблюдатель':    { bg: D.tableAlt,                   color: D.text2,   bordered: true  },
+};
+
+function RoleBadge({ role, t, dark }: { role: UserRole; t: T; dark: boolean }) {
+  const cfg = (dark ? ROLE_STYLE_DARK : ROLE_STYLE_LIGHT)[role];
 
   return (
     <span style={{
@@ -223,7 +233,7 @@ function RoleBadge({ role }: { role: UserRole }) {
       color: cfg.color,
       whiteSpace: 'nowrap',
       flexShrink: 0,
-      border: role === 'Оператор' || role === 'Наблюдатель' ? `1px solid ${C.border}` : 'none',
+      border: cfg.bordered ? `1px solid ${t.border}` : 'none',
     }}>
       {role}
     </span>
@@ -234,14 +244,20 @@ function RoleBadge({ role }: { role: UserRole }) {
    STATUS BADGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatusBadge({ status }: { status: UserStatus }) {
-  const configs: Record<UserStatus, { bg: string; color: string; dot: string }> = {
-    'Активен': { bg: C.successBg, color: '#15803D', dot: C.success },
-    'Заблокирован': { bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' },
-    'Ожидает': { bg: C.infoBg, color: '#0E7490', dot: C.info },
-  };
+const STATUS_STYLE_LIGHT: Record<UserStatus, { bg: string; color: string; dot: string }> = {
+  'Активен':      { bg: C.successBg, color: '#15803D', dot: C.success },
+  'Заблокирован': { bg: '#F3F4F6',   color: '#374151', dot: '#9CA3AF' },
+  'Ожидает':      { bg: C.infoBg,    color: '#0E7490', dot: C.info },
+};
 
-  const cfg = configs[status];
+const STATUS_STYLE_DARK: Record<UserStatus, { bg: string; color: string; dot: string }> = {
+  'Активен':      { bg: 'rgba(52,211,153,0.12)', color: '#34D399', dot: '#34D399' },
+  'Заблокирован': { bg: D.tableAlt,              color: D.text2,   dot: D.text4 },
+  'Ожидает':      { bg: 'rgba(34,211,238,0.12)', color: '#22D3EE', dot: '#22D3EE' },
+};
+
+function StatusBadge({ status, dark }: { status: UserStatus; dark: boolean }) {
+  const cfg = (dark ? STATUS_STYLE_DARK : STATUS_STYLE_LIGHT)[status];
 
   return (
     <span style={{
@@ -268,19 +284,23 @@ function StatusBadge({ status }: { status: UserStatus }) {
    AVATAR CELL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function AvatarCell({ initials, name }: { initials: string; name: string }) {
+function AvatarCell({ initials, name, t, dark }: { initials: string; name: string; t: T; dark: boolean }) {
+  const avatarBg     = dark ? '#2D3148' : C.blueTint;
+  const avatarBorder = dark ? D.border  : C.blue;
+  const avatarText   = dark ? '#F1F2F6' : C.blue;
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
       <div style={{
         width: '32px', height: '32px', borderRadius: '50%',
-        background: C.blueTint, border: `1.5px solid ${C.blue}`,
+        background: avatarBg, border: `1.5px solid ${avatarBorder}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: C.blue }}>
+        <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: avatarText }}>
           {initials}
         </span>
       </div>
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2, whiteSpace: 'nowrap' }}>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2, whiteSpace: 'nowrap' }}>
         {name}
       </span>
     </div>
@@ -291,12 +311,14 @@ function AvatarCell({ initials, name }: { initials: string; name: string }) {
    ACTION DOTS DROPDOWN
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ActionDropdown({ userId, status, onEditRole, onToggleBlock, onResetPassword }: {
+function ActionDropdown({ userId, status, onEditRole, onToggleBlock, onResetPassword, t, dark }: {
   userId: number;
   status: UserStatus;
   onEditRole: () => void;
   onToggleBlock: () => void;
   onResetPassword: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const pop = usePopoverPosition();
   const [hovered, setHovered] = useState<string | null>(null);
@@ -313,6 +335,10 @@ function ActionDropdown({ userId, status, onEditRole, onToggleBlock, onResetPass
     },
   ];
 
+  const dangerHoverBg = dark ? 'rgba(248,113,113,0.12)' : '#FEF2F2';
+  const dangerText    = dark ? '#F87171' : '#DC2626';
+  const safeHoverBg   = dark ? D.tableHover : '#F9FAFB';
+
   return (
     <div ref={pop.rootRef} style={{ position: 'relative' }}>
       <button
@@ -321,9 +347,9 @@ function ActionDropdown({ userId, status, onEditRole, onToggleBlock, onResetPass
         style={{
           width: '28px',
           height: '28px',
-          border: `1px solid ${pop.open ? C.blue : C.border}`,
+          border: `1px solid ${pop.open ? t.blue : t.border}`,
           borderRadius: '6px',
-          background: pop.open ? C.blueLt : C.surface,
+          background: pop.open ? t.blueLt : t.surface,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -331,22 +357,22 @@ function ActionDropdown({ userId, status, onEditRole, onToggleBlock, onResetPass
           transition: 'all 0.12s',
         }}
       >
-        <MoreVertical size={14} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
+        <MoreVertical size={14} color={pop.open ? t.blue : t.text3} strokeWidth={1.75} />
       </button>
 
       {pop.open && (
         <div ref={pop.menuRef} style={{
           ...pop.menuStyle,
-          background: C.surface,
-          border: `1px solid ${C.border}`,
+          background: t.surface,
+          border: `1px solid ${t.border}`,
           borderRadius: '10px',
           padding: '6px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          boxShadow: dark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.12)',
           minWidth: '220px',
         }}>
           {actions.map((action, idx) => (
             <React.Fragment key={action.id}>
-              {idx === actions.length - 1 && <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />}
+              {idx === actions.length - 1 && <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />}
               <button
                 onMouseEnter={() => setHovered(action.id)}
                 onMouseLeave={() => setHovered(null)}
@@ -366,11 +392,11 @@ function ActionDropdown({ userId, status, onEditRole, onToggleBlock, onResetPass
                   padding: '8px 10px',
                   borderRadius: '7px',
                   border: 'none',
-                  background: hovered === action.id ? (action.danger ? '#FEF2F2' : '#F9FAFB') : 'none',
+                  background: hovered === action.id ? (action.danger ? dangerHoverBg : safeHoverBg) : 'none',
                   cursor: 'pointer',
                   fontFamily: F.inter,
                   fontSize: '13px',
-                  color: hovered === action.id && action.danger ? '#DC2626' : C.text2,
+                  color: hovered === action.id && action.danger ? dangerText : t.text2,
                   transition: 'all 0.1s',
                 }}
               >
@@ -388,18 +414,35 @@ function ActionDropdown({ userId, status, onEditRole, onToggleBlock, onResetPass
    DATA TABLE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DataTable({ users, onEditRole, onToggleBlock, onResetPassword }: {
+function DataTable({ users, onEditRole, onToggleBlock, onResetPassword, t, dark }: {
   users: UserRow[];
   onEditRole: (user: UserRow) => void;
   onToggleBlock: (user: UserRow) => void;
   onResetPassword: (user: UserRow) => void;
+  t: T;
+  dark: boolean;
 }) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
+  const headerCellStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontFamily: F.inter,
+    fontSize: '12px',
+    fontWeight: 600,
+    color: t.text3,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    whiteSpace: 'nowrap',
+  };
+
+  const headerBg = dark ? D.tableHeaderBg : '#FAFBFC';
+  const rowHoverBg = dark ? D.tableHover : '#FAFBFC';
+
   return (
     <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       overflowX: 'auto',
     }}>
@@ -410,8 +453,8 @@ function DataTable({ users, onEditRole, onToggleBlock, onResetPassword }: {
       }}>
         <thead>
           <tr style={{
-            background: '#FAFBFC',
-            borderBottom: `1px solid ${C.border}`,
+            background: headerBg,
+            borderBottom: `1px solid ${t.border}`,
           }}>
             <th style={headerCellStyle}>#</th>
             <th style={headerCellStyle}>Пользователь</th>
@@ -431,44 +474,44 @@ function DataTable({ users, onEditRole, onToggleBlock, onResetPassword }: {
               onMouseEnter={() => setHoveredRow(user.id)}
               onMouseLeave={() => setHoveredRow(null)}
               style={{
-                borderBottom: `1px solid ${C.border}`,
-                background: hoveredRow === user.id ? '#FAFBFC' : C.surface,
+                borderBottom: `1px solid ${t.border}`,
+                background: hoveredRow === user.id ? rowHoverBg : t.surface,
                 transition: 'background 0.12s',
               }}
             >
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
                   {user.id}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <AvatarCell initials={user.initials} name={user.name} />
+                <AvatarCell initials={user.initials} name={user.name} t={t} dark={dark} />
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {user.phone}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {user.email}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <RoleBadge role={user.role} />
+                <RoleBadge role={user.role} t={t} dark={dark} />
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {user.organization}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
                   {user.lastLogin}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <StatusBadge status={user.status} />
+                <StatusBadge status={user.status} dark={dark} />
               </td>
               <td style={dataCellStyle}>
                 <ActionDropdown
@@ -477,6 +520,8 @@ function DataTable({ users, onEditRole, onToggleBlock, onResetPassword }: {
                   onEditRole={() => onEditRole(user)}
                   onToggleBlock={() => onToggleBlock(user)}
                   onResetPassword={() => onResetPassword(user)}
+                  t={t}
+                  dark={dark}
                 />
               </td>
             </tr>
@@ -486,18 +531,6 @@ function DataTable({ users, onEditRole, onToggleBlock, onResetPassword }: {
     </div>
   );
 }
-
-const headerCellStyle: React.CSSProperties = {
-  padding: '12px 16px',
-  textAlign: 'left',
-  fontFamily: F.inter,
-  fontSize: '12px',
-  fontWeight: 600,
-  color: C.text3,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  whiteSpace: 'nowrap',
-};
 
 const dataCellStyle: React.CSSProperties = {
   padding: '14px 16px',
@@ -509,7 +542,7 @@ const dataCellStyle: React.CSSProperties = {
    ADD USER MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function AddUserModal({ open, onClose, t, dark }: { open: boolean; onClose: () => void; t: T; dark: boolean }) {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -529,6 +562,11 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
 
   const showOrgField = role === 'Менеджер организации';
 
+  const overlay = dark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)';
+  const sectionBg = dark ? D.tableAlt : '#F9FAFB';
+  const toggleTrack = dark ? D.border : '#D1D5DB';
+  const modalShadow = dark ? '0 20px 60px rgba(0,0,0,0.5)' : '0 20px 60px rgba(0,0,0,0.15)';
+
   return (
     <div style={{
       position: 'fixed',
@@ -536,19 +574,19 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(0, 0, 0, 0.4)',
+      background: overlay,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 100,
     }}>
       <div style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
+        background: t.surface,
+        border: `1px solid ${t.border}`,
         borderRadius: '16px',
         width: '500px',
         maxWidth: '90vw',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+        boxShadow: modalShadow,
       }}>
         {/* Header */}
         <div style={{
@@ -556,13 +594,13 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '20px 24px',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${t.border}`,
         }}>
           <h2 style={{
             fontFamily: F.dm,
             fontSize: '18px',
             fontWeight: 700,
-            color: C.text1,
+            color: t.text1,
             margin: 0,
           }}>
             Новый пользователь
@@ -572,16 +610,16 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
             style={{
               width: '32px',
               height: '32px',
-              border: `1px solid ${C.border}`,
+              border: `1px solid ${t.border}`,
               borderRadius: '8px',
-              background: C.surface,
+              background: t.surface,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -595,7 +633,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 marginBottom: '8px',
               }}>
                 ФИО
@@ -608,12 +646,12 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                   width: '100%',
                   height: '40px',
                   padding: '0 12px',
-                  border: `1px solid ${C.inputBorder}`,
+                  border: `1px solid ${t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.inter,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -627,7 +665,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 marginBottom: '8px',
               }}>
                 Телефон
@@ -640,12 +678,12 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                   width: '100%',
                   height: '40px',
                   padding: '0 12px',
-                  border: `1px solid ${C.inputBorder}`,
+                  border: `1px solid ${t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.mono,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -659,7 +697,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 marginBottom: '8px',
               }}>
                 Email
@@ -672,12 +710,12 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                   width: '100%',
                   height: '40px',
                   padding: '0 12px',
-                  border: `1px solid ${C.inputBorder}`,
+                  border: `1px solid ${t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.inter,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -691,7 +729,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 marginBottom: '8px',
               }}>
                 Роль
@@ -704,12 +742,12 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                     width: '100%',
                     height: '40px',
                     padding: '0 36px 0 12px',
-                    border: `1px solid ${C.inputBorder}`,
+                    border: `1px solid ${t.inputBorder}`,
                     borderRadius: '8px',
-                    background: C.surface,
+                    background: t.surface,
                     fontFamily: F.inter,
                     fontSize: '14px',
-                    color: C.text2,
+                    color: t.text2,
                     outline: 'none',
                     appearance: 'none',
                     cursor: 'pointer',
@@ -719,7 +757,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                   <option value="">Выберите роль</option>
                   {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                 </select>
-                <ChevronDown size={14} color={C.text3} style={{
+                <ChevronDown size={14} color={t.text3} style={{
                   position: 'absolute',
                   right: '12px',
                   top: '50%',
@@ -737,7 +775,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                   fontFamily: F.inter,
                   fontSize: '13px',
                   fontWeight: 500,
-                  color: C.text2,
+                  color: t.text2,
                   marginBottom: '8px',
                 }}>
                   Организация
@@ -750,12 +788,12 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                       width: '100%',
                       height: '40px',
                       padding: '0 36px 0 12px',
-                      border: `1px solid ${C.inputBorder}`,
+                      border: `1px solid ${t.inputBorder}`,
                       borderRadius: '8px',
-                      background: C.surface,
+                      background: t.surface,
                       fontFamily: F.inter,
                       fontSize: '14px',
-                      color: C.text2,
+                      color: t.text2,
                       outline: 'none',
                       appearance: 'none',
                       cursor: 'pointer',
@@ -765,7 +803,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                     <option value="">Выберите организацию</option>
                     {ORGANIZATIONS.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
-                  <ChevronDown size={14} color={C.text3} style={{
+                  <ChevronDown size={14} color={t.text3} style={{
                     position: 'absolute',
                     right: '12px',
                     top: '50%',
@@ -783,14 +821,14 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
               justifyContent: 'space-between',
               padding: '12px 16px',
               borderRadius: '10px',
-              background: '#F9FAFB',
-              border: `1px solid ${C.border}`,
+              background: sectionBg,
+              border: `1px solid ${t.border}`,
             }}>
               <label style={{
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 cursor: 'pointer',
               }}>
                 Отправить приглашение по SMS
@@ -801,7 +839,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                   width: '44px',
                   height: '24px',
                   borderRadius: '12px',
-                  background: sendSMS ? C.blue : '#D1D5DB',
+                  background: sendSMS ? t.blue : toggleTrack,
                   border: 'none',
                   cursor: 'pointer',
                   position: 'relative',
@@ -812,7 +850,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
                   width: '18px',
                   height: '18px',
                   borderRadius: '50%',
-                  background: C.surface,
+                  background: '#FFFFFF',
                   position: 'absolute',
                   top: '3px',
                   left: sendSMS ? '23px' : '3px',
@@ -831,7 +869,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
           justifyContent: 'flex-end',
           gap: '12px',
           padding: '16px 24px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHover(true)}
@@ -840,13 +878,13 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
             style={{
               height: '40px',
               padding: '0 20px',
-              border: `1px solid ${cancelHover ? C.blue : C.border}`,
+              border: `1px solid ${cancelHover ? t.blue : t.border}`,
               borderRadius: '8px',
-              background: cancelHover ? C.blueLt : C.surface,
+              background: cancelHover ? t.blueLt : t.surface,
               fontFamily: F.inter,
               fontSize: '14px',
               fontWeight: 500,
-              color: cancelHover ? C.blue : C.text2,
+              color: cancelHover ? t.blue : t.text2,
               cursor: 'pointer',
               transition: 'all 0.12s',
             }}
@@ -862,7 +900,7 @@ function AddUserModal({ open, onClose }: { open: boolean; onClose: () => void })
               padding: '0 20px',
               border: 'none',
               borderRadius: '8px',
-              background: saveHover ? C.blueHover : C.blue,
+              background: saveHover ? t.blueHover : t.blue,
               fontFamily: F.inter,
               fontSize: '14px',
               fontWeight: 500,
@@ -925,11 +963,13 @@ const ROLE_SHORT_TO_LONG: Record<UserRole, string> = {
 
 const NEEDS_ORG = new Set(['Менеджер организации', 'Оператор', 'Наблюдатель']);
 
-function EditRoleModal({ open, user, onClose, onSave }: {
+function EditRoleModal({ open, user, onClose, onSave, t, dark }: {
   open: boolean;
   user: UserRow | null;
   onClose: () => void;
   onSave: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const initialRole = user ? ROLE_SHORT_TO_LONG[user.role] : '';
   const initialOrg = user?.organization ?? '';
@@ -963,12 +1003,20 @@ function EditRoleModal({ open, user, onClose, onSave }: {
   const orgChanged = needsOrg && org !== initialOrg && initialOrg !== '—';
   const canSave = !!role && (!needsOrg || !!org);
 
+  const overlay = dark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const modalShadow = dark ? '0 24px 48px rgba(0,0,0,0.5)' : '0 24px 48px rgba(0,0,0,0.18)';
+  const stripBg = dark ? D.tableAlt : '#F9FAFB';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+  const cancelHovBg = dark ? D.tableHover : '#F9FAFB';
+  const avatarBorder = dark ? D.blueTint : C.blueTint;
+  const disabledSaveBg = dark ? '#1E3A5F' : '#93C5FD';
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: overlay,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -977,9 +1025,9 @@ function EditRoleModal({ open, user, onClose, onSave }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '520px',
-          background: C.surface, border: `1px solid ${C.border}`,
+          background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          boxShadow: modalShadow,
           display: 'flex', flexDirection: 'column',
           maxHeight: 'calc(100vh - 40px)',
         }}
@@ -987,11 +1035,11 @@ function EditRoleModal({ open, user, onClose, onSave }: {
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
           <h2 style={{
             margin: 0,
-            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: C.text1,
+            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: t.text1,
           }}>
             Изменить роль пользователя
           </h2>
@@ -1003,13 +1051,13 @@ function EditRoleModal({ open, user, onClose, onSave }: {
             style={{
               width: '28px', height: '28px',
               border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent',
+              background: closeHov ? closeHovBg : 'transparent',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -1020,47 +1068,47 @@ function EditRoleModal({ open, user, onClose, onSave }: {
         }}>
           {/* User strip */}
           <div style={{
-            background: '#F9FAFB', borderRadius: '8px', padding: '12px',
+            background: stripBg, borderRadius: '8px', padding: '12px',
             display: 'flex', alignItems: 'center', gap: '12px',
             flexWrap: 'wrap',
           }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '50%',
-              background: C.blueLt, border: `1px solid ${C.blueTint}`,
+              background: t.blueLt, border: `1px solid ${avatarBorder}`,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: t.blue,
               flexShrink: 0,
             }}>
               {user.initials}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{
-                fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: t.text1,
               }}>
                 {user.name}
               </div>
               <div style={{
-                fontFamily: F.mono, fontSize: '12px', color: C.text3,
+                fontFamily: F.mono, fontSize: '12px', color: t.text3,
                 marginTop: '2px',
               }}>
                 {user.phone}
               </div>
             </div>
             <div style={{ marginLeft: 'auto' }}>
-              <RoleBadge role={user.role} />
+              <RoleBadge role={user.role} t={t} dark={dark} />
             </div>
           </div>
 
           {/* Divider */}
-          <div style={{ height: '1px', background: C.border }} />
+          <div style={{ height: '1px', background: t.border }} />
 
           {/* Role select */}
           <div>
             <label style={{
               display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
-              Новая роль<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+              Новая роль<span style={{ color: t.error, marginLeft: '3px' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <select
@@ -1070,17 +1118,17 @@ function EditRoleModal({ open, user, onClose, onSave }: {
                 onBlur={() => setRoleFocus(false)}
                 style={{
                   width: '100%', height: '40px', padding: '0 36px 0 12px',
-                  border: `1px solid ${roleFocus ? C.blue : C.inputBorder}`,
-                  borderRadius: '8px', background: C.surface,
-                  fontFamily: F.inter, fontSize: '13px', color: C.text1,
+                  border: `1px solid ${roleFocus ? t.blue : t.inputBorder}`,
+                  borderRadius: '8px', background: t.surface,
+                  fontFamily: F.inter, fontSize: '13px', color: t.text1,
                   outline: 'none', appearance: 'none', cursor: 'pointer',
-                  boxShadow: roleFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: roleFocus ? `0 0 0 3px ${t.focusRing}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               >
                 {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-              <ChevronDown size={14} color={C.text3} style={{
+              <ChevronDown size={14} color={t.text3} style={{
                 position: 'absolute', right: '12px', top: '50%',
                 transform: 'translateY(-50%)', pointerEvents: 'none',
               }} />
@@ -1090,12 +1138,12 @@ function EditRoleModal({ open, user, onClose, onSave }: {
           {/* Role description */}
           {desc && (
             <div style={{
-              background: '#F9FAFB', border: `1px solid ${C.border}`,
+              background: stripBg, border: `1px solid ${t.border}`,
               borderRadius: '8px', padding: '12px',
             }}>
               <div style={{
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 600,
-                color: C.text1, marginBottom: '6px',
+                color: t.text1, marginBottom: '6px',
               }}>
                 {desc.title}
               </div>
@@ -1106,9 +1154,9 @@ function EditRoleModal({ open, user, onClose, onSave }: {
                 {desc.lines.map((line, i) => (
                   <li key={i} style={{
                     display: 'flex', gap: '6px',
-                    fontFamily: F.inter, fontSize: '12px', color: C.text2, lineHeight: 1.5,
+                    fontFamily: F.inter, fontSize: '12px', color: t.text2, lineHeight: 1.5,
                   }}>
-                    <span style={{ color: C.text4, flexShrink: 0 }}>•</span>
+                    <span style={{ color: t.text4, flexShrink: 0 }}>•</span>
                     <span>{line}</span>
                   </li>
                 ))}
@@ -1121,9 +1169,9 @@ function EditRoleModal({ open, user, onClose, onSave }: {
             <div>
               <label style={{
                 display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                color: C.text2, marginBottom: '8px',
+                color: t.text2, marginBottom: '8px',
               }}>
-                Организация<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+                Организация<span style={{ color: t.error, marginLeft: '3px' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <select
@@ -1133,19 +1181,19 @@ function EditRoleModal({ open, user, onClose, onSave }: {
                   onBlur={() => setOrgFocus(false)}
                   style={{
                     width: '100%', height: '40px', padding: '0 36px 0 12px',
-                    border: `1px solid ${orgFocus ? C.blue : C.inputBorder}`,
-                    borderRadius: '8px', background: C.surface,
+                    border: `1px solid ${orgFocus ? t.blue : t.inputBorder}`,
+                    borderRadius: '8px', background: t.surface,
                     fontFamily: F.inter, fontSize: '13px',
-                    color: org ? C.text1 : C.text4,
+                    color: org ? t.text1 : t.text4,
                     outline: 'none', appearance: 'none', cursor: 'pointer',
-                    boxShadow: orgFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                    boxShadow: orgFocus ? `0 0 0 3px ${t.focusRing}` : 'none',
                     transition: 'border-color 0.12s, box-shadow 0.12s',
                   }}
                 >
                   <option value="">Выберите организацию</option>
                   {ORG_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
-                <ChevronDown size={14} color={C.text3} style={{
+                <ChevronDown size={14} color={t.text3} style={{
                   position: 'absolute', right: '12px', top: '50%',
                   transform: 'translateY(-50%)', pointerEvents: 'none',
                 }} />
@@ -1156,7 +1204,7 @@ function EditRoleModal({ open, user, onClose, onSave }: {
                   display: 'flex', alignItems: 'flex-start', gap: '6px',
                   marginTop: '8px',
                   fontFamily: F.inter, fontSize: '12px',
-                  color: C.warning, lineHeight: 1.4,
+                  color: t.warning, lineHeight: 1.4,
                 }}>
                   <span style={{ flexShrink: 0 }}>⚠</span>
                   <span>Пользователь потеряет доступ к данным {initialOrg}</span>
@@ -1170,7 +1218,7 @@ function EditRoleModal({ open, user, onClose, onSave }: {
         <div style={{
           display: 'flex', gap: '10px', justifyContent: 'flex-end',
           padding: '14px 20px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHov(true)}
@@ -1178,10 +1226,10 @@ function EditRoleModal({ open, user, onClose, onSave }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 18px',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              background: cancelHov ? '#F9FAFB' : C.surface,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
+              background: cancelHov ? cancelHovBg : t.surface,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer',
+              color: t.text1, cursor: 'pointer',
               transition: 'background 0.12s',
             }}
           >
@@ -1196,7 +1244,7 @@ function EditRoleModal({ open, user, onClose, onSave }: {
             style={{
               height: '38px', padding: '0 18px',
               border: 'none', borderRadius: '8px',
-              background: !canSave ? '#93C5FD' : saveHov ? C.blueHover : C.blue,
+              background: !canSave ? disabledSaveBg : saveHov ? t.blueHover : t.blue,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF',
               cursor: canSave ? 'pointer' : 'not-allowed',
@@ -1224,35 +1272,43 @@ const BLOCK_REASONS = [
   'Другое',
 ];
 
-function UserCardStrip({ user }: { user: UserRow }) {
-  const statusCfg: Record<UserStatus, { bg: string; color: string; dot: string; border?: string }> = {
+function UserCardStrip({ user, t, dark }: { user: UserRow; t: T; dark: boolean }) {
+  const statusStyleLight: Record<UserStatus, { bg: string; color: string; dot: string; border?: string }> = {
     'Активен':      { bg: C.successBg, color: '#15803D', dot: C.success },
     'Заблокирован': { bg: '#F3F4F6',    color: C.text2,  dot: C.text4, border: C.border },
     'Ожидает':      { bg: C.warningBg,  color: '#B45309', dot: C.warning },
   };
-  const s = statusCfg[user.status];
+  const statusStyleDark: Record<UserStatus, { bg: string; color: string; dot: string; border?: string }> = {
+    'Активен':      { bg: 'rgba(52,211,153,0.12)', color: '#34D399', dot: '#34D399' },
+    'Заблокирован': { bg: D.tableAlt,              color: D.text2,   dot: D.text4, border: D.border },
+    'Ожидает':      { bg: 'rgba(251,191,36,0.12)', color: '#FBBF24', dot: '#FBBF24' },
+  };
+  const s = (dark ? statusStyleDark : statusStyleLight)[user.status];
+  const stripBg = dark ? D.tableAlt : '#F9FAFB';
+  const avatarBorder = dark ? D.blueTint : C.blueTint;
+
   return (
     <div style={{
-      background: '#F9FAFB', borderRadius: '8px', padding: '12px',
+      background: stripBg, borderRadius: '8px', padding: '12px',
       display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
     }}>
       <div style={{
         width: '36px', height: '36px', borderRadius: '50%',
-        background: C.blueLt, border: `1px solid ${C.blueTint}`,
+        background: t.blueLt, border: `1px solid ${avatarBorder}`,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.blue,
+        fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: t.blue,
         flexShrink: 0,
       }}>
         {user.initials}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
-          fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+          fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: t.text1,
         }}>
           {user.name}
         </div>
         <div style={{
-          fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '2px',
+          fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '2px',
         }}>
           {user.role} — {user.organization}
         </div>
@@ -1272,8 +1328,8 @@ function UserCardStrip({ user }: { user: UserRow }) {
   );
 }
 
-function BlockUserModal({ open, user, onClose, onConfirm }: {
-  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void;
+function BlockUserModal({ open, user, onClose, onConfirm, t, dark }: {
+  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void; t: T; dark: boolean;
 }) {
   const [reason, setReason] = useState('');
   const [reasonFocus, setReasonFocus] = useState(false);
@@ -1292,12 +1348,19 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
 
   const canConfirm = !!reason;
 
+  const overlay = dark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const modalShadow = dark ? '0 24px 48px rgba(0,0,0,0.5)' : '0 24px 48px rgba(0,0,0,0.18)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+  const cancelHovBg = dark ? D.tableHover : '#F9FAFB';
+  const disabledRedBg = dark ? 'rgba(248,113,113,0.3)' : '#FCA5A5';
+  const errorHoverColor = dark ? '#EF4444' : '#DC2626';
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: overlay,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -1306,21 +1369,21 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '480px',
-          background: C.surface, border: `1px solid ${C.border}`,
+          background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          boxShadow: modalShadow,
           display: 'flex', flexDirection: 'column',
           maxHeight: 'calc(100vh - 40px)',
         }}
       >
         <div style={{
           display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <ShieldAlert size={22} color={C.error} strokeWidth={1.75} />
+          <ShieldAlert size={22} color={t.error} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Заблокировать пользователя
           </h2>
@@ -1332,13 +1395,13 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
             style={{
               width: '28px', height: '28px',
               border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent',
+              background: closeHov ? closeHovBg : 'transparent',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -1346,12 +1409,12 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
           padding: '20px', overflowY: 'auto',
           display: 'flex', flexDirection: 'column', gap: '16px',
         }}>
-          <UserCardStrip user={user} />
+          <UserCardStrip user={user} t={t} dark={dark} />
 
           <div>
             <label style={{
               display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
               Причина блокировки
             </label>
@@ -1363,19 +1426,19 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
                 onBlur={() => setReasonFocus(false)}
                 style={{
                   width: '100%', height: '40px', padding: '0 36px 0 12px',
-                  border: `1px solid ${reasonFocus ? C.blue : C.inputBorder}`,
-                  borderRadius: '8px', background: C.surface,
+                  border: `1px solid ${reasonFocus ? t.blue : t.inputBorder}`,
+                  borderRadius: '8px', background: t.surface,
                   fontFamily: F.inter, fontSize: '13px',
-                  color: reason ? C.text1 : C.text4,
+                  color: reason ? t.text1 : t.text4,
                   outline: 'none', appearance: 'none', cursor: 'pointer',
-                  boxShadow: reasonFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: reasonFocus ? `0 0 0 3px ${t.focusRing}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               >
                 <option value="">Выберите причину</option>
                 {BLOCK_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-              <ChevronDown size={14} color={C.text3} style={{
+              <ChevronDown size={14} color={t.text3} style={{
                 position: 'absolute', right: '12px', top: '50%',
                 transform: 'translateY(-50%)', pointerEvents: 'none',
               }} />
@@ -1383,7 +1446,7 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
           </div>
 
           <div style={{
-            fontFamily: F.inter, fontSize: '13px', color: C.text2, lineHeight: 1.5,
+            fontFamily: F.inter, fontSize: '13px', color: t.text2, lineHeight: 1.5,
           }}>
             При блокировке пользователь немедленно потеряет доступ к платформе.
           </div>
@@ -1392,7 +1455,7 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
         <div style={{
           display: 'flex', gap: '10px', justifyContent: 'flex-end',
           padding: '14px 20px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHov(true)}
@@ -1400,10 +1463,10 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 18px',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              background: cancelHov ? '#F9FAFB' : C.surface,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
+              background: cancelHov ? cancelHovBg : t.surface,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer',
+              color: t.text1, cursor: 'pointer',
               transition: 'background 0.12s',
             }}
           >
@@ -1418,7 +1481,7 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 18px',
               border: 'none', borderRadius: '8px',
-              background: !canConfirm ? '#FCA5A5' : confirmHov ? '#DC2626' : C.error,
+              background: !canConfirm ? disabledRedBg : confirmHov ? errorHoverColor : t.error,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF',
               cursor: canConfirm ? 'pointer' : 'not-allowed',
@@ -1437,8 +1500,8 @@ function BlockUserModal({ open, user, onClose, onConfirm }: {
   );
 }
 
-function UnblockUserModal({ open, user, onClose, onConfirm }: {
-  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void;
+function UnblockUserModal({ open, user, onClose, onConfirm, t, dark }: {
+  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void; t: T; dark: boolean;
 }) {
   const [notify, setNotify] = useState(true);
   const [cancelHov, setCancelHov] = useState(false);
@@ -1454,12 +1517,17 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
 
   if (!open || !user) return null;
 
+  const overlay = dark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const modalShadow = dark ? '0 24px 48px rgba(0,0,0,0.5)' : '0 24px 48px rgba(0,0,0,0.18)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+  const cancelHovBg = dark ? D.tableHover : '#F9FAFB';
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: overlay,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -1468,21 +1536,21 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '480px',
-          background: C.surface, border: `1px solid ${C.border}`,
+          background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          boxShadow: modalShadow,
           display: 'flex', flexDirection: 'column',
           maxHeight: 'calc(100vh - 40px)',
         }}
       >
         <div style={{
           display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <ShieldCheck size={22} color={C.success} strokeWidth={1.75} />
+          <ShieldCheck size={22} color={t.success} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Разблокировать пользователя
           </h2>
@@ -1494,13 +1562,13 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
             style={{
               width: '28px', height: '28px',
               border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent',
+              background: closeHov ? closeHovBg : 'transparent',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -1508,15 +1576,15 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
           padding: '20px', overflowY: 'auto',
           display: 'flex', flexDirection: 'column', gap: '14px',
         }}>
-          <UserCardStrip user={user} />
+          <UserCardStrip user={user} t={t} dark={dark} />
 
           <div>
             <div style={{
-              fontFamily: F.inter, fontSize: '13px', color: C.text2, marginBottom: '3px',
+              fontFamily: F.inter, fontSize: '13px', color: t.text2, marginBottom: '3px',
             }}>
-              Причина блокировки: <span style={{ color: C.text1, fontWeight: 500 }}>Запрос организации</span>
+              Причина блокировки: <span style={{ color: t.text1, fontWeight: 500 }}>Запрос организации</span>
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4 }}>
+            <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4 }}>
               Дата блокировки: <span style={{ fontFamily: F.mono }}>08.04.2026</span>
             </div>
           </div>
@@ -1530,8 +1598,8 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
               onClick={() => setNotify(n => !n)}
               style={{
                 width: '16px', height: '16px', borderRadius: '4px',
-                border: `1.5px solid ${notify ? C.blue : C.inputBorder}`,
-                background: notify ? C.blue : C.surface,
+                border: `1.5px solid ${notify ? t.blue : t.inputBorder}`,
+                background: notify ? t.blue : t.surface,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
                 transition: 'all 0.12s',
@@ -1545,7 +1613,7 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
               onChange={e => setNotify(e.target.checked)}
               style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
             />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>
               Отправить уведомление о разблокировке по SMS
             </span>
           </label>
@@ -1554,7 +1622,7 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
         <div style={{
           display: 'flex', gap: '10px', justifyContent: 'flex-end',
           padding: '14px 20px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHov(true)}
@@ -1562,10 +1630,10 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 18px',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              background: cancelHov ? '#F9FAFB' : C.surface,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
+              background: cancelHov ? cancelHovBg : t.surface,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer',
+              color: t.text1, cursor: 'pointer',
               transition: 'background 0.12s',
             }}
           >
@@ -1579,7 +1647,7 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 18px',
               border: 'none', borderRadius: '8px',
-              background: confirmHov ? C.blueHover : C.blue,
+              background: confirmHov ? t.blueHover : t.blue,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -1600,8 +1668,8 @@ function UnblockUserModal({ open, user, onClose, onConfirm }: {
    RESET PASSWORD MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ResetPasswordModal({ open, user, onClose, onConfirm }: {
-  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void;
+function ResetPasswordModal({ open, user, onClose, onConfirm, t, dark }: {
+  open: boolean; user: UserRow | null; onClose: () => void; onConfirm: () => void; t: T; dark: boolean;
 }) {
   const [method, setMethod] = useState<'sms' | 'email'>('sms');
   const [forceChange, setForceChange] = useState(true);
@@ -1618,12 +1686,18 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
 
   if (!open || !user) return null;
 
+  const overlay = dark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const modalShadow = dark ? '0 24px 48px rgba(0,0,0,0.5)' : '0 24px 48px rgba(0,0,0,0.18)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+  const cancelHovBg = dark ? D.tableHover : '#F9FAFB';
+  const avatarBorder = dark ? D.blueTint : C.blueTint;
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: overlay,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -1632,9 +1706,9 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '440px',
-          background: C.surface, border: `1px solid ${C.border}`,
+          background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          boxShadow: modalShadow,
           display: 'flex', flexDirection: 'column',
           maxHeight: 'calc(100vh - 40px)',
         }}
@@ -1642,12 +1716,12 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <KeyRound size={22} color={C.blue} strokeWidth={1.75} />
+          <KeyRound size={22} color={t.blue} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Сбросить пароль
           </h2>
@@ -1659,13 +1733,13 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
             style={{
               width: '28px', height: '28px',
               border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent',
+              background: closeHov ? closeHovBg : 'transparent',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -1680,21 +1754,21 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
           }}>
             <div style={{
               width: '40px', height: '40px', borderRadius: '50%',
-              background: C.blueLt, border: `1px solid ${C.blueTint}`,
+              background: t.blueLt, border: `1px solid ${avatarBorder}`,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.blue,
+              fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: t.blue,
               flexShrink: 0,
             }}>
               {user.initials}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{
-                fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: t.text1,
               }}>
                 {user.name}
               </div>
               <div style={{
-                fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '2px',
+                fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '2px',
               }}>
                 {user.role} — {user.organization}
               </div>
@@ -1703,7 +1777,7 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
 
           <p style={{
             margin: 0, fontFamily: F.inter, fontSize: '13px',
-            color: C.text2, lineHeight: 1.5,
+            color: t.text2, lineHeight: 1.5,
           }}>
             Текущий пароль будет аннулирован. Новый временный пароль будет отправлен пользователю.
           </p>
@@ -1712,7 +1786,7 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
           <div>
             <div style={{
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
               Способ отправки
             </div>
@@ -1720,12 +1794,16 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
               <MethodRadio
                 selected={method === 'sms'}
                 onClick={() => setMethod('sms')}
-                label={<>SMS на <span style={{ fontFamily: F.mono, color: C.text1 }}>{user.phone}</span></>}
+                label={<>SMS на <span style={{ fontFamily: F.mono, color: t.text1 }}>{user.phone}</span></>}
+                t={t}
+                dark={dark}
               />
               <MethodRadio
                 selected={method === 'email'}
                 onClick={() => setMethod('email')}
-                label={<>Email на <span style={{ fontFamily: F.mono, color: C.text1 }}>{user.email}</span></>}
+                label={<>Email на <span style={{ fontFamily: F.mono, color: t.text1 }}>{user.email}</span></>}
+                t={t}
+                dark={dark}
               />
             </div>
           </div>
@@ -1739,8 +1817,8 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
               onClick={() => setForceChange(f => !f)}
               style={{
                 width: '16px', height: '16px', borderRadius: '4px',
-                border: `1.5px solid ${forceChange ? C.blue : C.inputBorder}`,
-                background: forceChange ? C.blue : C.surface,
+                border: `1.5px solid ${forceChange ? t.blue : t.inputBorder}`,
+                background: forceChange ? t.blue : t.surface,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
                 transition: 'all 0.12s',
@@ -1754,7 +1832,7 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
               onChange={e => setForceChange(e.target.checked)}
               style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
             />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>
               Потребовать смену пароля при первом входе
             </span>
           </label>
@@ -1764,7 +1842,7 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
         <div style={{
           display: 'flex', gap: '10px', justifyContent: 'flex-end',
           padding: '14px 20px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHov(true)}
@@ -1772,10 +1850,10 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 18px',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              background: cancelHov ? '#F9FAFB' : C.surface,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
+              background: cancelHov ? cancelHovBg : t.surface,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer',
+              color: t.text1, cursor: 'pointer',
               transition: 'background 0.12s',
             }}
           >
@@ -1789,7 +1867,7 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 18px',
               border: 'none', borderRadius: '8px',
-              background: confirmHov ? C.blueHover : C.blue,
+              background: confirmHov ? t.blueHover : t.blue,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
@@ -1806,10 +1884,13 @@ function ResetPasswordModal({ open, user, onClose, onConfirm }: {
   );
 }
 
-function MethodRadio({ selected, onClick, label }: {
-  selected: boolean; onClick: () => void; label: React.ReactNode;
+function MethodRadio({ selected, onClick, label, t, dark }: {
+  selected: boolean; onClick: () => void; label: React.ReactNode; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
+  const hoverBg = dark ? D.tableHover : '#F9FAFB';
+  const emptyDotBorder = dark ? D.inputBorder : '#D1D5DB';
+
   return (
     <div
       onClick={onClick}
@@ -1818,25 +1899,25 @@ function MethodRadio({ selected, onClick, label }: {
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         padding: '10px 12px',
-        border: `1px solid ${selected ? C.blue : hov ? C.inputBorder : C.border}`,
+        border: `1px solid ${selected ? t.blue : hov ? t.inputBorder : t.border}`,
         borderRadius: '8px',
-        background: selected ? C.blueLt : hov ? '#F9FAFB' : C.surface,
+        background: selected ? t.blueLt : hov ? hoverBg : t.surface,
         cursor: 'pointer', transition: 'all 0.12s',
       }}
     >
       <div style={{
         width: '18px', height: '18px', borderRadius: '50%',
-        border: `2px solid ${selected ? C.blue : '#D1D5DB'}`,
+        border: `2px solid ${selected ? t.blue : emptyDotBorder}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
         transition: 'border-color 0.12s',
       }}>
         {selected && (
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.blue }} />
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.blue }} />
         )}
       </div>
       <span style={{
-        fontFamily: F.inter, fontSize: '13px', color: C.text1,
+        fontFamily: F.inter, fontSize: '13px', color: t.text1,
       }}>
         {label}
       </span>
@@ -1852,6 +1933,8 @@ export default function UsersManagementPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -1871,8 +1954,10 @@ export default function UsersManagementPage() {
     else setBlockUser(user);
   };
 
+  const clearChipHover = dark ? D.tableHover : '#F3F4F6';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -1888,9 +1973,9 @@ export default function UsersManagementPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Пользователи</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Пользователи</span>
           </div>
 
           {/* Top Bar */}
@@ -1903,10 +1988,10 @@ export default function UsersManagementPage() {
             flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Пользователи
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Управление пользователями платформы
               </p>
             </div>
@@ -1920,7 +2005,7 @@ export default function UsersManagementPage() {
                 padding: '0 18px',
                 border: 'none',
                 borderRadius: '8px',
-                background: addUserHover ? C.blueHover : C.blue,
+                background: addUserHover ? t.blueHover : t.blue,
                 fontFamily: F.inter,
                 fontSize: '14px',
                 fontWeight: 500,
@@ -1950,7 +2035,7 @@ export default function UsersManagementPage() {
             <div style={{ position: 'relative', width: '300px', flexShrink: 0 }}>
               <Search
                 size={16}
-                color={searchFocused ? C.blue : C.text4}
+                color={searchFocused ? t.blue : t.text4}
                 style={{
                   position: 'absolute',
                   left: '12px',
@@ -1971,15 +2056,15 @@ export default function UsersManagementPage() {
                   height: '40px',
                   paddingLeft: '38px',
                   paddingRight: '12px',
-                  border: `1px solid ${searchFocused ? C.blue : C.inputBorder}`,
+                  border: `1px solid ${searchFocused ? t.blue : t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.inter,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
-                  boxShadow: searchFocused ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: searchFocused ? `0 0 0 3px ${t.focusRing}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               />
@@ -1990,6 +2075,7 @@ export default function UsersManagementPage() {
               options={ROLES}
               value={roleFilter}
               onChange={setRoleFilter}
+              t={t}
             />
 
             <FilterSelect
@@ -1997,6 +2083,7 @@ export default function UsersManagementPage() {
               options={ORGANIZATIONS}
               value={orgFilter}
               onChange={setOrgFilter}
+              t={t}
             />
 
             <FilterSelect
@@ -2004,6 +2091,7 @@ export default function UsersManagementPage() {
               options={STATUSES}
               value={statusFilter}
               onChange={setStatusFilter}
+              t={t}
             />
 
             {/* Clear filters */}
@@ -2020,7 +2108,7 @@ export default function UsersManagementPage() {
                   background: 'none',
                   fontFamily: F.inter,
                   fontSize: '13px',
-                  color: C.text3,
+                  color: t.text3,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -2030,11 +2118,11 @@ export default function UsersManagementPage() {
                   transition: 'color 0.12s, background 0.12s',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget.style.color = C.text1);
-                  (e.currentTarget.style.background = '#F3F4F6');
+                  (e.currentTarget.style.color = t.text1);
+                  (e.currentTarget.style.background = clearChipHover);
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget.style.color = C.text3);
+                  (e.currentTarget.style.color = t.text3);
                   (e.currentTarget.style.background = 'none');
                 }}
               >
@@ -2050,6 +2138,8 @@ export default function UsersManagementPage() {
             onEditRole={setEditRoleUser}
             onToggleBlock={handleToggleBlock}
             onResetPassword={setResetPwUser}
+            t={t}
+            dark={dark}
           />
 
           {/* Pagination */}
@@ -2057,7 +2147,7 @@ export default function UsersManagementPage() {
             marginTop: '16px',
             fontFamily: F.inter,
             fontSize: '13px',
-            color: C.text3,
+            color: t.text3,
             textAlign: 'center',
           }}>
             Показано 1–10 из 10
@@ -2068,7 +2158,7 @@ export default function UsersManagementPage() {
       </div>
 
       {/* Add User Modal */}
-      <AddUserModal open={addUserModalOpen} onClose={() => setAddUserModalOpen(false)} />
+      <AddUserModal open={addUserModalOpen} onClose={() => setAddUserModalOpen(false)} t={t} dark={dark} />
 
       {/* Edit Role Modal */}
       <EditRoleModal
@@ -2076,6 +2166,8 @@ export default function UsersManagementPage() {
         user={editRoleUser}
         onClose={() => setEditRoleUser(null)}
         onSave={() => setEditRoleUser(null)}
+        t={t}
+        dark={dark}
       />
 
       {/* Block User Modal */}
@@ -2084,6 +2176,8 @@ export default function UsersManagementPage() {
         user={blockUser}
         onClose={() => setBlockUser(null)}
         onConfirm={() => setBlockUser(null)}
+        t={t}
+        dark={dark}
       />
 
       {/* Unblock User Modal */}
@@ -2092,6 +2186,8 @@ export default function UsersManagementPage() {
         user={unblockUser}
         onClose={() => setUnblockUser(null)}
         onConfirm={() => setUnblockUser(null)}
+        t={t}
+        dark={dark}
       />
 
       {/* Reset Password Modal */}
@@ -2100,6 +2196,8 @@ export default function UsersManagementPage() {
         user={resetPwUser}
         onClose={() => setResetPwUser(null)}
         onConfirm={() => setResetPwUser(null)}
+        t={t}
+        dark={dark}
       />
     </div>
   );
