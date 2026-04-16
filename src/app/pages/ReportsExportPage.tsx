@@ -1,15 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ChevronRight, ChevronDown, FileSpreadsheet, Eye, Building2, Users,
   CreditCard, Wallet, TrendingUp, Clock,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { useExportToast } from '../components/useExportToast';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -79,7 +81,7 @@ const REPORTS: ReportCard[] = [
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options }: { label: string; options: string[] }) {
+function FilterSelect({ label, options, t }: { label: string; options: string[]; t: T }) {
   const [focused, setFocused] = useState(false);
   const [value, setValue] = useState('');
 
@@ -94,23 +96,23 @@ function FilterSelect({ label, options }: { label: string; options: string[] }) 
           width: '100%',
           height: '40px',
           padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
           borderRadius: '8px',
-          background: C.surface,
+          background: t.surface,
           fontFamily: F.inter,
           fontSize: '14px',
-          color: C.text2,
+          color: t.text2,
           outline: 'none',
           appearance: 'none',
           cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
         }}
       >
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={14} color={C.text3} style={{
+      <ChevronDown size={14} color={t.text3} style={{
         position: 'absolute',
         right: '10px',
         top: '50%',
@@ -125,46 +127,57 @@ function FilterSelect({ label, options }: { label: string; options: string[] }) 
    REPORT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ReportCardComponent({ report, onExport }: {
+const COLOR_MAP_LIGHT = {
+  blue:   { bg: '#EFF6FF', iconColor: '#2563EB' },
+  violet: { bg: '#F5F3FF', iconColor: '#7C3AED' },
+  green:  { bg: '#F0FDF4', iconColor: '#16A34A' },
+  amber:  { bg: '#FFFBEB', iconColor: '#D97706' },
+  cyan:   { bg: '#ECFEFF', iconColor: '#0891B2' },
+  rose:   { bg: '#FFF1F2', iconColor: '#E11D48' },
+} as const;
+
+const COLOR_MAP_DARK = {
+  blue:   { bg: 'rgba(59,130,246,0.15)',  iconColor: '#3B82F6' },
+  violet: { bg: 'rgba(167,139,250,0.15)', iconColor: '#A78BFA' },
+  green:  { bg: 'rgba(52,211,153,0.15)',  iconColor: '#34D399' },
+  amber:  { bg: 'rgba(251,191,36,0.15)',  iconColor: '#FBBF24' },
+  cyan:   { bg: 'rgba(34,211,238,0.15)',  iconColor: '#22D3EE' },
+  rose:   { bg: 'rgba(251,113,133,0.15)', iconColor: '#FB7185' },
+} as const;
+
+function ReportCardComponent({ report, onExport, t, dark }: {
   report: ReportCard;
   onExport: (reportId: string, title: string, range: { from: string; to: string }) => void;
+  t: T;
+  dark: boolean;
 }) {
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
+  const [filtersExpanded] = useState(true);
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
   const [downloadHover, setDownloadHover] = useState(false);
   const [previewHover, setPreviewHover] = useState(false);
   const navigate = useNavigate();
 
-  const colorMap = {
-    blue: { bg: C.blueLt, iconColor: C.blue },
-    violet: { bg: '#F5F3FF', iconColor: '#7C3AED' },
-    green: { bg: C.successBg, iconColor: C.success },
-    amber: { bg: '#FFFBEB', iconColor: '#D97706' },
-    cyan: { bg: '#ECFEFF', iconColor: '#0891B2' },
-    rose: { bg: '#FFF1F2', iconColor: '#E11D48' },
-  };
-
-  const cfg = colorMap[report.color];
+  const cfg = (dark ? COLOR_MAP_DARK : COLOR_MAP_LIGHT)[report.color];
   const Icon = report.icon;
+  const previewHoverBg = dark ? D.tableHover : '#F3F4F6';
 
   const filterLabels = {
-    dateRange: null, // Rendered separately
+    dateRange: null,
     organization: { label: 'Организация: Все', options: ['Mysafar', 'Unired', 'Express', 'SmartCard'] },
-    status: { label: 'Статус: Все', options: ['Активна', 'На складе', 'У продавца', 'Продана'] },
-    kpiStep: { label: 'KPI этап: Все', options: ['KPI 1', 'KPI 2', 'KPI 3'] },
+    status:       { label: 'Статус: Все',       options: ['Активна', 'На складе', 'У продавца', 'Продана'] },
+    kpiStep:      { label: 'KPI этап: Все',     options: ['KPI 1', 'KPI 2', 'KPI 3'] },
   };
 
   return (
     <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       padding: '24px',
       display: 'flex',
       flexDirection: 'column',
       gap: '16px',
     }}>
-      {/* Icon + Title + Description */}
       <div style={{ display: 'flex', gap: '16px' }}>
         <div style={{
           width: '44px',
@@ -184,7 +197,7 @@ function ReportCardComponent({ report, onExport }: {
             fontFamily: F.dm,
             fontSize: '16px',
             fontWeight: 600,
-            color: C.text1,
+            color: t.text1,
             marginBottom: '4px',
           }}>
             {report.title}
@@ -192,7 +205,7 @@ function ReportCardComponent({ report, onExport }: {
           <div style={{
             fontFamily: F.inter,
             fontSize: '13px',
-            color: C.text3,
+            color: t.text3,
             lineHeight: 1.5,
           }}>
             {report.description}
@@ -200,7 +213,6 @@ function ReportCardComponent({ report, onExport }: {
         </div>
       </div>
 
-      {/* Filters */}
       {filtersExpanded && (
         <div style={{
           display: 'flex',
@@ -216,13 +228,13 @@ function ReportCardComponent({ report, onExport }: {
                 key={filterType}
                 label={filterConfig.label}
                 options={filterConfig.options}
+                t={t}
               />
             );
           })}
         </div>
       )}
 
-      {/* Actions */}
       <div style={{
         display: 'flex',
         gap: '12px',
@@ -235,13 +247,13 @@ function ReportCardComponent({ report, onExport }: {
           style={{
             height: '40px',
             padding: '0 18px',
-            border: `1px solid ${downloadHover ? C.blue : C.border}`,
+            border: `1px solid ${downloadHover ? t.blue : t.border}`,
             borderRadius: '8px',
-            background: downloadHover ? C.blueLt : C.surface,
+            background: downloadHover ? t.blueLt : 'transparent',
             fontFamily: F.inter,
             fontSize: '14px',
             fontWeight: 500,
-            color: downloadHover ? C.blue : C.text2,
+            color: downloadHover ? t.blue : t.text2,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -267,11 +279,11 @@ function ReportCardComponent({ report, onExport }: {
             padding: '0 18px',
             border: 'none',
             borderRadius: '8px',
-            background: previewHover ? '#F3F4F6' : 'transparent',
+            background: previewHover ? previewHoverBg : 'transparent',
             fontFamily: F.inter,
             fontSize: '14px',
             fontWeight: 500,
-            color: previewHover ? C.text1 : C.text3,
+            color: previewHover ? t.text1 : t.text3,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -297,6 +309,8 @@ function ReportCardComponent({ report, onExport }: {
 export default function ReportsExportPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const navigate = useNavigate();
   const exportToast = useExportToast();
 
@@ -308,8 +322,10 @@ export default function ReportsExportPage() {
     });
   };
 
+  const captionBg = dark ? D.tableAlt : '#FAFBFC';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -321,24 +337,21 @@ export default function ReportsExportPage() {
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
-          {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Отчёты и экспорт</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Отчёты и экспорт</span>
           </div>
 
-          {/* Top Bar */}
           <div style={{ marginBottom: '32px' }}>
-            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
               Отчёты и экспорт
             </h1>
-            <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+            <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
               Формирование и скачивание отчётов по продажам и KPI
             </p>
           </div>
 
-          {/* Report Cards Grid */}
           <style>{`
             .reports-grid {
               display: grid;
@@ -355,19 +368,18 @@ export default function ReportsExportPage() {
 
           <div className="reports-grid">
             {REPORTS.map(report => (
-              <ReportCardComponent key={report.id} report={report} onExport={handleExport} />
+              <ReportCardComponent key={report.id} report={report} onExport={handleExport} t={t} dark={dark} />
             ))}
           </div>
 
-          {/* Caption */}
           <div style={{
             fontFamily: F.inter,
             fontSize: '13px',
-            color: C.text3,
+            color: t.text3,
             textAlign: 'center',
             padding: '16px',
-            background: '#FAFBFC',
-            border: `1px solid ${C.border}`,
+            background: captionBg,
+            border: `1px solid ${t.border}`,
             borderRadius: '8px',
           }}>
             📋 Все отчёты экспортируются в формате .xlsx с форматированием и автофильтрами.

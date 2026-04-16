@@ -1,12 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ChevronRight, ChevronDown, Download, Search, Check,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -181,14 +183,19 @@ const KPI_PROGRESS = ['KPI 1 ✅', 'KPI 2 ✅', 'KPI 3 ✅', 'Без KPI'];
    STAT PILL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatPill({ label, value, variant = 'neutral' }: {
+function StatPill({ label, value, variant = 'neutral', t, dark }: {
   label: string;
   value: string | number;
   variant?: 'neutral' | 'success';
+  t: T; dark: boolean;
 }) {
   const colors = {
-    neutral: { bg: '#F3F4F6', color: C.text2, border: C.border },
-    success: { bg: C.successBg, color: '#15803D', border: '#BBF7D0' },
+    neutral: dark
+      ? { bg: 'transparent', color: D.text2, border: D.border }
+      : { bg: '#F3F4F6',     color: C.text2, border: C.border },
+    success: dark
+      ? { bg: 'rgba(52,211,153,0.12)', color: '#34D399', border: 'transparent' }
+      : { bg: C.successBg,             color: '#15803D', border: '#BBF7D0' },
   };
 
   const cfg = colors[variant];
@@ -207,7 +214,7 @@ function StatPill({ label, value, variant = 'neutral' }: {
       <span style={{
         fontFamily: F.inter,
         fontSize: '13px',
-        color: C.text3,
+        color: t.text3,
       }}>
         {label}:
       </span>
@@ -227,11 +234,12 @@ function StatPill({ label, value, variant = 'neutral' }: {
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options, value, onChange }: {
+function FilterSelect({ label, options, value, onChange, t }: {
   label: string;
   options: string[];
   value: string;
   onChange: (v: string) => void;
+  t: T;
 }) {
   const [focused, setFocused] = useState(false);
 
@@ -245,16 +253,16 @@ function FilterSelect({ label, options, value, onChange }: {
         style={{
           height: '40px',
           padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
           borderRadius: '8px',
-          background: C.surface,
+          background: t.surface,
           fontFamily: F.inter,
           fontSize: '14px',
-          color: C.text2,
+          color: t.text2,
           outline: 'none',
           appearance: 'none',
           cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
           minWidth: '160px',
         }}
@@ -262,7 +270,7 @@ function FilterSelect({ label, options, value, onChange }: {
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={14} color={C.text3} style={{
+      <ChevronDown size={14} color={t.text3} style={{
         position: 'absolute',
         right: '10px',
         top: '50%',
@@ -277,16 +285,23 @@ function FilterSelect({ label, options, value, onChange }: {
    STATUS BADGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatusBadge({ status }: { status: CardStatus }) {
-  const configs: Record<CardStatus, { bg: string; color: string; dot: string }> = {
-    'Активна': { bg: C.successBg, color: '#15803D', dot: C.success },
-    'Зарег.': { bg: C.infoBg, color: '#0E7490', dot: C.info },
+function StatusBadge({ status, dark }: { status: CardStatus; dark: boolean }) {
+  const configsLight: Record<CardStatus, { bg: string; color: string; dot: string }> = {
+    'Активна':    { bg: C.successBg, color: '#15803D', dot: C.success },
+    'Зарег.':     { bg: C.infoBg,    color: '#0E7490', dot: C.info },
     'У продавца': { bg: C.warningBg, color: '#B45309', dot: C.warning },
-    'На складе': { bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' },
-    'Продана': { bg: C.infoBg, color: '#0E7490', dot: C.info },
+    'На складе':  { bg: '#F3F4F6',   color: '#374151', dot: '#9CA3AF' },
+    'Продана':    { bg: C.infoBg,    color: '#0E7490', dot: C.info },
+  };
+  const configsDark: Record<CardStatus, { bg: string; color: string; dot: string }> = {
+    'Активна':    { bg: 'rgba(52,211,153,0.12)',  color: '#34D399', dot: '#34D399' },
+    'Зарег.':     { bg: 'rgba(34,211,238,0.12)',  color: '#22D3EE', dot: '#22D3EE' },
+    'У продавца': { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24', dot: '#FBBF24' },
+    'На складе':  { bg: D.tableAlt,               color: D.text2,   dot: D.text4 },
+    'Продана':    { bg: 'rgba(34,211,238,0.12)',  color: '#22D3EE', dot: '#22D3EE' },
   };
 
-  const cfg = configs[status];
+  const cfg = (dark ? configsDark : configsLight)[status];
 
   return (
     <span style={{
@@ -313,7 +328,7 @@ function StatusBadge({ status }: { status: CardStatus }) {
    TYPE BADGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function TypeBadge({ type }: { type: string }) {
+function TypeBadge({ type, t }: { type: string; t: T }) {
   return (
     <span style={{
       display: 'inline-flex',
@@ -324,8 +339,8 @@ function TypeBadge({ type }: { type: string }) {
       padding: '3px 9px',
       borderRadius: '8px',
       background: 'transparent',
-      border: `1px solid ${C.border}`,
-      color: C.text2,
+      border: `1px solid ${t.border}`,
+      color: t.text2,
       whiteSpace: 'nowrap',
       flexShrink: 0,
     }}>
@@ -338,10 +353,10 @@ function TypeBadge({ type }: { type: string }) {
    KPI CHECK CELL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function KPICheckCell({ value }: { value: boolean | number | null }) {
+function KPICheckCell({ value, t, dark }: { value: boolean | number | null; t: T; dark: boolean }) {
   if (value === null) {
     return (
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text4 }}>—</span>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text4 }}>—</span>
     );
   }
 
@@ -352,7 +367,7 @@ function KPICheckCell({ value }: { value: boolean | number | null }) {
           width: '16px',
           height: '16px',
           borderRadius: '4px',
-          background: C.success,
+          background: dark ? '#34D399' : C.success,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -363,28 +378,28 @@ function KPICheckCell({ value }: { value: boolean | number | null }) {
     );
   }
 
-  // Progress percentage
   const percentage = value as number;
+  const trackBg = dark ? D.progressTrack : '#E5E7EB';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '100px' }}>
       <div style={{
         flex: 1,
         height: '6px',
         borderRadius: '3px',
-        background: '#E5E7EB',
+        background: trackBg,
         overflow: 'hidden',
       }}>
         <div style={{
           width: `${percentage}%`,
           height: '100%',
-          background: C.blue,
+          background: t.blue,
           borderRadius: '3px',
         }} />
       </div>
       <span style={{
         fontFamily: F.mono,
         fontSize: '11px',
-        color: C.text3,
+        color: t.text3,
         flexShrink: 0,
       }}>
         {percentage}%
@@ -397,13 +412,33 @@ function KPICheckCell({ value }: { value: boolean | number | null }) {
    DATA TABLE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DataTable({ cards, onRowClick }: { cards: CardRow[]; onRowClick: (id: number) => void }) {
+function DataTable({ cards, onRowClick, t, dark }: { cards: CardRow[]; onRowClick: (id: number) => void; t: T; dark: boolean }) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const headerBg  = dark ? D.tableHeaderBg : '#FAFBFC';
+  const rowHoverBg = dark ? D.tableHover : '#FAFBFC';
+
+  const headerCellStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontFamily: F.inter,
+    fontSize: '12px',
+    fontWeight: 600,
+    color: t.text3,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    whiteSpace: 'nowrap',
+  };
+
+  const dataCellStyle: React.CSSProperties = {
+    padding: '14px 16px',
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
+  };
 
   return (
     <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       overflowX: 'auto',
     }}>
@@ -414,8 +449,8 @@ function DataTable({ cards, onRowClick }: { cards: CardRow[]; onRowClick: (id: n
       }}>
         <thead>
           <tr style={{
-            background: '#FAFBFC',
-            borderBottom: `1px solid ${C.border}`,
+            background: headerBg,
+            borderBottom: `1px solid ${t.border}`,
           }}>
             <th style={headerCellStyle}>Карта</th>
             <th style={headerCellStyle}>Тип</th>
@@ -438,54 +473,54 @@ function DataTable({ cards, onRowClick }: { cards: CardRow[]; onRowClick: (id: n
               onMouseLeave={() => setHoveredRow(null)}
               onClick={() => onRowClick(card.id)}
               style={{
-                borderBottom: `1px solid ${C.border}`,
-                background: hoveredRow === card.id ? '#FAFBFC' : C.surface,
+                borderBottom: `1px solid ${t.border}`,
+                background: hoveredRow === card.id ? rowHoverBg : t.surface,
                 cursor: 'pointer',
                 transition: 'background 0.12s',
               }}
             >
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text1 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text1 }}>
                   ...{card.cardNumber.slice(-4)}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <TypeBadge type={card.type} />
+                <TypeBadge type={card.type} t={t} />
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {card.organization}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {card.seller}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {card.client}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <StatusBadge status={card.status} />
+                <StatusBadge status={card.status} dark={dark} />
               </td>
               <td style={dataCellStyle}>
-                <KPICheckCell value={card.kpi1} />
+                <KPICheckCell value={card.kpi1} t={t} dark={dark} />
               </td>
               <td style={dataCellStyle}>
-                <KPICheckCell value={card.kpi2} />
+                <KPICheckCell value={card.kpi2} t={t} dark={dark} />
               </td>
               <td style={dataCellStyle}>
-                <KPICheckCell value={card.kpi3} />
+                <KPICheckCell value={card.kpi3} t={t} dark={dark} />
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {card.topup}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {card.spent}
                 </span>
               </td>
@@ -497,24 +532,6 @@ function DataTable({ cards, onRowClick }: { cards: CardRow[]; onRowClick: (id: n
   );
 }
 
-const headerCellStyle: React.CSSProperties = {
-  padding: '12px 16px',
-  textAlign: 'left',
-  fontFamily: F.inter,
-  fontSize: '12px',
-  fontWeight: 600,
-  color: C.text3,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  whiteSpace: 'nowrap',
-};
-
-const dataCellStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
-};
-
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
@@ -522,6 +539,8 @@ const dataCellStyle: React.CSSProperties = {
 export default function AllCardsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
 
   const [search, setSearch] = useState('');
   const [orgFilter, setOrgFilter] = useState('');
@@ -539,7 +558,7 @@ export default function AllCardsPage() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -551,14 +570,12 @@ export default function AllCardsPage() {
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
-          {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Все карты</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Все карты</span>
           </div>
 
-          {/* Top Bar */}
           <div style={{
             display: 'flex',
             alignItems: 'flex-start',
@@ -568,10 +585,10 @@ export default function AllCardsPage() {
             flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Все карты
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Полный реестр карт в системе
               </p>
             </div>
@@ -582,13 +599,13 @@ export default function AllCardsPage() {
               style={{
                 height: '40px',
                 padding: '0 18px',
-                border: `1px solid ${exportHover ? C.blue : C.border}`,
+                border: `1px solid ${exportHover ? t.blue : t.border}`,
                 borderRadius: '8px',
-                background: exportHover ? C.blueLt : C.surface,
+                background: exportHover ? t.blueLt : 'transparent',
                 fontFamily: F.inter,
                 fontSize: '14px',
                 fontWeight: 500,
-                color: exportHover ? C.blue : C.text2,
+                color: exportHover ? t.blue : t.text2,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -602,21 +619,19 @@ export default function AllCardsPage() {
             </button>
           </div>
 
-          {/* Stat Pills */}
           <div style={{
             display: 'flex',
             gap: '12px',
             flexWrap: 'wrap',
             marginBottom: '24px',
           }}>
-            <StatPill label="Всего" value="5 000" variant="neutral" />
-            <StatPill label="На складе" value="1 260" variant="neutral" />
-            <StatPill label="У продавцов" value="1 400" variant="neutral" />
-            <StatPill label="Продано" value="2 340" variant="success" />
-            <StatPill label="KPI 3 ✅" value="567" variant="neutral" />
+            <StatPill label="Всего"      value="5 000" variant="neutral" t={t} dark={dark} />
+            <StatPill label="На складе"  value="1 260" variant="neutral" t={t} dark={dark} />
+            <StatPill label="У продавцов" value="1 400" variant="neutral" t={t} dark={dark} />
+            <StatPill label="Продано"    value="2 340" variant="success" t={t} dark={dark} />
+            <StatPill label="KPI 3 ✅"   value="567"   variant="neutral" t={t} dark={dark} />
           </div>
 
-          {/* Filter Bar */}
           <div style={{
             display: 'flex',
             flexWrap: 'wrap',
@@ -624,11 +639,10 @@ export default function AllCardsPage() {
             alignItems: 'center',
             marginBottom: '24px',
           }}>
-            {/* Search */}
             <div style={{ position: 'relative', width: '300px', flexShrink: 0 }}>
               <Search
                 size={16}
-                color={searchFocused ? C.blue : C.text4}
+                color={searchFocused ? t.blue : t.text4}
                 style={{
                   position: 'absolute',
                   left: '12px',
@@ -649,49 +663,25 @@ export default function AllCardsPage() {
                   height: '40px',
                   paddingLeft: '38px',
                   paddingRight: '12px',
-                  border: `1px solid ${searchFocused ? C.blue : C.inputBorder}`,
+                  border: `1px solid ${searchFocused ? t.blue : t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.inter,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
-                  boxShadow: searchFocused ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: searchFocused ? `0 0 0 3px ${t.focusRing}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               />
             </div>
 
-            <FilterSelect
-              label="Организация: Все"
-              options={ORGANIZATIONS}
-              value={orgFilter}
-              onChange={setOrgFilter}
-            />
+            <FilterSelect label="Организация: Все" options={ORGANIZATIONS} value={orgFilter}    onChange={setOrgFilter}    t={t} />
+            <FilterSelect label="Партия: Все"      options={BATCHES}       value={batchFilter}  onChange={setBatchFilter}  t={t} />
+            <FilterSelect label="Статус: Все"      options={STATUSES}      value={statusFilter} onChange={setStatusFilter} t={t} />
+            <FilterSelect label="KPI прогресс: Все" options={KPI_PROGRESS} value={kpiFilter}    onChange={setKpiFilter}    t={t} />
 
-            <FilterSelect
-              label="Партия: Все"
-              options={BATCHES}
-              value={batchFilter}
-              onChange={setBatchFilter}
-            />
-
-            <FilterSelect
-              label="Статус: Все"
-              options={STATUSES}
-              value={statusFilter}
-              onChange={setStatusFilter}
-            />
-
-            <FilterSelect
-              label="KPI прогресс: Все"
-              options={KPI_PROGRESS}
-              value={kpiFilter}
-              onChange={setKpiFilter}
-            />
-
-            {/* Clear filters */}
             {(search || orgFilter || batchFilter || statusFilter || kpiFilter) && (
               <button
                 onClick={() => {
@@ -703,10 +693,10 @@ export default function AllCardsPage() {
                 }}
                 style={{
                   border: 'none',
-                  background: 'none',
+                  background: 'transparent',
                   fontFamily: F.inter,
                   fontSize: '13px',
-                  color: C.text3,
+                  color: t.text3,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -716,12 +706,12 @@ export default function AllCardsPage() {
                   transition: 'color 0.12s, background 0.12s',
                 }}
                 onMouseEnter={e => {
-                  (e.currentTarget.style.color = C.text1);
-                  (e.currentTarget.style.background = '#F3F4F6');
+                  (e.currentTarget.style.color = t.text1);
+                  (e.currentTarget.style.background = dark ? D.tableHover : '#F3F4F6');
                 }}
                 onMouseLeave={e => {
-                  (e.currentTarget.style.color = C.text3);
-                  (e.currentTarget.style.background = 'none');
+                  (e.currentTarget.style.color = t.text3);
+                  (e.currentTarget.style.background = 'transparent');
                 }}
               >
                 <span style={{ fontSize: '16px', lineHeight: 1, marginTop: '-1px' }}>×</span>
@@ -730,15 +720,13 @@ export default function AllCardsPage() {
             )}
           </div>
 
-          {/* Data Table */}
-          <DataTable cards={CARDS} onRowClick={handleRowClick} />
+          <DataTable cards={CARDS} onRowClick={handleRowClick} t={t} dark={dark} />
 
-          {/* Pagination */}
           <div style={{
             marginTop: '16px',
             fontFamily: F.inter,
             fontSize: '13px',
-            color: C.text3,
+            color: t.text3,
             textAlign: 'center',
           }}>
             Показано 1–10 из 5 000

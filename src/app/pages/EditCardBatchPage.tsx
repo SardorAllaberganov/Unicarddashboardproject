@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, Lock, AlertTriangle, Upload, Info } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate, useParams } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    ORIGINAL VALUES
 ═══════════════════════════════════════════════════════════════════════════ */
+
+type BatchStatus = 'Активна' | 'На паузе' | 'Завершена' | 'Архивирована';
 
 const ORIG = {
   name: 'Партия Апрель 2026',
@@ -18,8 +22,6 @@ const ORIG = {
   status: 'Активна' as BatchStatus,
 };
 
-type BatchStatus = 'Активна' | 'На паузе' | 'Завершена' | 'Архивирована';
-
 const SOLD_CARDS = 230;
 const IMPORTED = 498;
 const EXPECTED = 500;
@@ -28,24 +30,25 @@ const EXPECTED = 500;
    FIELD COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Label({ text, required }: { text: string; required?: boolean }) {
+function Label({ text, required, t, dark }: { text: string; required?: boolean; t: T; dark: boolean }) {
+  const errColor = dark ? D.error : C.error;
   return (
     <label style={{
       display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-      color: C.text2, marginBottom: '8px',
+      color: t.text2, marginBottom: '8px',
     }}>
       {text}
-      {required && <span style={{ color: C.error, marginLeft: '3px' }}>*</span>}
+      {required && <span style={{ color: errColor, marginLeft: '3px' }}>*</span>}
     </label>
   );
 }
 
-function Helper({ text }: { text: string }) {
+function Helper({ text, t }: { text: string; t: T }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '6px',
       marginTop: '6px',
-      fontFamily: F.inter, fontSize: '12px', color: C.text3,
+      fontFamily: F.inter, fontSize: '12px', color: t.text3,
     }}>
       <Info size={12} strokeWidth={1.75} />
       {text}
@@ -53,13 +56,15 @@ function Helper({ text }: { text: string }) {
   );
 }
 
-function TextInput({ label, required, value, onChange, changed }: {
-  label: string; required?: boolean; value: string; onChange: (v: string) => void; changed?: boolean;
+function TextInput({ label, required, value, onChange, changed, t, dark }: {
+  label: string; required?: boolean; value: string; onChange: (v: string) => void;
+  changed?: boolean; t: T; dark: boolean;
 }) {
   const [focused, setFocused] = useState(false);
+  const borderColor = focused ? t.blue : t.inputBorder;
   return (
     <div>
-      <Label text={label} required={required} />
+      <Label text={label} required={required} t={t} dark={dark} />
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -68,14 +73,14 @@ function TextInput({ label, required, value, onChange, changed }: {
         style={{
           width: '100%', height: '40px',
           padding: changed ? '0 12px 0 10px' : '0 12px',
-          borderTop: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRight: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderBottom: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderLeft: changed ? `3px solid ${C.blue}` : `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
-          fontFamily: F.inter, fontSize: '14px', color: C.text1,
+          borderTop:    `1px solid ${borderColor}`,
+          borderRight:  `1px solid ${borderColor}`,
+          borderBottom: `1px solid ${borderColor}`,
+          borderLeft:   changed ? `3px solid ${t.blue}` : `1px solid ${borderColor}`,
+          borderRadius: '8px', background: t.surface,
+          fontFamily: F.inter, fontSize: '14px', color: t.text1,
           outline: 'none', boxSizing: 'border-box',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
         }}
       />
@@ -83,36 +88,41 @@ function TextInput({ label, required, value, onChange, changed }: {
   );
 }
 
-function DisabledSelect({ label, value, helper }: { label: string; value: string; helper: string }) {
+function DisabledSelect({ label, value, helper, t, dark }: {
+  label: string; value: string; helper: string; t: T; dark: boolean;
+}) {
+  const disabledBg = dark ? D.tableAlt : '#F9FAFB';
   return (
     <div>
-      <Label text={label} />
+      <Label text={label} t={t} dark={dark} />
       <div style={{
         position: 'relative', width: '100%', height: '40px',
-        border: `1px solid ${C.inputBorder}`, borderRadius: '8px',
-        background: '#F9FAFB',
+        border: `1px solid ${t.inputBorder}`, borderRadius: '8px',
+        background: disabledBg,
         display: 'flex', alignItems: 'center',
         padding: '0 36px 0 12px',
-        fontFamily: F.inter, fontSize: '14px', color: C.text3,
+        fontFamily: F.inter, fontSize: '14px', color: t.text3,
         cursor: 'not-allowed',
       }}>
         {value}
-        <Lock size={14} color={C.text4} strokeWidth={1.75} style={{
+        <Lock size={14} color={t.text4} strokeWidth={1.75} style={{
           position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
         }} />
       </div>
-      <Helper text={helper} />
+      <Helper text={helper} t={t} />
     </div>
   );
 }
 
-function NumberInput({ label, value, onChange, changed }: {
-  label: string; value: number; onChange: (v: number) => void; changed?: boolean;
+function NumberInput({ label, value, onChange, changed, t, dark }: {
+  label: string; value: number; onChange: (v: number) => void; changed?: boolean; t: T; dark: boolean;
 }) {
   const [focused, setFocused] = useState(false);
+  const borderColor = focused ? t.blue : t.inputBorder;
+  const disabledBg = dark ? D.tableAlt : '#F9FAFB';
   return (
     <div>
-      <Label text={label} />
+      <Label text={label} t={t} dark={dark} />
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <button
           onClick={() => onChange(Math.max(1, value - 1))}
@@ -120,11 +130,11 @@ function NumberInput({ label, value, onChange, changed }: {
           aria-label="Уменьшить"
           style={{
             width: '40px', height: '40px',
-            border: `1px solid ${C.inputBorder}`, borderRight: 'none',
+            border: `1px solid ${t.inputBorder}`, borderRight: 'none',
             borderRadius: '8px 0 0 8px',
-            background: value <= 1 ? '#F9FAFB' : C.surface,
+            background: value <= 1 ? disabledBg : t.surface,
             fontFamily: F.inter, fontSize: '16px',
-            color: value <= 1 ? C.textDisabled : C.text2,
+            color: value <= 1 ? t.textDisabled : t.text2,
             cursor: value <= 1 ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'color 0.12s, background 0.12s',
@@ -136,14 +146,14 @@ function NumberInput({ label, value, onChange, changed }: {
           onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
           style={{
             width: '120px', height: '40px', padding: '0 12px',
-            borderTop: `1px solid ${focused ? C.blue : C.inputBorder}`,
-            borderRight: `1px solid ${focused ? C.blue : C.inputBorder}`,
-            borderBottom: `1px solid ${focused ? C.blue : C.inputBorder}`,
-            borderLeft: changed ? `3px solid ${C.blue}` : `1px solid ${focused ? C.blue : C.inputBorder}`,
-            borderRadius: '0', background: C.surface,
-            fontFamily: F.mono, fontSize: '14px', color: C.text1,
+            borderTop:    `1px solid ${borderColor}`,
+            borderRight:  `1px solid ${borderColor}`,
+            borderBottom: `1px solid ${borderColor}`,
+            borderLeft:   changed ? `3px solid ${t.blue}` : `1px solid ${borderColor}`,
+            borderRadius: '0', background: t.surface,
+            fontFamily: F.mono, fontSize: '14px', color: t.text1,
             textAlign: 'center', outline: 'none', boxSizing: 'border-box',
-            boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+            boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
             transition: 'border-color 0.12s, box-shadow 0.12s',
             MozAppearance: 'textfield', appearance: 'textfield',
           } as React.CSSProperties}
@@ -152,9 +162,9 @@ function NumberInput({ label, value, onChange, changed }: {
           onClick={() => onChange(value + 1)}
           style={{
             width: '40px', height: '40px',
-            border: `1px solid ${C.inputBorder}`, borderLeft: 'none',
-            borderRadius: '0 8px 8px 0', background: C.surface,
-            fontFamily: F.inter, fontSize: '16px', color: C.text2,
+            border: `1px solid ${t.inputBorder}`, borderLeft: 'none',
+            borderRadius: '0 8px 8px 0', background: t.surface,
+            fontFamily: F.inter, fontSize: '16px', color: t.text2,
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >+</button>
@@ -163,10 +173,11 @@ function NumberInput({ label, value, onChange, changed }: {
   );
 }
 
-function StatusSelect({ value, onChange, changed }: {
-  value: BatchStatus; onChange: (v: BatchStatus) => void; changed?: boolean;
+function StatusSelect({ value, onChange, changed, t }: {
+  value: BatchStatus; onChange: (v: BatchStatus) => void; changed?: boolean; t: T;
 }) {
   const [focused, setFocused] = useState(false);
+  const borderColor = focused ? t.blue : t.inputBorder;
   return (
     <div style={{ position: 'relative', minWidth: '220px' }}>
       <select
@@ -176,14 +187,14 @@ function StatusSelect({ value, onChange, changed }: {
         onBlur={() => setFocused(false)}
         style={{
           width: '100%', height: '40px', padding: '0 36px 0 12px',
-          borderTop: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRight: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderBottom: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderLeft: changed ? `3px solid ${C.blue}` : `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
-          fontFamily: F.inter, fontSize: '14px', color: C.text1,
+          borderTop:    `1px solid ${borderColor}`,
+          borderRight:  `1px solid ${borderColor}`,
+          borderBottom: `1px solid ${borderColor}`,
+          borderLeft:   changed ? `3px solid ${t.blue}` : `1px solid ${borderColor}`,
+          borderRadius: '8px', background: t.surface,
+          fontFamily: F.inter, fontSize: '14px', color: t.text1,
           outline: 'none', appearance: 'none', cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
         }}
       >
@@ -192,7 +203,7 @@ function StatusSelect({ value, onChange, changed }: {
         <option>Завершена</option>
         <option>Архивирована</option>
       </select>
-      <ChevronDown size={14} color={C.text3} style={{
+      <ChevronDown size={14} color={t.text3} style={{
         position: 'absolute', right: '12px', top: '50%',
         transform: 'translateY(-50%)', pointerEvents: 'none',
       }} />
@@ -204,45 +215,52 @@ function StatusSelect({ value, onChange, changed }: {
    BADGES + ATOMS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function BadgeSuccess({ children }: { children: React.ReactNode }) {
+function BadgeSuccess({ children, dark }: { children: React.ReactNode; dark: boolean }) {
+  const bg    = dark ? 'rgba(52,211,153,0.12)' : C.successBg;
+  const text  = dark ? '#34D399' : '#15803D';
+  const dot   = dark ? '#34D399' : C.success;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
       fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
       padding: '3px 10px', borderRadius: '10px',
-      background: C.successBg, color: '#15803D', whiteSpace: 'nowrap',
+      background: bg, color: text, whiteSpace: 'nowrap',
     }}>
-      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.success }} />
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dot }} />
       {children}
     </span>
   );
 }
 
-function SectionHeading({ text }: { text: string }) {
+function SectionHeading({ text, t }: { text: string; t: T }) {
   return (
     <h3 style={{
       fontFamily: F.dm, fontSize: '15px', fontWeight: 700,
-      color: C.text1, margin: '0 0 16px', lineHeight: 1.2,
+      color: t.text1, margin: '0 0 16px', lineHeight: 1.2,
     }}>
       {text}
     </h3>
   );
 }
 
-function Divider() {
-  return <div style={{ height: '1px', background: C.border, margin: '28px 0' }} />;
+function Divider({ t }: { t: T }) {
+  return <div style={{ height: '1px', background: t.border, margin: '28px 0' }} />;
 }
 
-function WarningBox({ text }: { text: string }) {
+function WarningBox({ text, dark }: { text: string; dark: boolean }) {
+  const bg     = dark ? 'rgba(251,191,36,0.12)' : C.warningBg;
+  const border = dark ? 'rgba(251,191,36,0.35)' : '#FDE68A';
+  const textCl = dark ? '#FBBF24' : '#B45309';
+  const icon   = dark ? '#FBBF24' : C.warning;
   return (
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: '8px',
       marginTop: '12px', padding: '10px 14px',
-      background: C.warningBg, border: `1px solid #FDE68A`,
+      background: bg, border: `1px solid ${border}`,
       borderRadius: '8px',
     }}>
-      <AlertTriangle size={16} color={C.warning} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '1px' }} />
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: '#B45309', lineHeight: 1.45 }}>
+      <AlertTriangle size={16} color={icon} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '1px' }} />
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: textCl, lineHeight: 1.45 }}>
         {text}
       </span>
     </div>
@@ -262,6 +280,8 @@ const STATUS_WARNINGS: Partial<Record<BatchStatus, string>> = {
 export default function EditCardBatchPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -278,9 +298,11 @@ export default function EditCardBatchPage() {
   const statusChanged = status !== ORIG.status;
 
   const backToDetail = () => navigate(`/card-batches/${id ?? 1}`);
+  const cancelHoverBg = dark ? D.tableHover : '#F3F4F6';
+  const warnAccent = dark ? '#FBBF24' : C.warning;
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <style>{`
         .ecb-sidebar { flex-shrink: 0; }
         @media (max-width: 768px) { .ecb-sidebar { display: none; } }
@@ -308,31 +330,26 @@ export default function EditCardBatchPage() {
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {/* Scrollable content */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
-            {/* Breadcrumbs */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-              <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-              <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-              <span onClick={() => navigate('/card-batches')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Партии карт</span>
-              <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-              <span onClick={backToDetail} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Партия Апрель 2026 — Mysafar OOO</span>
-              <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Редактирование</span>
+              <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+              <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+              <span onClick={() => navigate('/card-batches')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Партии карт</span>
+              <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+              <span onClick={backToDetail} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Партия Апрель 2026 — Mysafar OOO</span>
+              <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Редактирование</span>
             </div>
 
-            {/* Title */}
-            <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: '0 0 24px', lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: '0 0 24px', lineHeight: 1.2 }}>
               Редактирование партии
             </h1>
 
-            {/* ── Main white card ── */}
             <div style={{
-              background: C.surface, border: `1px solid ${C.border}`,
+              background: t.surface, border: `1px solid ${t.border}`,
               borderRadius: '12px', padding: '24px',
             }}>
-              {/* Section: Основные данные */}
-              <SectionHeading text="Основные данные" />
+              <SectionHeading text="Основные данные" t={t} />
 
               <div className="ecb-grid">
                 <TextInput
@@ -341,16 +358,22 @@ export default function EditCardBatchPage() {
                   value={name}
                   onChange={setName}
                   changed={nameChanged}
+                  t={t}
+                  dark={dark}
                 />
                 <DisabledSelect
                   label="Организация"
                   value={ORIG.org}
                   helper="Организацию нельзя изменить после создания"
+                  t={t}
+                  dark={dark}
                 />
                 <DisabledSelect
                   label="Тип карт"
                   value={ORIG.cardType}
                   helper="Тип карт нельзя изменить"
+                  t={t}
+                  dark={dark}
                 />
                 <div>
                   <NumberInput
@@ -358,13 +381,15 @@ export default function EditCardBatchPage() {
                     value={kpiDays}
                     onChange={setKpiDays}
                     changed={kpiDaysChanged}
+                    t={t}
+                    dark={dark}
                   />
                   {kpiDaysChanged && (
                     <div style={{
                       display: 'flex', alignItems: 'flex-start', gap: '6px',
                       marginTop: '8px',
                       fontFamily: F.inter, fontSize: '12px',
-                      color: C.warning, lineHeight: 1.4,
+                      color: warnAccent, lineHeight: 1.4,
                     }}>
                       <AlertTriangle size={13} strokeWidth={1.75} style={{ flexShrink: 0, marginTop: '2px' }} />
                       Изменение срока повлияет на {SOLD_CARDS} уже проданных карт
@@ -373,35 +398,33 @@ export default function EditCardBatchPage() {
                 </div>
               </div>
 
-              <Divider />
+              <Divider t={t} />
 
-              {/* Section: Статус партии */}
-              <SectionHeading text="Статус партии" />
+              <SectionHeading text="Статус партии" t={t} />
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
                   Текущий статус:
                 </span>
-                <BadgeSuccess>Активна</BadgeSuccess>
-                <div style={{ width: '1px', height: '20px', background: C.border, margin: '0 4px' }} />
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+                <BadgeSuccess dark={dark}>Активна</BadgeSuccess>
+                <div style={{ width: '1px', height: '20px', background: t.border, margin: '0 4px' }} />
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
                   Изменить на:
                 </span>
-                <StatusSelect value={status} onChange={setStatus} changed={statusChanged} />
+                <StatusSelect value={status} onChange={setStatus} changed={statusChanged} t={t} />
               </div>
 
               {STATUS_WARNINGS[status] && (
-                <WarningBox text={STATUS_WARNINGS[status]!} />
+                <WarningBox text={STATUS_WARNINGS[status]!} dark={dark} />
               )}
 
-              <Divider />
+              <Divider t={t} />
 
-              {/* Section: Дополнительный импорт */}
-              <SectionHeading text="Дополнительный импорт" />
+              <SectionHeading text="Дополнительный импорт" t={t} />
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                <div style={{ fontFamily: F.inter, fontSize: '14px', color: C.text2 }}>
-                  В партии: <span style={{ fontFamily: F.mono, fontWeight: 600, color: C.text1 }}>{IMPORTED}</span> карт из <span style={{ fontFamily: F.mono, fontWeight: 600, color: C.text1 }}>{EXPECTED}</span> ожидаемых
+                <div style={{ fontFamily: F.inter, fontSize: '14px', color: t.text2 }}>
+                  В партии: <span style={{ fontFamily: F.mono, fontWeight: 600, color: t.text1 }}>{IMPORTED}</span> карт из <span style={{ fontFamily: F.mono, fontWeight: 600, color: t.text1 }}>{EXPECTED}</span> ожидаемых
                 </div>
 
                 <button
@@ -410,11 +433,11 @@ export default function EditCardBatchPage() {
                   onClick={() => navigate(`/card-import?batchId=${id ?? 1}`)}
                   style={{
                     height: '40px', padding: '0 16px',
-                    border: `1px solid ${importHov ? C.blue : C.border}`,
+                    border: `1px solid ${importHov ? t.blue : t.border}`,
                     borderRadius: '8px',
-                    background: importHov ? C.blueLt : C.surface,
+                    background: importHov ? t.blueLt : 'transparent',
                     fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                    color: importHov ? C.blue : C.text1,
+                    color: importHov ? t.blue : t.text1,
                     display: 'inline-flex', alignItems: 'center', gap: '7px',
                     cursor: 'pointer', transition: 'all 0.12s',
                   }}
@@ -428,9 +451,8 @@ export default function EditCardBatchPage() {
             <div style={{ height: '80px' }} />
           </div>
 
-          {/* ── Sticky Footer ── */}
           <div style={{
-            flexShrink: 0, background: C.surface, borderTop: `1px solid ${C.border}`,
+            flexShrink: 0, background: t.surface, borderTop: `1px solid ${t.border}`,
             padding: '16px 32px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
@@ -441,9 +463,9 @@ export default function EditCardBatchPage() {
               style={{
                 height: '40px', padding: '0 20px',
                 border: 'none', borderRadius: '8px',
-                background: cancelHov ? '#F3F4F6' : 'transparent',
+                background: cancelHov ? cancelHoverBg : 'transparent',
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                color: C.text2, cursor: 'pointer', transition: 'background 0.12s',
+                color: t.text2, cursor: 'pointer', transition: 'background 0.12s',
               }}
             >
               Отмена
@@ -455,7 +477,7 @@ export default function EditCardBatchPage() {
               style={{
                 height: '40px', padding: '0 22px',
                 border: 'none', borderRadius: '8px',
-                background: saveHov ? C.blueHover : C.blue,
+                background: saveHov ? t.blueHover : t.blue,
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
                 color: '#FFFFFF', cursor: 'pointer',
                 boxShadow: saveHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',

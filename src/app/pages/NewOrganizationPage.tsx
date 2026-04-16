@@ -1,31 +1,35 @@
 import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    FORM FIELD COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FormInput({ label, placeholder, required, error, mono, value, onChange, disabled, type = 'text' }: {
+function FormInput({ label, placeholder, required, error, mono, value, onChange, disabled, type = 'text', t, dark }: {
   label: string; placeholder: string; required?: boolean; error?: string;
   mono?: boolean; value: string; onChange: (v: string) => void;
-  disabled?: boolean; type?: string;
+  disabled?: boolean; type?: string; t: T; dark: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   const hasError = !!error;
+  const errorColor = dark ? D.error : C.error;
+  const disabledBg = dark ? D.tableAlt : '#F9FAFB';
 
   return (
     <div>
       <label style={{
         display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.text2, marginBottom: '8px',
+        color: t.text2, marginBottom: '8px',
       }}>
         {label}
-        {required && <span style={{ color: C.error, marginLeft: '3px' }}>*</span>}
+        {required && <span style={{ color: errorColor, marginLeft: '3px' }}>*</span>}
       </label>
       <input
         type={type}
@@ -37,21 +41,21 @@ function FormInput({ label, placeholder, required, error, mono, value, onChange,
         disabled={disabled}
         style={{
           width: '100%', height: '40px', padding: '0 12px',
-          border: `1px solid ${hasError ? C.error : focused ? C.blue : C.inputBorder}`,
+          border: `1px solid ${hasError ? errorColor : focused ? t.blue : t.inputBorder}`,
           borderRadius: '8px',
-          background: disabled ? '#F9FAFB' : C.surface,
+          background: disabled ? disabledBg : t.surface,
           fontFamily: mono ? F.mono : F.inter, fontSize: '14px',
-          color: disabled ? C.text3 : C.text1,
+          color: disabled ? t.text3 : t.text1,
           outline: 'none', boxSizing: 'border-box',
           boxShadow: hasError
             ? `0 0 0 3px rgba(239,68,68,0.12)`
-            : focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+            : focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
           cursor: disabled ? 'not-allowed' : 'text',
         }}
       />
       {hasError && (
-        <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.error, marginTop: '6px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '13px', color: errorColor, marginTop: '6px' }}>
           {error}
         </div>
       )}
@@ -59,8 +63,9 @@ function FormInput({ label, placeholder, required, error, mono, value, onChange,
   );
 }
 
-function FormTextarea({ label, placeholder, value, onChange, colSpan }: {
-  label: string; placeholder: string; value: string; onChange: (v: string) => void; colSpan?: boolean;
+function FormTextarea({ label, placeholder, value, onChange, colSpan, t }: {
+  label: string; placeholder: string; value: string; onChange: (v: string) => void;
+  colSpan?: boolean; t: T;
 }) {
   const [focused, setFocused] = useState(false);
 
@@ -68,7 +73,7 @@ function FormTextarea({ label, placeholder, value, onChange, colSpan }: {
     <div style={colSpan ? { gridColumn: 'span 2' } : undefined}>
       <label style={{
         display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.text2, marginBottom: '8px',
+        color: t.text2, marginBottom: '8px',
       }}>
         {label}
       </label>
@@ -80,11 +85,11 @@ function FormTextarea({ label, placeholder, value, onChange, colSpan }: {
         placeholder={placeholder}
         style={{
           width: '100%', height: '80px', padding: '10px 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
-          fontFamily: F.inter, fontSize: '14px', color: C.text1,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
+          fontFamily: F.inter, fontSize: '14px', color: t.text1,
           outline: 'none', boxSizing: 'border-box', resize: 'vertical',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
         }}
       />
@@ -92,8 +97,8 @@ function FormTextarea({ label, placeholder, value, onChange, colSpan }: {
   );
 }
 
-function FormNumberInput({ label, placeholder, value, onChange }: {
-  label: string; placeholder: string; value: number; onChange: (v: number) => void;
+function FormNumberInput({ label, placeholder, value, onChange, t }: {
+  label: string; placeholder: string; value: number; onChange: (v: number) => void; t: T;
 }) {
   const [focused, setFocused] = useState(false);
 
@@ -101,7 +106,7 @@ function FormNumberInput({ label, placeholder, value, onChange }: {
     <div>
       <label style={{
         display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.text2, marginBottom: '8px',
+        color: t.text2, marginBottom: '8px',
       }}>
         {label}
       </label>
@@ -110,9 +115,9 @@ function FormNumberInput({ label, placeholder, value, onChange }: {
           onClick={() => onChange(Math.max(0, value - 50))}
           style={{
             width: '40px', height: '40px',
-            border: `1px solid ${C.inputBorder}`, borderRight: 'none',
-            borderRadius: '8px 0 0 8px', background: C.surface,
-            fontFamily: F.inter, fontSize: '16px', color: C.text2,
+            border: `1px solid ${t.inputBorder}`, borderRight: 'none',
+            borderRadius: '8px 0 0 8px', background: t.surface,
+            fontFamily: F.inter, fontSize: '16px', color: t.text2,
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -127,11 +132,11 @@ function FormNumberInput({ label, placeholder, value, onChange }: {
           placeholder={placeholder}
           style={{
             width: '100px', height: '40px', padding: '0 12px',
-            border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-            borderRadius: '0', background: C.surface,
-            fontFamily: F.mono, fontSize: '14px', color: C.text1,
+            border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+            borderRadius: '0', background: t.surface,
+            fontFamily: F.mono, fontSize: '14px', color: t.text1,
             outline: 'none', boxSizing: 'border-box', textAlign: 'center',
-            boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+            boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
             transition: 'border-color 0.12s, box-shadow 0.12s',
           }}
         />
@@ -139,9 +144,9 @@ function FormNumberInput({ label, placeholder, value, onChange }: {
           onClick={() => onChange(value + 50)}
           style={{
             width: '40px', height: '40px',
-            border: `1px solid ${C.inputBorder}`, borderLeft: 'none',
-            borderRadius: '0 8px 8px 0', background: C.surface,
-            fontFamily: F.inter, fontSize: '16px', color: C.text2,
+            border: `1px solid ${t.inputBorder}`, borderLeft: 'none',
+            borderRadius: '0 8px 8px 0', background: t.surface,
+            fontFamily: F.inter, fontSize: '16px', color: t.text2,
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -160,8 +165,9 @@ export default function NewOrganizationPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
 
-  // Section 1
   const [orgName, setOrgName] = useState('');
   const [inn, setInn] = useState('');
   const [contactName, setContactName] = useState('');
@@ -170,19 +176,16 @@ export default function NewOrganizationPage() {
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
 
-  // Section 2
   const [contractNum, setContractNum] = useState('');
   const [contractDate, setContractDate] = useState('');
   const [contractExpiry, setContractExpiry] = useState('');
   const [cardLimit, setCardLimit] = useState(500);
 
-  // Section 3
   const [adminName, setAdminName] = useState('');
   const [adminPhone, setAdminPhone] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [sendSMS, setSendSMS] = useState(true);
 
-  // Validation demo
   const [submitted, setSubmitted] = useState(false);
   const nameError = submitted && !orgName ? 'Это поле обязательно' : undefined;
 
@@ -190,8 +193,12 @@ export default function NewOrganizationPage() {
   const [draftHov, setDraftHov] = useState(false);
   const [createHov, setCreateHov] = useState(false);
 
+  const cancelHoverBg = dark ? D.tableHover : '#F3F4F6';
+  const toggleOffBg = dark ? '#4A4F63' : '#D1D5DB';
+  const smsRowBg = dark ? D.tableAlt : '#F9FAFB';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -202,101 +209,91 @@ export default function NewOrganizationPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
-        {/* Scrollable content */}
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
-            {/* Breadcrumbs */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-              <span onClick={() => navigate('/organizations')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Организации</span>
-              <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Новая организация</span>
+              <span onClick={() => navigate('/organizations')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Организации</span>
+              <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Новая организация</span>
             </div>
 
-            {/* Title */}
             <div style={{ marginBottom: '24px' }}>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Добавить организацию
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Заполните данные организации-партнёра
               </p>
             </div>
 
-            {/* Form Card */}
             <div style={{
-              background: C.surface, border: `1px solid ${C.border}`,
+              background: t.surface, border: `1px solid ${t.border}`,
               borderRadius: '12px', padding: '24px',
             }}>
 
-              {/* ── Section 1: Основная информация ── */}
               <h3 style={{
                 fontFamily: F.dm, fontSize: '16px', fontWeight: 600,
-                color: C.text1, margin: '0 0 20px',
+                color: t.text1, margin: '0 0 20px',
               }}>
                 Основная информация
               </h3>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px 24px' }}>
-                <FormInput label="Название организации" required placeholder="ООО «Название»" value={orgName} onChange={setOrgName} error={nameError} />
-                <FormInput label="ИНН" placeholder="123456789" value={inn} onChange={setInn} mono />
-                <FormInput label="Контактное лицо" required placeholder="Фамилия Имя Отчество" value={contactName} onChange={setContactName} />
-                <FormInput label="Должность контактного лица" placeholder="Директор / Менеджер" value={contactPosition} onChange={setContactPosition} />
-                <FormInput label="Телефон" required placeholder="+998 __ ___ __ __" value={phone} onChange={setPhone} mono />
-                <FormInput label="Email" placeholder="info@company.uz" value={email} onChange={setEmail} />
-                <FormTextarea label="Юридический адрес" placeholder="г. Ташкент, ул. ..." value={address} onChange={setAddress} colSpan />
+                <FormInput label="Название организации" required placeholder="ООО «Название»" value={orgName} onChange={setOrgName} error={nameError} t={t} dark={dark} />
+                <FormInput label="ИНН" placeholder="123456789" value={inn} onChange={setInn} mono t={t} dark={dark} />
+                <FormInput label="Контактное лицо" required placeholder="Фамилия Имя Отчество" value={contactName} onChange={setContactName} t={t} dark={dark} />
+                <FormInput label="Должность контактного лица" placeholder="Директор / Менеджер" value={contactPosition} onChange={setContactPosition} t={t} dark={dark} />
+                <FormInput label="Телефон" required placeholder="+998 __ ___ __ __" value={phone} onChange={setPhone} mono t={t} dark={dark} />
+                <FormInput label="Email" placeholder="info@company.uz" value={email} onChange={setEmail} t={t} dark={dark} />
+                <FormTextarea label="Юридический адрес" placeholder="г. Ташкент, ул. ..." value={address} onChange={setAddress} colSpan t={t} />
               </div>
 
-              {/* Divider */}
-              <div style={{ height: '1px', background: C.border, margin: '32px 0' }} />
+              <div style={{ height: '1px', background: t.border, margin: '32px 0' }} />
 
-              {/* ── Section 2: Договор ── */}
               <h3 style={{
                 fontFamily: F.dm, fontSize: '16px', fontWeight: 600,
-                color: C.text1, margin: '0 0 20px',
+                color: t.text1, margin: '0 0 20px',
               }}>
                 Договор
               </h3>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px 24px' }}>
-                <FormInput label="Номер договора" placeholder="MC-2026-___" value={contractNum} onChange={setContractNum} mono />
-                <FormInput label="Дата заключения" placeholder="ДД.ММ.ГГГГ" value={contractDate} onChange={setContractDate} type="date" />
-                <FormInput label="Срок действия до" placeholder="ДД.ММ.ГГГГ" value={contractExpiry} onChange={setContractExpiry} type="date" />
-                <FormNumberInput label="Лимит карт по договору" placeholder="500" value={cardLimit} onChange={setCardLimit} />
+                <FormInput label="Номер договора" placeholder="MC-2026-___" value={contractNum} onChange={setContractNum} mono t={t} dark={dark} />
+                <FormInput label="Дата заключения" placeholder="ДД.ММ.ГГГГ" value={contractDate} onChange={setContractDate} type="date" t={t} dark={dark} />
+                <FormInput label="Срок действия до" placeholder="ДД.ММ.ГГГГ" value={contractExpiry} onChange={setContractExpiry} type="date" t={t} dark={dark} />
+                <FormNumberInput label="Лимит карт по договору" placeholder="500" value={cardLimit} onChange={setCardLimit} t={t} />
               </div>
 
-              {/* Divider */}
-              <div style={{ height: '1px', background: C.border, margin: '32px 0' }} />
+              <div style={{ height: '1px', background: t.border, margin: '32px 0' }} />
 
-              {/* ── Section 3: Администратор ── */}
               <h3 style={{
                 fontFamily: F.dm, fontSize: '16px', fontWeight: 600,
-                color: C.text1, margin: '0 0 6px',
+                color: t.text1, margin: '0 0 6px',
               }}>
                 Администратор организации
               </h3>
               <p style={{
-                fontFamily: F.inter, fontSize: '13px', color: C.text3,
+                fontFamily: F.inter, fontSize: '13px', color: t.text3,
                 margin: '0 0 20px',
               }}>
                 Будет создан пользователь с ролью «Менеджер организации»
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px 24px' }}>
-                <FormInput label="ФИО администратора" required placeholder="Фамилия Имя Отчество" value={adminName} onChange={setAdminName} />
-                <FormInput label="Телефон администратора" required placeholder="+998 __ ___ __ __" value={adminPhone} onChange={setAdminPhone} mono />
-                <FormInput label="Email администратора" placeholder="admin@company.uz" value={adminEmail} onChange={setAdminEmail} />
+                <FormInput label="ФИО администратора" required placeholder="Фамилия Имя Отчество" value={adminName} onChange={setAdminName} t={t} dark={dark} />
+                <FormInput label="Телефон администратора" required placeholder="+998 __ ___ __ __" value={adminPhone} onChange={setAdminPhone} mono t={t} dark={dark} />
+                <FormInput label="Email администратора" placeholder="admin@company.uz" value={adminEmail} onChange={setAdminEmail} t={t} dark={dark} />
 
-                {/* SMS Toggle */}
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '12px 16px', borderRadius: '10px',
-                    background: '#F9FAFB', border: `1px solid ${C.border}`,
+                    background: smsRowBg, border: `1px solid ${t.border}`,
                     width: '100%',
                   }}>
                     <label style={{
                       fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                      color: C.text2, cursor: 'pointer',
+                      color: t.text2, cursor: 'pointer',
                     }}>
                       Отправить приглашение по SMS
                     </label>
@@ -304,14 +301,14 @@ export default function NewOrganizationPage() {
                       onClick={() => setSendSMS(!sendSMS)}
                       style={{
                         width: '44px', height: '24px', borderRadius: '12px',
-                        background: sendSMS ? C.blue : '#D1D5DB',
+                        background: sendSMS ? t.blue : toggleOffBg,
                         border: 'none', cursor: 'pointer', position: 'relative',
                         transition: 'background 0.2s',
                       }}
                     >
                       <div style={{
                         width: '18px', height: '18px', borderRadius: '50%',
-                        background: C.surface, position: 'absolute', top: '3px',
+                        background: dark ? '#F1F2F6' : C.surface, position: 'absolute', top: '3px',
                         left: sendSMS ? '23px' : '3px',
                         transition: 'left 0.2s',
                         boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
@@ -322,47 +319,42 @@ export default function NewOrganizationPage() {
               </div>
             </div>
 
-            {/* Bottom spacer to account for sticky footer */}
             <div style={{ height: '80px' }} />
           </div>
         </div>
 
-        {/* ── Sticky Footer ── */}
         <div style={{
           flexShrink: 0,
-          background: C.surface, borderTop: `1px solid ${C.border}`,
+          background: t.surface, borderTop: `1px solid ${t.border}`,
           padding: '16px 32px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          {/* Left: Cancel */}
           <button
             onMouseEnter={() => setCancelHov(true)}
             onMouseLeave={() => setCancelHov(false)}
             onClick={() => navigate('/organizations')}
             style={{
-              border: 'none', background: 'none',
+              border: 'none', background: cancelHov ? cancelHoverBg : 'transparent',
               fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-              color: cancelHov ? C.text1 : C.text3,
+              color: cancelHov ? t.text1 : t.text3,
               cursor: 'pointer', padding: '8px 12px', borderRadius: '8px',
               transition: 'color 0.12s, background 0.12s',
-              ...(cancelHov ? { background: '#F3F4F6' } : {}),
             }}
           >
             Отмена
           </button>
 
-          {/* Right: Draft + Create */}
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onMouseEnter={() => setDraftHov(true)}
               onMouseLeave={() => setDraftHov(false)}
               style={{
                 height: '40px', padding: '0 20px',
-                border: `1px solid ${draftHov ? C.blue : C.border}`,
+                border: `1px solid ${draftHov ? t.blue : t.border}`,
                 borderRadius: '8px',
-                background: draftHov ? C.blueLt : C.surface,
+                background: draftHov ? t.blueLt : 'transparent',
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                color: draftHov ? C.blue : C.text2,
+                color: draftHov ? t.blue : t.text2,
                 cursor: 'pointer', transition: 'all 0.12s',
               }}
             >
@@ -376,7 +368,7 @@ export default function NewOrganizationPage() {
                 height: '40px', padding: '0 20px',
                 border: 'none',
                 borderRadius: '8px',
-                background: createHov ? C.blueHover : C.blue,
+                background: createHov ? t.blueHover : t.blue,
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
                 color: '#FFFFFF',
                 cursor: 'pointer', transition: 'all 0.12s',
@@ -388,7 +380,6 @@ export default function NewOrganizationPage() {
         </div>
       </div>
 
-      {/* Responsive */}
       <style>{`
         @media (max-width: 1024px) {
           div[style*="grid-template-columns: repeat(2"] {
