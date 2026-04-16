@@ -5,11 +5,13 @@ import {
   ArrowRight, Circle, Dot,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -56,6 +58,40 @@ const ACTIVITIES: Activity[] = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   STAT CARD COLOR MAPS
+═══════════════════════════════════════════════════════════════════════════ */
+
+const STAT_COLOR_LIGHT = {
+  blue:  { bg: '#EFF6FF', iconColor: '#2563EB' },
+  green: { bg: '#F0FDF4', iconColor: '#10B981' },
+  cyan:  { bg: '#ECFEFF', iconColor: '#0891B2' },
+  amber: { bg: '#FFFBEB', iconColor: '#D97706' },
+  rose:  { bg: '#FFF1F2', iconColor: '#E11D48' },
+} as const;
+
+const STAT_COLOR_DARK = {
+  blue:  { bg: 'rgba(37,99,235,0.15)',  iconColor: '#3B82F6' },
+  green: { bg: 'rgba(52,211,153,0.15)', iconColor: '#34D399' },
+  cyan:  { bg: 'rgba(8,145,178,0.15)',  iconColor: '#22D3EE' },
+  amber: { bg: 'rgba(251,191,36,0.15)', iconColor: '#FBBF24' },
+  rose:  { bg: 'rgba(225,29,72,0.15)',  iconColor: '#FB7185' },
+} as const;
+
+const ACTIVITY_COLOR_LIGHT = {
+  green: { bg: '#F0FDF4', dot: '#10B981' },
+  blue:  { bg: '#EFF6FF', dot: '#2563EB' },
+  amber: { bg: '#FFFBEB', dot: '#D97706' },
+  gray:  { bg: '#F3F4F6', dot: '#9CA3AF' },
+} as const;
+
+const ACTIVITY_COLOR_DARK = {
+  green: { bg: 'rgba(52,211,153,0.15)', dot: '#34D399' },
+  blue:  { bg: 'rgba(37,99,235,0.15)',  dot: '#3B82F6' },
+  amber: { bg: 'rgba(251,191,36,0.15)', dot: '#FBBF24' },
+  gray:  { bg: 'rgba(156,163,175,0.15)', dot: '#6B7280' },
+} as const;
+
+/* ═══════════════════════════════════════════════════════════════════════════
    STAT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -66,6 +102,8 @@ function StatCard({
   trend,
   subtitle,
   color,
+  t,
+  dark,
 }: {
   icon: React.ElementType;
   label: string;
@@ -73,21 +111,15 @@ function StatCard({
   trend?: string;
   subtitle?: string;
   color: 'blue' | 'green' | 'cyan' | 'amber' | 'rose';
+  t: T;
+  dark: boolean;
 }) {
-  const colorMap = {
-    blue: { bg: C.blueLt, iconColor: C.blue },
-    green: { bg: C.successBg, iconColor: C.success },
-    cyan: { bg: '#ECFEFF', iconColor: '#0891B2' },
-    amber: { bg: '#FFFBEB', iconColor: '#D97706' },
-    rose: { bg: '#FFF1F2', iconColor: '#E11D48' },
-  };
-
-  const cfg = colorMap[color];
+  const cfg = (dark ? STAT_COLOR_DARK : STAT_COLOR_LIGHT)[color];
 
   return (
     <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       padding: '20px',
       display: 'flex',
@@ -110,7 +142,7 @@ function StatCard({
         <div style={{
           fontFamily: F.inter,
           fontSize: '13px',
-          color: C.text3,
+          color: t.text3,
           marginBottom: '4px',
         }}>
           {label}
@@ -119,7 +151,7 @@ function StatCard({
           fontFamily: F.mono,
           fontSize: '22px',
           fontWeight: 700,
-          color: C.text1,
+          color: t.text1,
           lineHeight: 1.2,
           marginBottom: subtitle ? '4px' : '0',
         }}>
@@ -129,7 +161,7 @@ function StatCard({
           <div style={{
             fontFamily: F.inter,
             fontSize: '12px',
-            color: C.text3,
+            color: t.text3,
           }}>
             {subtitle}
           </div>
@@ -140,7 +172,7 @@ function StatCard({
         <div style={{
           fontFamily: F.inter,
           fontSize: '12px',
-          color: C.success,
+          color: t.success,
         }}>
           {trend}
         </div>
@@ -153,12 +185,32 @@ function StatCard({
    SELLER TABLE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SellerTable({ sellers }: { sellers: Seller[] }) {
+function SellerTable({ sellers, t, dark }: { sellers: Seller[]; t: T; dark: boolean }) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+
+  const headerCellStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontFamily: F.inter,
+    fontSize: '12px',
+    fontWeight: 600,
+    color: t.text3,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    whiteSpace: 'nowrap',
+  };
+
+  const dataCellStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
+  };
+
+  const topRankBg = dark ? 'rgba(52,211,153,0.10)' : '#F0FDF4';
 
   return (
     <div style={{
-      border: `1px solid ${C.border}`,
+      border: `1px solid ${t.border}`,
       borderRadius: '8px',
       overflowX: 'auto',
     }}>
@@ -169,8 +221,8 @@ function SellerTable({ sellers }: { sellers: Seller[] }) {
       }}>
         <thead>
           <tr style={{
-            background: '#FAFBFC',
-            borderBottom: `1px solid ${C.border}`,
+            background: t.tableHeaderBg,
+            borderBottom: `1px solid ${t.border}`,
           }}>
             <th style={headerCellStyle}>#</th>
             <th style={headerCellStyle}>Продавец</th>
@@ -189,14 +241,14 @@ function SellerTable({ sellers }: { sellers: Seller[] }) {
               onMouseEnter={() => setHoveredRow(idx)}
               onMouseLeave={() => setHoveredRow(null)}
               style={{
-                borderBottom: idx < sellers.length - 1 ? `1px solid ${C.border}` : 'none',
-                background: seller.rank === 1 ? '#F0FDF4' : hoveredRow === idx ? '#FAFBFC' : C.surface,
+                borderBottom: idx < sellers.length - 1 ? `1px solid ${t.border}` : 'none',
+                background: seller.rank === 1 ? topRankBg : hoveredRow === idx ? t.tableHover : t.surface,
                 cursor: 'pointer',
                 transition: 'background 0.12s',
               }}
             >
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
                   {seller.rank}
                 </span>
               </td>
@@ -205,33 +257,33 @@ function SellerTable({ sellers }: { sellers: Seller[] }) {
                   fontFamily: F.inter,
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: C.text1,
+                  color: t.text1,
                 }}>
                   {seller.name}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {seller.total}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: C.text1 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: t.text1 }}>
                   {seller.sold}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {seller.kpi1}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {seller.kpi2}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {seller.kpi3}
                 </span>
               </td>
@@ -240,7 +292,7 @@ function SellerTable({ sellers }: { sellers: Seller[] }) {
                   fontFamily: F.mono,
                   fontSize: '13px',
                   fontWeight: 600,
-                  color: C.text1,
+                  color: t.text1,
                 }}>
                   {seller.earned}
                 </span>
@@ -253,34 +305,20 @@ function SellerTable({ sellers }: { sellers: Seller[] }) {
   );
 }
 
-const headerCellStyle: React.CSSProperties = {
-  padding: '12px 16px',
-  textAlign: 'left',
-  fontFamily: F.inter,
-  fontSize: '12px',
-  fontWeight: 600,
-  color: C.text3,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  whiteSpace: 'nowrap',
-};
-
-const dataCellStyle: React.CSSProperties = {
-  padding: '12px 16px',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
-};
-
 /* ═══════════════════════════════════════════════════════════════════════════
    KPI MINI STEPPER
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function KPIMiniStepper() {
+function KPIMiniStepper({ t, dark }: { t: T; dark: boolean }) {
   const steps = [
     { num: 1, label: 'Регистрация', progress: 80.4, count: '185/230', status: 'completed' },
     { num: 2, label: 'Пополнение', progress: 52.2, count: '120/230', status: 'in-progress' },
     { num: 3, label: 'Оплата 500K', progress: 19.6, count: '45/230', status: 'pending' },
   ];
+
+  const pendingBg = dark ? '#2D3148' : '#F3F4F6';
+  const progressTrack = dark ? '#2D3148' : '#E5E7EB';
+  const pendingFill = dark ? '#3A3F50' : '#D1D5DB';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -291,8 +329,8 @@ function KPIMiniStepper() {
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            background: step.status === 'completed' ? C.success : step.status === 'in-progress' ? C.blueLt : '#F3F4F6',
-            border: step.status === 'in-progress' ? `2px solid ${C.blue}` : 'none',
+            background: step.status === 'completed' ? t.success : step.status === 'in-progress' ? t.blueLt : pendingBg,
+            border: step.status === 'in-progress' ? `2px solid ${t.blue}` : 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -301,9 +339,9 @@ function KPIMiniStepper() {
             {step.status === 'completed' ? (
               <Check size={12} color="#FFFFFF" strokeWidth={3} />
             ) : step.status === 'in-progress' ? (
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.blue }} />
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.blue }} />
             ) : (
-              <Circle size={12} color={C.text4} strokeWidth={2} />
+              <Circle size={12} color={t.text4} strokeWidth={2} />
             )}
           </div>
 
@@ -313,7 +351,7 @@ function KPIMiniStepper() {
               fontFamily: F.inter,
               fontSize: '14px',
               fontWeight: 500,
-              color: step.status === 'pending' ? C.text4 : C.text1,
+              color: step.status === 'pending' ? t.text4 : t.text1,
               marginBottom: '6px',
             }}>
               {step.label}
@@ -324,14 +362,14 @@ function KPIMiniStepper() {
               width: '100%',
               height: '8px',
               borderRadius: '4px',
-              background: '#E5E7EB',
+              background: progressTrack,
               overflow: 'hidden',
               marginBottom: '6px',
             }}>
               <div style={{
                 width: `${step.progress}%`,
                 height: '100%',
-                background: step.status === 'completed' ? C.success : step.status === 'in-progress' ? C.blue : '#D1D5DB',
+                background: step.status === 'completed' ? t.success : step.status === 'in-progress' ? t.blue : pendingFill,
                 borderRadius: '4px',
               }} />
             </div>
@@ -345,7 +383,7 @@ function KPIMiniStepper() {
               <span style={{
                 fontFamily: F.mono,
                 fontSize: '12px',
-                color: C.text2,
+                color: t.text2,
               }}>
                 {step.count}
               </span>
@@ -353,7 +391,7 @@ function KPIMiniStepper() {
                 fontFamily: F.inter,
                 fontSize: '12px',
                 fontWeight: 600,
-                color: step.status === 'completed' ? C.success : step.status === 'in-progress' ? C.blue : C.text4,
+                color: step.status === 'completed' ? t.success : step.status === 'in-progress' ? t.blue : t.text4,
               }}>
                 {step.progress}%
               </span>
@@ -369,13 +407,8 @@ function KPIMiniStepper() {
    ACTIVITY TIMELINE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ActivityTimeline({ activities }: { activities: Activity[] }) {
-  const colorMap = {
-    green: { bg: C.successBg, dot: C.success },
-    blue: { bg: C.blueLt, dot: C.blue },
-    amber: { bg: '#FFFBEB', dot: '#D97706' },
-    gray: { bg: '#F3F4F6', dot: '#9CA3AF' },
-  };
+function ActivityTimeline({ activities, t, dark }: { activities: Activity[]; t: T; dark: boolean }) {
+  const colorMap = dark ? ACTIVITY_COLOR_DARK : ACTIVITY_COLOR_LIGHT;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
@@ -421,7 +454,7 @@ function ActivityTimeline({ activities }: { activities: Activity[] }) {
                 <div style={{
                   width: '2px',
                   flex: 1,
-                  background: C.border,
+                  background: t.border,
                   marginTop: '4px',
                   minHeight: '16px',
                 }} />
@@ -433,7 +466,7 @@ function ActivityTimeline({ activities }: { activities: Activity[] }) {
               <div style={{
                 fontFamily: F.inter,
                 fontSize: '14px',
-                color: C.text1,
+                color: t.text1,
                 marginBottom: '2px',
               }}>
                 {activity.text}
@@ -441,7 +474,7 @@ function ActivityTimeline({ activities }: { activities: Activity[] }) {
               <div style={{
                 fontFamily: F.inter,
                 fontSize: '12px',
-                color: C.text4,
+                color: t.text4,
               }}>
                 {activity.time}
               </div>
@@ -465,8 +498,11 @@ export default function OrgAdminDashboardPage() {
   const [sellersHover, setSellersHover] = useState(false);
   const [activityHover, setActivityHover] = useState(false);
 
+  const t = theme(darkMode);
+  const dark = darkMode;
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>
       <style>{`
         .org-stat-cards {
           display: grid;
@@ -508,9 +544,9 @@ export default function OrgAdminDashboardPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Дашборд</span>
+            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Дашборд</span>
           </div>
 
           {/* Top Bar */}
@@ -523,10 +559,10 @@ export default function OrgAdminDashboardPage() {
             flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Дашборд
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Mysafar OOO — обзор продаж и KPI
               </p>
             </div>
@@ -541,6 +577,8 @@ export default function OrgAdminDashboardPage() {
               label="Карт получено"
               value="500"
               color="blue"
+              t={t}
+              dark={dark}
             />
             <StatCard
               icon={ShoppingBag}
@@ -548,6 +586,8 @@ export default function OrgAdminDashboardPage() {
               value="230"
               trend="+12%"
               color="green"
+              t={t}
+              dark={dark}
             />
             <StatCard
               icon={UserCheck}
@@ -555,6 +595,8 @@ export default function OrgAdminDashboardPage() {
               value="185"
               subtitle="80.4% от продано"
               color="cyan"
+              t={t}
+              dark={dark}
             />
             <StatCard
               icon={ArrowUpDown}
@@ -562,6 +604,8 @@ export default function OrgAdminDashboardPage() {
               value="120"
               subtitle="52.2%"
               color="amber"
+              t={t}
+              dark={dark}
             />
             <StatCard
               icon={Wallet}
@@ -569,6 +613,8 @@ export default function OrgAdminDashboardPage() {
               value="45"
               subtitle="19.6%"
               color="rose"
+              t={t}
+              dark={dark}
             />
           </div>
 
@@ -576,8 +622,8 @@ export default function OrgAdminDashboardPage() {
           <div className="org-row2" style={{ marginBottom: '24px' }}>
             {/* Left: Seller Table */}
             <div style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
+              background: t.surface,
+              border: `1px solid ${t.border}`,
               borderRadius: '12px',
               padding: '24px',
             }}>
@@ -585,13 +631,13 @@ export default function OrgAdminDashboardPage() {
                 fontFamily: F.dm,
                 fontSize: '16px',
                 fontWeight: 600,
-                color: C.text1,
+                color: t.text1,
                 marginBottom: '20px',
               }}>
                 Рейтинг продавцов
               </div>
 
-              <SellerTable sellers={SELLERS} />
+              <SellerTable sellers={SELLERS} t={t} dark={dark} />
 
               <button
                 onMouseEnter={() => setSellersHover(true)}
@@ -602,11 +648,11 @@ export default function OrgAdminDashboardPage() {
                   padding: '0 16px',
                   border: 'none',
                   borderRadius: '8px',
-                  background: sellersHover ? '#F3F4F6' : 'transparent',
+                  background: sellersHover ? t.tableHover : 'transparent',
                   fontFamily: F.inter,
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: sellersHover ? C.text1 : C.text3,
+                  color: sellersHover ? t.text1 : t.text3,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -621,8 +667,8 @@ export default function OrgAdminDashboardPage() {
 
             {/* Right: KPI Conversion */}
             <div style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
+              background: t.surface,
+              border: `1px solid ${t.border}`,
               borderRadius: '12px',
               padding: '24px',
             }}>
@@ -630,21 +676,21 @@ export default function OrgAdminDashboardPage() {
                 fontFamily: F.dm,
                 fontSize: '16px',
                 fontWeight: 600,
-                color: C.text1,
+                color: t.text1,
                 marginBottom: '20px',
               }}>
                 KPI конверсия
               </div>
 
-              <KPIMiniStepper />
+              <KPIMiniStepper t={t} dark={dark} />
 
-              <div style={{ height: '1px', background: C.border, margin: '24px 0' }} />
+              <div style={{ height: '1px', background: t.border, margin: '24px 0' }} />
 
               <div style={{
                 fontFamily: F.mono,
                 fontSize: '20px',
                 fontWeight: 700,
-                color: C.text1,
+                color: t.text1,
                 marginBottom: '4px',
               }}>
                 1 825 000 UZS
@@ -652,7 +698,7 @@ export default function OrgAdminDashboardPage() {
               <div style={{
                 fontFamily: F.inter,
                 fontSize: '13px',
-                color: C.text3,
+                color: t.text3,
                 marginBottom: '12px',
               }}>
                 Общий заработок продавцов
@@ -660,7 +706,7 @@ export default function OrgAdminDashboardPage() {
               <div style={{
                 fontFamily: F.inter,
                 fontSize: '13px',
-                color: C.text3,
+                color: t.text3,
               }}>
                 Выведено: 1 200 000 UZS
               </div>
@@ -669,8 +715,8 @@ export default function OrgAdminDashboardPage() {
 
           {/* Row 3: Activity Timeline */}
           <div style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
+            background: t.surface,
+            border: `1px solid ${t.border}`,
             borderRadius: '12px',
             padding: '24px',
           }}>
@@ -678,13 +724,13 @@ export default function OrgAdminDashboardPage() {
               fontFamily: F.dm,
               fontSize: '16px',
               fontWeight: 600,
-              color: C.text1,
+              color: t.text1,
               marginBottom: '24px',
             }}>
               Последняя активность
             </div>
 
-            <ActivityTimeline activities={ACTIVITIES} />
+            <ActivityTimeline activities={ACTIVITIES} t={t} dark={dark} />
 
             <button
               onMouseEnter={() => setActivityHover(true)}
@@ -695,11 +741,11 @@ export default function OrgAdminDashboardPage() {
                 padding: '0 16px',
                 border: 'none',
                 borderRadius: '8px',
-                background: activityHover ? '#F3F4F6' : 'transparent',
+                background: activityHover ? t.tableHover : 'transparent',
                 fontFamily: F.inter,
                 fontSize: '14px',
                 fontWeight: 500,
-                color: activityHover ? C.text1 : C.text3,
+                color: activityHover ? t.text1 : t.text3,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',

@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { ChevronRight, ChevronDown, Plus, Trash2 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -40,14 +42,14 @@ const VISA_USD_COUNT = 20;
    ATOMS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function BadgeOutline({ children }: { children: React.ReactNode }) {
+function BadgeOutline({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
       fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
       padding: '3px 10px', borderRadius: '8px',
-      border: `1px solid ${C.border}`, background: C.surface,
-      color: C.text2, whiteSpace: 'nowrap',
+      border: `1px solid ${t.border}`, background: t.surface,
+      color: t.text2, whiteSpace: 'nowrap',
     }}>
       {children}
     </span>
@@ -58,8 +60,8 @@ function BadgeOutline({ children }: { children: React.ReactNode }) {
    NUMBER INPUT (inline table cell)
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function AssignInput({ value, max, onChange }: {
-  value: number; max: number; onChange: (v: number) => void;
+function AssignInput({ value, max, onChange, t }: {
+  value: number; max: number; onChange: (v: number) => void; t: T;
 }) {
   const [focused, setFocused] = useState(false);
   const edited = value > 0;
@@ -77,21 +79,21 @@ function AssignInput({ value, max, onChange }: {
       onBlur={() => setFocused(false)}
       style={{
         width: '90px', height: '36px', padding: '0 12px',
-        border: `1px solid ${focused ? C.blue : edited ? C.blueTint : C.inputBorder}`,
+        border: `1px solid ${focused ? t.blue : edited ? t.blueTint : t.inputBorder}`,
         borderRadius: '7px',
-        background: edited ? C.blueLt : C.surface,
+        background: edited ? t.blueLt : t.surface,
         fontFamily: F.mono, fontSize: '13px',
-        color: C.text1, fontWeight: edited ? 600 : 400,
+        color: t.text1, fontWeight: edited ? 600 : 400,
         textAlign: 'center', outline: 'none', boxSizing: 'border-box',
-        boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+        boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
         transition: 'border-color 0.12s, box-shadow 0.12s, background 0.12s',
       }}
     />
   );
 }
 
-function SellerSelect({ value, onChange, options }: {
-  value: string; onChange: (v: string) => void; options: string[];
+function SellerSelect({ value, onChange, options, t }: {
+  value: string; onChange: (v: string) => void; options: string[]; t: T;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -103,19 +105,19 @@ function SellerSelect({ value, onChange, options }: {
         onBlur={() => setFocused(false)}
         style={{
           width: '100%', height: '36px', padding: '0 32px 0 10px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '7px', background: C.surface,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: '7px', background: t.surface,
           fontFamily: F.inter, fontSize: '13px',
-          color: value ? C.text1 : C.text4,
+          color: value ? t.text1 : t.text4,
           outline: 'none', appearance: 'none', cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
         }}
       >
         <option value="">Выберите продавца</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={13} color={C.text3} style={{
+      <ChevronDown size={13} color={t.text3} style={{
         position: 'absolute', right: '10px', top: '50%',
         transform: 'translateY(-50%)', pointerEvents: 'none',
       }} />
@@ -130,6 +132,8 @@ function SellerSelect({ value, onChange, options }: {
 export default function BulkCardAssignmentPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [rows, setRows] = useState<Row[]>(INITIAL_ROWS);
   const [nextId, setNextId] = useState(100);
   const [cancelHov, setCancelHov] = useState(false);
@@ -159,8 +163,25 @@ export default function BulkCardAssignmentPage() {
 
   const usedSellers = new Set(rows.map(r => r.seller).filter(Boolean));
 
+  const rowHighlightBg = dark ? 'rgba(59,130,246,0.15)' : 'rgba(219,234,254,0.30)';
+  const trashHoverBg = dark ? D.errorBg : C.errorBg;
+  const cancelHoverBg = dark ? t.tableHover : '#F9FAFB';
+  const disabledSubmitBg = dark ? 'rgba(59,130,246,0.35)' : '#93C5FD';
+  const progressTrackBg = dark ? D.progressTrack : '#F3F4F6';
+
+  const th: React.CSSProperties = {
+    padding: '10px 12px', textAlign: 'left',
+    fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
+    color: t.text3, textTransform: 'uppercase', letterSpacing: '0.05em',
+    whiteSpace: 'nowrap',
+  };
+
+  const td: React.CSSProperties = {
+    padding: '10px 12px', verticalAlign: 'middle',
+  };
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -174,49 +195,49 @@ export default function BulkCardAssignmentPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span onClick={() => navigate('/org-cards')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Карты</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Массовое назначение</span>
+            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span onClick={() => navigate('/org-cards')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Карты</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Массовое назначение</span>
           </div>
 
           {/* Title */}
-          <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: '0 0 4px', lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: '0 0 4px', lineHeight: 1.2 }}>
             Массовое назначение карт
           </h1>
-          <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '0 0 22px' }}>
+          <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '0 0 22px' }}>
             Распределите карты со склада между продавцами
           </p>
 
           {/* Stock summary card */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '12px', padding: '16px',
             marginBottom: '20px',
             display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
           }}>
             <div style={{
-              fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: C.text1,
+              fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: t.text1,
             }}>
               На складе доступно:{' '}
-              <span style={{ fontFamily: F.mono, color: C.blue }}>{TOTAL_AVAILABLE}</span>{' '}
+              <span style={{ fontFamily: F.mono, color: t.blue }}>{TOTAL_AVAILABLE}</span>{' '}
               карт
             </div>
-            <div style={{ width: '1px', height: '20px', background: C.border }} />
-            <BadgeOutline>VISA SUM: {VISA_SUM_COUNT}</BadgeOutline>
-            <BadgeOutline>VISA USD: {VISA_USD_COUNT}</BadgeOutline>
+            <div style={{ width: '1px', height: '20px', background: t.border }} />
+            <BadgeOutline t={t}>VISA SUM: {VISA_SUM_COUNT}</BadgeOutline>
+            <BadgeOutline t={t}>VISA USD: {VISA_USD_COUNT}</BadgeOutline>
           </div>
 
           {/* Assignment table card */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '12px', padding: '24px',
             marginBottom: '20px',
           }}>
             <h2 style={{
               fontFamily: F.dm, fontSize: '15px', fontWeight: 700,
-              color: C.text1, margin: '0 0 16px', lineHeight: 1.2,
+              color: t.text1, margin: '0 0 16px', lineHeight: 1.2,
             }}>
               Распределение
             </h2>
@@ -224,7 +245,7 @@ export default function BulkCardAssignmentPage() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <tr style={{ borderBottom: `1px solid ${t.border}` }}>
                     <th style={th}>Продавец</th>
                     <th style={th}>Текущие карты</th>
                     <th style={th}>Назначить</th>
@@ -246,8 +267,8 @@ export default function BulkCardAssignmentPage() {
 
                     return (
                       <tr key={r.id} style={{
-                        borderBottom: `1px solid ${C.border}`,
-                        background: highlight ? 'rgba(219,234,254,0.30)' : 'transparent',
+                        borderBottom: `1px solid ${t.border}`,
+                        background: highlight ? rowHighlightBg : 'transparent',
                         transition: 'background 0.12s',
                       }}>
                         <td style={td}>
@@ -256,15 +277,16 @@ export default function BulkCardAssignmentPage() {
                               value={r.seller}
                               onChange={v => updateSeller(r.id, v)}
                               options={availableSellers}
+                              t={t}
                             />
                           ) : (
-                            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, fontWeight: 500 }}>
+                            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, fontWeight: 500 }}>
                               {r.seller}
                             </span>
                           )}
                         </td>
                         <td style={td}>
-                          <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                          <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                             {r.current}
                           </span>
                         </td>
@@ -273,12 +295,13 @@ export default function BulkCardAssignmentPage() {
                             value={r.assign}
                             max={rowMax}
                             onChange={v => updateAssign(r.id, v)}
+                            t={t}
                           />
                         </td>
                         <td style={td}>
                           <span style={{
                             fontFamily: F.mono, fontSize: '13px',
-                            color: highlight ? C.blue : C.text1,
+                            color: highlight ? t.blue : t.text1,
                             fontWeight: highlight ? 600 : 400,
                           }}>
                             {total}
@@ -296,10 +319,10 @@ export default function BulkCardAssignmentPage() {
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                 cursor: 'pointer', transition: 'background 0.12s',
                               }}
-                              onMouseEnter={e => { (e.currentTarget.style.background = C.errorBg); }}
+                              onMouseEnter={e => { (e.currentTarget.style.background = trashHoverBg); }}
                               onMouseLeave={e => { (e.currentTarget.style.background = 'transparent'); }}
                             >
-                              <Trash2 size={14} color={C.text4} strokeWidth={1.75} />
+                              <Trash2 size={14} color={t.text4} strokeWidth={1.75} />
                             </button>
                           )}
                         </td>
@@ -319,9 +342,9 @@ export default function BulkCardAssignmentPage() {
                 style={{
                   height: '34px', padding: '0 12px',
                   border: 'none', borderRadius: '7px',
-                  background: addRowHov ? C.blueLt : 'transparent',
+                  background: addRowHov ? t.blueLt : 'transparent',
                   fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                  color: C.blue,
+                  color: t.blue,
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   cursor: 'pointer', transition: 'background 0.12s',
                 }}
@@ -334,11 +357,11 @@ export default function BulkCardAssignmentPage() {
 
           {/* Summary strip */}
           <div style={{
-            background: C.surface,
-            borderTop: `2px solid ${overLimit ? C.error : C.blue}`,
-            borderRight: `1px solid ${C.border}`,
-            borderBottom: `1px solid ${C.border}`,
-            borderLeft: `1px solid ${C.border}`,
+            background: t.surface,
+            borderTop: `2px solid ${overLimit ? t.error : t.blue}`,
+            borderRight: `1px solid ${t.border}`,
+            borderBottom: `1px solid ${t.border}`,
+            borderLeft: `1px solid ${t.border}`,
             borderRadius: '12px',
             padding: '16px 20px',
             marginBottom: '20px',
@@ -348,23 +371,23 @@ export default function BulkCardAssignmentPage() {
               gap: '16px', flexWrap: 'wrap', marginBottom: '12px',
             }}>
               <div>
-                <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: overLimit ? C.error : C.text1 }}>
-                  К назначению: <span style={{ fontFamily: F.mono, color: overLimit ? C.error : C.blue }}>{totalToAssign}</span> карт из{' '}
+                <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 600, color: overLimit ? t.error : t.text1 }}>
+                  К назначению: <span style={{ fontFamily: F.mono, color: overLimit ? t.error : t.blue }}>{totalToAssign}</span> карт из{' '}
                   <span style={{ fontFamily: F.mono }}>{TOTAL_AVAILABLE}</span> доступных
                 </div>
                 <div style={{
-                  fontFamily: F.inter, fontSize: '12px', color: C.text3,
+                  fontFamily: F.inter, fontSize: '12px', color: t.text3,
                   marginTop: '4px',
                 }}>
                   {overLimit
                     ? `Превышение на ${Math.abs(remaining)} карт`
-                    : <>Останется на складе: <span style={{ fontFamily: F.mono, color: C.text2, fontWeight: 500 }}>{remaining}</span></>
+                    : <>Останется на складе: <span style={{ fontFamily: F.mono, color: t.text2, fontWeight: 500 }}>{remaining}</span></>
                   }
                 </div>
               </div>
               <div style={{
                 fontFamily: F.mono, fontSize: '13px', fontWeight: 600,
-                color: overLimit ? C.error : C.blue,
+                color: overLimit ? t.error : t.blue,
               }}>
                 {progressPct}%
               </div>
@@ -372,11 +395,11 @@ export default function BulkCardAssignmentPage() {
 
             <div style={{
               height: '8px', borderRadius: '4px',
-              background: '#F3F4F6', overflow: 'hidden',
+              background: progressTrackBg, overflow: 'hidden',
             }}>
               <div style={{
                 width: `${progressPct}%`, height: '100%',
-                background: overLimit ? C.error : C.blue,
+                background: overLimit ? t.error : t.blue,
                 borderRadius: '4px',
                 transition: 'width 0.25s ease',
               }} />
@@ -394,10 +417,10 @@ export default function BulkCardAssignmentPage() {
               onClick={() => navigate('/org-cards')}
               style={{
                 height: '40px', padding: '0 20px',
-                border: `1px solid ${C.border}`, borderRadius: '8px',
-                background: cancelHov ? '#F9FAFB' : C.surface,
+                border: `1px solid ${t.border}`, borderRadius: '8px',
+                background: cancelHov ? cancelHoverBg : t.surface,
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                color: C.text1, cursor: 'pointer',
+                color: t.text1, cursor: 'pointer',
                 transition: 'background 0.12s',
               }}
             >
@@ -413,12 +436,14 @@ export default function BulkCardAssignmentPage() {
               style={{
                 height: '40px', padding: '0 22px',
                 border: 'none', borderRadius: '8px',
-                background: !canSubmit ? '#93C5FD' : submitHov ? C.blueHover : C.blue,
+                background: !canSubmit ? disabledSubmitBg : submitHov ? t.blueHover : t.blue,
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
                 color: '#FFFFFF',
                 cursor: canSubmit ? 'pointer' : 'not-allowed',
                 opacity: canSubmit ? 1 : 0.85,
-                boxShadow: canSubmit && submitHov ? '0 2px 8px rgba(37,99,235,0.28)' : canSubmit ? '0 1px 3px rgba(37,99,235,0.16)' : 'none',
+                boxShadow: dark
+                  ? 'none'
+                  : canSubmit && submitHov ? '0 2px 8px rgba(37,99,235,0.28)' : canSubmit ? '0 1px 3px rgba(37,99,235,0.16)' : 'none',
                 transition: 'all 0.15s',
               }}
             >
@@ -432,14 +457,3 @@ export default function BulkCardAssignmentPage() {
     </div>
   );
 }
-
-const th: React.CSSProperties = {
-  padding: '10px 12px', textAlign: 'left',
-  fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-  color: C.text3, textTransform: 'uppercase', letterSpacing: '0.05em',
-  whiteSpace: 'nowrap',
-};
-
-const td: React.CSSProperties = {
-  padding: '10px 12px', verticalAlign: 'middle',
-};

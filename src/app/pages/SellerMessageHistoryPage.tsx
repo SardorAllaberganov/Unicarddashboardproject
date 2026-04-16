@@ -6,10 +6,12 @@ import {
 import { useLocation, useNavigate } from 'react-router';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { EmptyState } from '../components/EmptyState';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -40,34 +42,34 @@ const PAGE_SIZE = 10;
    BADGES & PROGRESS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ChannelBadge({ label }: { label: Channel }) {
+function ChannelBadge({ label, t }: { label: Channel; t: T }) {
   return (
     <span style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 8px', borderRadius: '6px',
-      background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+      background: t.blueLt, color: t.blue, whiteSpace: 'nowrap',
     }}>
       {label}
     </span>
   );
 }
 
-function ProgressCell({ value }: { value: [number, number] }) {
+function ProgressCell({ value, t, dark }: { value: [number, number]; t: T; dark: boolean }) {
   const [done, total] = value;
   const pct = total === 0 ? 0 : Math.round((done / total) * 100);
   const complete = done === total;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: '56px' }}>
-      <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>
+      <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text1 }}>
         {done}/{total}
       </span>
       <div style={{
         width: '100%', height: '4px', borderRadius: '2px',
-        background: '#F3F4F6', overflow: 'hidden',
+        background: dark ? D.tableHeaderBg : '#F3F4F6', overflow: 'hidden',
       }}>
         <div style={{
           width: `${pct}%`, height: '100%',
-          background: complete ? C.success : C.warning,
+          background: complete ? t.success : t.warning,
           transition: 'width 0.2s',
         }} />
       </div>
@@ -79,8 +81,8 @@ function ProgressCell({ value }: { value: [number, number] }) {
    ACTION MENU
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function RowActionMenu({ onDetail, onDuplicate, onDelete }: {
-  onDetail: () => void; onDuplicate: () => void; onDelete: () => void;
+function RowActionMenu({ onDetail, onDuplicate, onDelete, t, dark }: {
+  onDetail: () => void; onDuplicate: () => void; onDelete: () => void; t: T; dark: boolean;
 }) {
   const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } = usePopoverPosition();
   const [hov, setHov] = useState<string | null>(null);
@@ -93,10 +95,10 @@ function RowActionMenu({ onDetail, onDuplicate, onDelete }: {
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         width: '100%', padding: '9px 12px',
-        background: hov === label ? (destructive ? C.errorBg : C.blueLt) : 'transparent',
+        background: hov === label ? (destructive ? t.errorBg : t.blueLt) : 'transparent',
         border: 'none', cursor: 'pointer',
         fontFamily: F.inter, fontSize: '13px',
-        color: destructive ? C.error : C.text2, textAlign: 'left',
+        color: destructive ? t.error : t.text2, textAlign: 'left',
         transition: 'background 0.1s',
       }}
     >
@@ -104,6 +106,8 @@ function RowActionMenu({ onDetail, onDuplicate, onDelete }: {
       {label}
     </button>
   );
+
+  const triggerHovBg = dark ? D.tableHover : '#F3F4F6';
 
   return (
     <div ref={rootRef} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
@@ -113,12 +117,12 @@ function RowActionMenu({ onDetail, onDuplicate, onDelete }: {
         aria-label="Действия"
         style={{
           width: '32px', height: '32px', borderRadius: '8px',
-          border: 'none', background: open ? '#F3F4F6' : 'transparent',
+          border: 'none', background: open ? triggerHovBg : 'transparent',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           transition: 'background 0.12s',
         }}
       >
-        <MoreVertical size={16} color={C.text3} />
+        <MoreVertical size={16} color={t.text3} />
       </button>
       {open && (
         <div
@@ -126,16 +130,16 @@ function RowActionMenu({ onDetail, onDuplicate, onDelete }: {
           style={{
             ...menuStyle,
             minWidth: '180px',
-            background: C.surface,
-            border: `1px solid ${C.border}`,
+            background: t.surface,
+            border: `1px solid ${t.border}`,
             borderRadius: '8px',
-            boxShadow: '0 8px 24px rgba(17,24,39,0.08)',
+            boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 8px 24px rgba(17,24,39,0.08)',
             padding: '4px 0',
           }}
         >
           {item('Подробнее', Eye, onDetail)}
           {item('Дублировать', Copy, onDuplicate)}
-          <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+          <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />
           {item('Удалить', Trash2, onDelete, true)}
         </div>
       )}
@@ -150,6 +154,8 @@ function RowActionMenu({ onDetail, onDuplicate, onDelete }: {
 export default function SellerMessageHistoryPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [rows, setRows] = useState<MessageRow[]>(ROWS);
   const [deletingRow, setDeletingRow] = useState<MessageRow | null>(null);
   const [page, setPage] = useState(1);
@@ -174,8 +180,8 @@ export default function SellerMessageHistoryPage() {
 
     navigate(location.pathname, { replace: true, state: null });
 
-    const t = window.setTimeout(() => setHighlightId(null), 2500);
-    return () => window.clearTimeout(t);
+    const tm = window.setTimeout(() => setHighlightId(null), 2500);
+    return () => window.clearTimeout(tm);
   }, [location, navigate]);
 
   const scrollToHighlighted = () => {
@@ -190,8 +196,14 @@ export default function SellerMessageHistoryPage() {
 
   const remove = (id: number) => setRows(prev => prev.filter(r => r.id !== id));
 
+  const crumbLink: React.CSSProperties = {
+    fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer',
+  };
+
+  const pulseBg = dark ? 'rgba(59,130,246,0.15)' : C.blueLt;
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>
       <Sidebar
         role="org"
         collapsed={sidebarCollapsed}
@@ -207,8 +219,8 @@ export default function SellerMessageHistoryPage() {
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span onClick={() => navigate('/org-dashboard')} style={crumbLink}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Отправленные сообщения</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Отправленные сообщения</span>
           </div>
 
           {/* Top bar */}
@@ -217,35 +229,35 @@ export default function SellerMessageHistoryPage() {
             gap: '16px', marginBottom: '20px', flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Отправленные сообщения
               </h1>
-              <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
+              <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '6px' }}>
                 История сообщений продавцам Mysafar OOO
               </div>
             </div>
-            <PrimaryButton icon={Plus} onClick={() => navigate('/seller-messages/new')}>
+            <PrimaryButton icon={Plus} onClick={() => navigate('/seller-messages/new')} t={t} dark={dark}>
               Новое сообщение
             </PrimaryButton>
           </div>
 
           {/* Table card */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`, borderRadius: '12px',
+            background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px',
             overflow: 'hidden',
           }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: F.inter }}>
                 <thead>
-                  <tr style={{ background: '#F9FAFB', borderBottom: `1px solid ${C.border}` }}>
-                    <Th width="44px">#</Th>
-                    <Th width="130px">Дата</Th>
-                    <Th>Заголовок</Th>
-                    <Th>Получатели</Th>
-                    <Th>Каналы</Th>
-                    <Th width="110px">Доставлено</Th>
-                    <Th width="110px">Прочитано</Th>
-                    <Th width="48px" />
+                  <tr style={{ background: t.tableHeaderBg, borderBottom: `1px solid ${t.border}` }}>
+                    <Th width="44px" t={t}>#</Th>
+                    <Th width="130px" t={t}>Дата</Th>
+                    <Th t={t}>Заголовок</Th>
+                    <Th t={t}>Получатели</Th>
+                    <Th t={t}>Каналы</Th>
+                    <Th width="110px" t={t}>Доставлено</Th>
+                    <Th width="110px" t={t}>Прочитано</Th>
+                    <Th width="48px" t={t} />
                   </tr>
                 </thead>
                 <tbody>
@@ -272,6 +284,8 @@ export default function SellerMessageHistoryPage() {
                       onOpen={() => navigate(`/seller-messages/${r.id}`)}
                       onDuplicate={() => navigate('/seller-messages/new')}
                       onDelete={() => setDeletingRow(r)}
+                      t={t}
+                      dark={dark}
                     />
                   ))}
                 </tbody>
@@ -281,8 +295,8 @@ export default function SellerMessageHistoryPage() {
             {/* Pagination */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '12px 16px', borderTop: `1px solid ${C.border}`,
-              fontFamily: F.inter, fontSize: '13px', color: C.text3,
+              padding: '12px 16px', borderTop: `1px solid ${t.border}`,
+              fontFamily: F.inter, fontSize: '13px', color: t.text3,
             }}>
               <div>
                 {rows.length === 0
@@ -290,13 +304,13 @@ export default function SellerMessageHistoryPage() {
                   : `Показано ${(pageSafe - 1) * PAGE_SIZE + 1}–${Math.min(pageSafe * PAGE_SIZE, rows.length)} из ${rows.length}`}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <PageBtn disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                <PageBtn disabled={pageSafe <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} t={t}>
                   <ChevronLeft size={14} strokeWidth={1.75} />
                 </PageBtn>
-                <span style={{ padding: '0 10px', fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+                <span style={{ padding: '0 10px', fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>
                   {pageSafe} / {pageCount}
                 </span>
-                <PageBtn disabled={pageSafe >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                <PageBtn disabled={pageSafe >= pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))} t={t}>
                   <ChevronRight size={14} strokeWidth={1.75} />
                 </PageBtn>
               </div>
@@ -312,6 +326,8 @@ export default function SellerMessageHistoryPage() {
           if (deletingRow) remove(deletingRow.id);
           setDeletingRow(null);
         }}
+        t={t}
+        dark={dark}
       />
 
       {sentToast && (
@@ -320,18 +336,20 @@ export default function SellerMessageHistoryPage() {
           summary={sentToast.summary}
           onOpen={() => { scrollToHighlighted(); setSentToast(null); }}
           onClose={() => setSentToast(null)}
+          t={t}
+          dark={dark}
         />
       )}
 
       <style>{`
         @keyframes msgRowPulseBg {
-          0%   { background-color: ${C.blueLt}; }
-          60%  { background-color: ${C.blueLt}; }
+          0%   { background-color: ${pulseBg}; }
+          60%  { background-color: ${pulseBg}; }
           100% { background-color: transparent; }
         }
         @keyframes msgRowPulseBorder {
-          0%   { box-shadow: inset 3px 0 0 ${C.blue}; }
-          60%  { box-shadow: inset 3px 0 0 ${C.blue}; }
+          0%   { box-shadow: inset 3px 0 0 ${t.blue}; }
+          60%  { box-shadow: inset 3px 0 0 ${t.blue}; }
           100% { box-shadow: inset 3px 0 0 transparent; }
         }
         .msg-row-pulse { animation: msgRowPulseBg 2s ease-out 1; }
@@ -345,10 +363,12 @@ export default function SellerMessageHistoryPage() {
    DELETE MESSAGE MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DeleteMessageModal({ row, onClose, onConfirm }: {
+function DeleteMessageModal({ row, onClose, onConfirm, t, dark }: {
   row: MessageRow | null;
   onClose: () => void;
   onConfirm: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [closeHov, setCloseHov] = useState(false);
 
@@ -361,12 +381,16 @@ function DeleteMessageModal({ row, onClose, onConfirm }: {
 
   if (!row) return null;
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)';
+  const closeHovBg = dark ? D.tableHover : '#F3F4F6';
+  const errBg = dark ? 'rgba(248,113,113,0.10)' : C.errorBg;
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: overlayBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -375,21 +399,21 @@ function DeleteMessageModal({ row, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '480px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '16px',
+          boxShadow: dark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
         }}
       >
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <Trash2 size={20} color={C.error} strokeWidth={1.75} />
+          <Trash2 size={20} color={t.error} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Удалить сообщение
           </h2>
@@ -400,12 +424,13 @@ function DeleteMessageModal({ row, onClose, onConfirm }: {
             aria-label="Закрыть"
             style={{
               width: '28px', height: '28px', border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent', cursor: 'pointer',
+              background: closeHov ? closeHovBg : 'transparent', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
+              color: closeHov ? t.text1 : t.text3,
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -415,29 +440,29 @@ function DeleteMessageModal({ row, onClose, onConfirm }: {
         }}>
           {/* Message card */}
           <div style={{
-            background: C.errorBg,
-            borderTop: `1px solid ${C.border}`,
-            borderRight: `1px solid ${C.border}`,
-            borderBottom: `1px solid ${C.border}`,
-            borderLeft: `3px solid ${C.error}`,
+            background: errBg,
+            borderTop: `1px solid ${t.border}`,
+            borderRight: `1px solid ${t.border}`,
+            borderBottom: `1px solid ${t.border}`,
+            borderLeft: `3px solid ${t.error}`,
             borderRadius: '8px', padding: '12px',
             display: 'flex', flexDirection: 'column', gap: '4px',
           }}>
             <div style={{
-              fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1,
+              fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1,
             }}>
               {row.title}
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Отправлено: <span style={{ fontFamily: F.mono, color: C.text2 }}>{row.date}</span>
-              <span style={{ margin: '0 6px', color: C.text4 }}>|</span>
-              Получатели: <span style={{ color: C.text2 }}>{row.recipientsLabel}</span>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Отправлено: <span style={{ fontFamily: F.mono, color: t.text2 }}>{row.date}</span>
+              <span style={{ margin: '0 6px', color: t.text4 }}>|</span>
+              Получатели: <span style={{ color: t.text2 }}>{row.recipientsLabel}</span>
             </div>
           </div>
 
           <p style={{
             margin: 0, fontFamily: F.inter, fontSize: '14px',
-            color: C.text1, lineHeight: 1.5,
+            color: t.text2, lineHeight: 1.5,
           }}>
             Сообщение будет удалено из вашей истории. Уже доставленные уведомления
             у продавцов сохранятся.
@@ -447,10 +472,10 @@ function DeleteMessageModal({ row, onClose, onConfirm }: {
         {/* Footer */}
         <div style={{
           display: 'flex', justifyContent: 'flex-end', gap: '8px',
-          padding: '16px 20px', borderTop: `1px solid ${C.border}`,
+          padding: '16px 20px', borderTop: `1px solid ${t.border}`,
         }}>
-          <OutlineButton onClick={onClose}>Отмена</OutlineButton>
-          <DestructiveButton onClick={onConfirm} icon={Trash2}>
+          <DialogOutlineButton onClick={onClose} t={t}>Отмена</DialogOutlineButton>
+          <DestructiveButton onClick={onConfirm} icon={Trash2} t={t} dark={dark}>
             Удалить сообщение
           </DestructiveButton>
         </div>
@@ -459,8 +484,8 @@ function DeleteMessageModal({ row, onClose, onConfirm }: {
   );
 }
 
-function OutlineButton({ children, onClick }: {
-  children: React.ReactNode; onClick?: () => void;
+function DialogOutlineButton({ children, onClick, t }: {
+  children: React.ReactNode; onClick?: () => void; t: T;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -471,10 +496,10 @@ function OutlineButton({ children, onClick }: {
       onClick={onClick}
       style={{
         height: '38px', padding: '0 18px',
-        border: `1px solid ${hov ? C.text3 : C.inputBorder}`,
-        borderRadius: '8px', background: C.surface,
+        border: `1px solid ${t.border}`,
+        borderRadius: '8px', background: hov ? t.tableHover : 'transparent',
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-        color: C.text1, cursor: 'pointer',
+        color: t.text2, cursor: 'pointer',
         transition: 'all 0.12s', flexShrink: 0,
       }}
     >
@@ -483,8 +508,8 @@ function OutlineButton({ children, onClick }: {
   );
 }
 
-function DestructiveButton({ children, onClick, icon: Icon }: {
-  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType;
+function DestructiveButton({ children, onClick, icon: Icon, t, dark }: {
+  children: React.ReactNode; onClick?: () => void; icon?: React.ElementType; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -496,11 +521,11 @@ function DestructiveButton({ children, onClick, icon: Icon }: {
       style={{
         height: '38px', padding: '0 18px',
         border: 'none', borderRadius: '8px',
-        background: hov ? '#DC2626' : C.error,
+        background: hov ? '#EF4444' : t.error,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
-        boxShadow: hov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)',
+        boxShadow: dark ? 'none' : (hov ? '0 2px 8px rgba(239,68,68,0.32)' : '0 1px 3px rgba(239,68,68,0.18)'),
         transition: 'all 0.15s', flexShrink: 0,
       }}
     >
@@ -514,12 +539,14 @@ function DestructiveButton({ children, onClick, icon: Icon }: {
    ROW
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Row({ row, highlight, onOpen, onDuplicate, onDelete }: {
+function Row({ row, highlight, onOpen, onDuplicate, onDelete, t, dark }: {
   row: MessageRow;
   highlight?: boolean;
   onOpen: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  t: T;
+  dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   const isFresh = row.date === 'Только что';
@@ -531,32 +558,34 @@ function Row({ row, highlight, onOpen, onDuplicate, onDelete }: {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${t.border}`,
         cursor: 'pointer',
-        background: hov && !highlight ? '#F9FAFB' : undefined,
+        background: hov && !highlight ? t.tableHover : undefined,
         transition: 'background 0.1s',
       }}
     >
-      <Td><span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text3 }}>{row.id}</span></Td>
-      <Td>
+      <Td t={t}><span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text3 }}>{row.id}</span></Td>
+      <Td t={t}>
         {isFresh
-          ? <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.blue, fontWeight: 500 }}>{row.date}</span>
-          : <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text1 }}>{row.date}</span>}
+          ? <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.blue, fontWeight: 500 }}>{row.date}</span>
+          : <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text1 }}>{row.date}</span>}
       </Td>
-      <Td><span style={{ color: C.text1, fontWeight: 500 }}>{row.title}</span></Td>
-      <Td><span style={{ color: C.text2, fontSize: '13px' }}>{row.recipientsLabel}</span></Td>
-      <Td>
+      <Td t={t}><span style={{ color: t.text1, fontWeight: 500 }}>{row.title}</span></Td>
+      <Td t={t}><span style={{ color: t.text2, fontSize: '13px' }}>{row.recipientsLabel}</span></Td>
+      <Td t={t}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-          {row.channels.map(c => <ChannelBadge key={c} label={c} />)}
+          {row.channels.map(c => <ChannelBadge key={c} label={c} t={t} />)}
         </div>
       </Td>
-      <Td><ProgressCell value={row.delivered} /></Td>
-      <Td><ProgressCell value={row.read} /></Td>
-      <Td>
+      <Td t={t}><ProgressCell value={row.delivered} t={t} dark={dark} /></Td>
+      <Td t={t}><ProgressCell value={row.read} t={t} dark={dark} /></Td>
+      <Td t={t}>
         <RowActionMenu
           onDetail={onOpen}
           onDuplicate={onDuplicate}
           onDelete={onDelete}
+          t={t}
+          dark={dark}
         />
       </Td>
     </tr>
@@ -567,16 +596,20 @@ function Row({ row, highlight, onOpen, onDuplicate, onDelete }: {
    SENT TOAST (post-send handoff)
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SentMessageToast({ title, summary, onOpen, onClose }: {
+function SentMessageToast({ title, summary, onOpen, onClose, t, dark }: {
   title: string;
   summary: string;
   onOpen: () => void;
   onClose: () => void;
+  t: T;
+  dark: boolean;
 }) {
   useEffect(() => {
-    const t = window.setTimeout(onClose, 6000);
-    return () => window.clearTimeout(t);
+    const tm = window.setTimeout(onClose, 6000);
+    return () => window.clearTimeout(tm);
   }, [onClose]);
+
+  const [linkHov, setLinkHov] = useState(false);
 
   return (
     <div
@@ -585,15 +618,15 @@ function SentMessageToast({ title, summary, onOpen, onClose }: {
       style={{
         position: 'fixed', top: '24px', right: '24px',
         width: '380px', maxWidth: 'calc(100vw - 48px)',
-        background: C.surface,
-        borderTop: `1px solid ${C.border}`,
-        borderRight: `1px solid ${C.border}`,
-        borderBottom: `1px solid ${C.border}`,
-        borderLeft: `3px solid ${C.success}`,
+        background: t.surface,
+        borderTop: `1px solid ${t.border}`,
+        borderRight: `1px solid ${t.border}`,
+        borderBottom: `1px solid ${t.border}`,
+        borderLeft: `3px solid ${t.success}`,
         borderRadius: '10px',
         padding: '12px 14px',
         display: 'flex', alignItems: 'flex-start', gap: '10px',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        boxShadow: dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 12px 32px rgba(0,0,0,0.12)',
         zIndex: 300,
         animation: 'msgSentToastIn 0.2s ease-out',
       }}
@@ -607,22 +640,22 @@ function SentMessageToast({ title, summary, onOpen, onClose }: {
 
       <div style={{
         width: '24px', height: '24px', borderRadius: '50%',
-        background: C.successBg, border: '1px solid #A7F3D0',
+        background: t.successBg, border: `1px solid ${dark ? 'rgba(52,211,153,0.30)' : '#A7F3D0'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, marginTop: '1px',
       }}>
-        <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+        <CheckCircle2 size={14} color={t.success} strokeWidth={2} />
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
-          color: C.text1, lineHeight: 1.4,
+          color: t.text1, lineHeight: 1.4,
         }}>
           Сообщение отправлено
         </div>
         <div style={{
-          fontFamily: F.inter, fontSize: '12px', color: C.text3,
+          fontFamily: F.inter, fontSize: '12px', color: t.text3,
           marginTop: '3px', lineHeight: 1.45,
         }}>
           «{title}» → {summary}
@@ -630,14 +663,14 @@ function SentMessageToast({ title, summary, onOpen, onClose }: {
         <button
           type="button"
           onClick={onOpen}
+          onMouseEnter={() => setLinkHov(true)}
+          onMouseLeave={() => setLinkHov(false)}
           style={{
             marginTop: '8px',
             background: 'transparent', border: 'none', padding: 0,
             fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-            color: C.blue, cursor: 'pointer',
+            color: linkHov ? t.blueHover : t.blue, cursor: 'pointer',
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = C.blueHover)}
-          onMouseLeave={e => (e.currentTarget.style.color = C.blue)}
         >
           Открыть в истории →
         </button>
@@ -649,7 +682,7 @@ function SentMessageToast({ title, summary, onOpen, onClose }: {
         aria-label="Закрыть"
         style={{
           background: 'transparent', border: 'none', padding: '2px',
-          color: C.text3, cursor: 'pointer', flexShrink: 0,
+          color: t.text3, cursor: 'pointer', flexShrink: 0,
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
@@ -663,12 +696,12 @@ function SentMessageToast({ title, summary, onOpen, onClose }: {
    PRIMITIVES
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Th({ children, width }: { children?: React.ReactNode; width?: string }) {
+function Th({ children, width, t }: { children?: React.ReactNode; width?: string; t: T }) {
   return (
     <th style={{
       textAlign: 'left', padding: '10px 14px', width,
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-      color: C.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.04em',
       whiteSpace: 'nowrap',
     }}>
       {children}
@@ -676,27 +709,27 @@ function Th({ children, width }: { children?: React.ReactNode; width?: string })
   );
 }
 
-function Td({ children }: { children: React.ReactNode }) {
+function Td({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <td style={{
       padding: '12px 14px', fontFamily: F.inter, fontSize: '13px',
-      color: C.text1, verticalAlign: 'middle',
+      color: t.text1, verticalAlign: 'middle',
     }}>
       {children}
     </td>
   );
 }
 
-function PageBtn({ children, disabled, onClick }: {
-  children: React.ReactNode; disabled?: boolean; onClick: () => void;
+function PageBtn({ children, disabled, onClick, t }: {
+  children: React.ReactNode; disabled?: boolean; onClick: () => void; t: T;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       style={{
-        width: '32px', height: '32px', border: `1px solid ${C.border}`, borderRadius: '6px',
-        background: C.surface, color: disabled ? C.text4 : C.text2,
+        width: '32px', height: '32px', border: `1px solid ${t.border}`, borderRadius: '6px',
+        background: t.surface, color: disabled ? t.text4 : t.text2,
         cursor: disabled ? 'not-allowed' : 'pointer',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         opacity: disabled ? 0.6 : 1,
@@ -707,8 +740,8 @@ function PageBtn({ children, disabled, onClick }: {
   );
 }
 
-function PrimaryButton({ children, icon: Icon, onClick }: {
-  children: React.ReactNode; icon?: React.ElementType; onClick?: () => void;
+function PrimaryButton({ children, icon: Icon, onClick, t, dark }: {
+  children: React.ReactNode; icon?: React.ElementType; onClick?: () => void; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -720,11 +753,11 @@ function PrimaryButton({ children, icon: Icon, onClick }: {
       style={{
         height: '38px', padding: '0 18px',
         border: 'none', borderRadius: '8px',
-        background: hov ? C.blueHover : C.blue,
+        background: hov ? t.blueHover : t.blue,
         fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: '#FFFFFF', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', gap: '6px',
-        boxShadow: hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+        boxShadow: dark ? 'none' : (hov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)'),
         transition: 'all 0.15s', flexShrink: 0,
       }}
     >
@@ -733,7 +766,3 @@ function PrimaryButton({ children, icon: Icon, onClick }: {
     </button>
   );
 }
-
-const crumbLink: React.CSSProperties = {
-  fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer',
-};

@@ -1,35 +1,37 @@
 import React, { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
+type T = ReturnType<typeof theme>;
+
 /* ═══════════════════════════════════════════════════════════════════════════
-   SHARED STYLES
+   SHARED STYLE FACTORIES (theme-aware)
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const inputStyle: React.CSSProperties = {
+const makeInputStyle = (t: T): React.CSSProperties => ({
   width: '100%', height: '40px', padding: '0 12px',
-  border: `1px solid ${C.inputBorder}`, borderRadius: '8px',
-  background: C.surface, fontFamily: F.inter, fontSize: '14px',
-  color: C.text1, outline: 'none', boxSizing: 'border-box',
-};
+  border: `1px solid ${t.inputBorder}`, borderRadius: '8px',
+  background: t.surface, fontFamily: F.inter, fontSize: '14px',
+  color: t.text1, outline: 'none', boxSizing: 'border-box',
+});
 
-const labelStyle: React.CSSProperties = {
+const makeLabelStyle = (t: T): React.CSSProperties => ({
   display: 'block', fontFamily: F.inter, fontSize: '13px',
-  fontWeight: 500, color: C.text2, marginBottom: '8px',
-};
+  fontWeight: 500, color: t.text2, marginBottom: '8px',
+});
 
-const sectionHeading: React.CSSProperties = {
+const makeSectionHeading = (t: T): React.CSSProperties => ({
   fontFamily: F.dm, fontSize: '16px', fontWeight: 600,
-  color: C.text1, margin: '0 0 16px',
-};
+  color: t.text1, margin: '0 0 16px',
+});
 
-const divider: React.CSSProperties = {
-  height: '1px', background: C.border, margin: '32px 0',
-};
+const makeDivider = (t: T): React.CSSProperties => ({
+  height: '1px', background: t.border, margin: '32px 0',
+});
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TABS
@@ -44,12 +46,12 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'organization', label: 'Организация' },
 ];
 
-function TabNav({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (tab: TabId) => void }) {
+function TabNav({ activeTab, onTabChange, t }: { activeTab: TabId; onTabChange: (tab: TabId) => void; t: T }) {
   const [hoveredTab, setHoveredTab] = useState<TabId | null>(null);
 
   return (
     <div style={{
-      width: '200px', background: C.surface, border: `1px solid ${C.border}`,
+      width: '200px', background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', padding: '8px', flexShrink: 0,
     }}>
       {TABS.map(tab => {
@@ -64,10 +66,10 @@ function TabNav({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (ta
             style={{
               width: '100%', textAlign: 'left', padding: '10px 12px',
               border: 'none', borderRadius: '8px',
-              background: isActive ? C.blueLt : isHovered ? '#F9FAFB' : 'transparent',
+              background: isActive ? t.blueLt : isHovered ? t.tableHover : 'transparent',
               fontFamily: F.inter, fontSize: '14px',
               fontWeight: isActive ? 500 : 400,
-              color: isActive ? C.blue : C.text2,
+              color: isActive ? t.blue : t.text2,
               cursor: 'pointer', transition: 'all 0.12s',
               display: 'block', marginBottom: '2px',
             }}
@@ -84,7 +86,7 @@ function TabNav({ activeTab, onTabChange }: { activeTab: TabId; onTabChange: (ta
    BUTTON HELPERS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function PrimaryButton({ label, onClick }: { label: string; onClick?: () => void }) {
+function PrimaryButton({ label, onClick, t }: { label: string; onClick?: () => void; t: T }) {
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -93,7 +95,7 @@ function PrimaryButton({ label, onClick }: { label: string; onClick?: () => void
       style={{
         height: '40px', padding: '0 20px',
         border: 'none',
-        borderRadius: '8px', background: hov ? C.blueHover : C.blue,
+        borderRadius: '8px', background: hov ? t.blueHover : t.blue,
         fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
         color: '#FFFFFF', cursor: 'pointer', transition: 'all 0.12s',
       }}
@@ -103,7 +105,7 @@ function PrimaryButton({ label, onClick }: { label: string; onClick?: () => void
   );
 }
 
-function OutlineButton({ label, onClick }: { label: string; onClick?: () => void }) {
+function OutlineButton({ label, onClick, t }: { label: string; onClick?: () => void; t: T }) {
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -111,10 +113,10 @@ function OutlineButton({ label, onClick }: { label: string; onClick?: () => void
       onClick={onClick}
       style={{
         height: '40px', padding: '0 20px',
-        border: `1px solid ${hov ? C.blue : C.border}`,
-        borderRadius: '8px', background: hov ? C.blueLt : C.surface,
+        border: `1px solid ${hov ? t.blue : t.border}`,
+        borderRadius: '8px', background: hov ? t.blueLt : t.surface,
         fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-        color: hov ? C.blue : C.text2,
+        color: hov ? t.blue : t.text2,
         cursor: 'pointer', transition: 'all 0.12s',
       }}
     >
@@ -127,7 +129,7 @@ function OutlineButton({ label, onClick }: { label: string; onClick?: () => void
    CHECKBOX
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function CheckboxRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
+function CheckboxRow({ label, checked, onChange, t }: { label: string; checked: boolean; onChange: () => void; t: T }) {
   return (
     <label
       onClick={onChange}
@@ -135,8 +137,8 @@ function CheckboxRow({ label, checked, onChange }: { label: string; checked: boo
     >
       <div style={{
         width: '16px', height: '16px', borderRadius: '4px',
-        border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
-        background: checked ? C.blue : C.surface,
+        border: `1.5px solid ${checked ? t.blue : t.inputBorder}`,
+        background: checked ? t.blue : t.surface,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, transition: 'all 0.12s',
       }}>
@@ -146,7 +148,7 @@ function CheckboxRow({ label, checked, onChange }: { label: string; checked: boo
           </svg>
         )}
       </div>
-      <span style={{ fontFamily: F.inter, fontSize: '14px', color: C.text2 }}>{label}</span>
+      <span style={{ fontFamily: F.inter, fontSize: '14px', color: t.text2 }}>{label}</span>
     </label>
   );
 }
@@ -155,28 +157,29 @@ function CheckboxRow({ label, checked, onChange }: { label: string; checked: boo
    TOGGLE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
+function ToggleRow({ label, checked, onChange, t, dark }: { label: string; checked: boolean; onChange: () => void; t: T; dark: boolean }) {
+  const offTrack = dark ? '#2D3148' : '#D1D5DB';
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '12px 0', borderBottom: `1px solid ${C.border}`,
+      padding: '12px 0', borderBottom: `1px solid ${t.border}`,
     }}>
-      <span style={{ fontFamily: F.inter, fontSize: '14px', color: C.text2 }}>{label}</span>
+      <span style={{ fontFamily: F.inter, fontSize: '14px', color: t.text2 }}>{label}</span>
       <button
         onClick={onChange}
         style={{
           width: '44px', height: '24px', borderRadius: '12px',
-          background: checked ? C.blue : '#D1D5DB',
+          background: checked ? t.blue : offTrack,
           border: 'none', cursor: 'pointer', position: 'relative',
           transition: 'background 0.2s',
         }}
       >
         <div style={{
           width: '18px', height: '18px', borderRadius: '50%',
-          background: C.surface, position: 'absolute', top: '3px',
+          background: '#FFFFFF', position: 'absolute', top: '3px',
           left: checked ? '23px' : '3px',
           transition: 'left 0.2s',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+          boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.2)',
         }} />
       </button>
     </div>
@@ -187,12 +190,17 @@ function ToggleRow({ label, checked, onChange }: { label: string; checked: boole
    TAB: ПРОФИЛЬ
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ProfileTab() {
+function ProfileTab({ t, dark }: { t: T; dark: boolean }) {
   const [fullName, setFullName] = useState('Рустам Алиев');
   const [phone, setPhone] = useState('+998 90 123 45 67');
   const [email, setEmail] = useState('r.aliev@mysafar.uz');
   const [language, setLanguage] = useState('Русский');
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
+  const [themeSel, setThemeSel] = useState<'light' | 'dark' | 'system'>('light');
+
+  const inputStyle = makeInputStyle(t);
+  const labelStyle = makeLabelStyle(t);
+  const sectionHeading = makeSectionHeading(t);
+  const divider = makeDivider(t);
 
   return (
     <div>
@@ -224,30 +232,30 @@ function ProfileTab() {
 
       <h3 style={sectionHeading}>Тема оформления</h3>
       <div style={{ display: 'flex', gap: '20px' }}>
-        {(['light', 'dark', 'system'] as const).map(t => (
-          <label key={t} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        {(['light', 'dark', 'system'] as const).map(v => (
+          <label key={v} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <div
-              onClick={() => setTheme(t)}
+              onClick={() => setThemeSel(v)}
               style={{
                 width: '16px', height: '16px', borderRadius: '50%',
-                border: `2px solid ${theme === t ? C.blue : C.inputBorder}`,
-                background: theme === t ? C.blue : 'transparent',
+                border: `2px solid ${themeSel === v ? t.blue : t.inputBorder}`,
+                background: themeSel === v ? t.blue : 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', transition: 'all 0.12s',
               }}
             >
-              {theme === t && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#fff' }} />}
+              {themeSel === v && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#fff' }} />}
             </div>
-            <span style={{ fontFamily: F.inter, fontSize: '14px', color: C.text2 }}>
-              {t === 'light' ? 'Светлая' : t === 'dark' ? 'Тёмная' : 'Системная'}
+            <span style={{ fontFamily: F.inter, fontSize: '14px', color: t.text2 }}>
+              {v === 'light' ? 'Светлая' : v === 'dark' ? 'Тёмная' : 'Системная'}
             </span>
           </label>
         ))}
       </div>
 
       <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
-        <PrimaryButton label="Сохранить" />
-        <OutlineButton label="Отмена" />
+        <PrimaryButton label="Сохранить" t={t} />
+        <OutlineButton label="Отмена" t={t} />
       </div>
     </div>
   );
@@ -257,11 +265,19 @@ function ProfileTab() {
    TAB: БЕЗОПАСНОСТЬ
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SecurityTab() {
+function SecurityTab({ t, dark }: { t: T; dark: boolean }) {
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [twoFA, setTwoFA] = useState(false);
+
+  const inputStyle = makeInputStyle(t);
+  const labelStyle = makeLabelStyle(t);
+  const sectionHeading = makeSectionHeading(t);
+  const divider = makeDivider(t);
+  const offTrack = dark ? '#2D3148' : '#D1D5DB';
+  const successText = dark ? t.success : '#15803D';
+  const errorText = dark ? t.error : '#DC2626';
 
   return (
     <div>
@@ -279,7 +295,7 @@ function SecurityTab() {
           <label style={labelStyle}>Подтверждение</label>
           <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Повторите новый пароль" style={inputStyle} />
         </div>
-        <PrimaryButton label="Обновить пароль" />
+        <PrimaryButton label="Обновить пароль" t={t} />
       </div>
 
       <div style={divider} />
@@ -288,13 +304,13 @@ function SecurityTab() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px', borderRadius: '10px',
-        background: '#F9FAFB', border: `1px solid ${C.border}`, maxWidth: '500px',
+        background: t.tableHeaderBg, border: `1px solid ${t.border}`, maxWidth: '500px',
       }}>
         <div>
-          <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
+          <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>
             SMS подтверждение при входе
           </div>
-          <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4, marginTop: '2px' }}>
+          <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: '2px' }}>
             Код будет отправлен на +998 90 123 45 67
           </div>
         </div>
@@ -302,16 +318,16 @@ function SecurityTab() {
           onClick={() => setTwoFA(!twoFA)}
           style={{
             width: '44px', height: '24px', borderRadius: '12px',
-            background: twoFA ? C.blue : '#D1D5DB',
+            background: twoFA ? t.blue : offTrack,
             border: 'none', cursor: 'pointer', position: 'relative',
             transition: 'background 0.2s',
           }}
         >
           <div style={{
             width: '18px', height: '18px', borderRadius: '50%',
-            background: C.surface, position: 'absolute', top: '3px',
+            background: '#FFFFFF', position: 'absolute', top: '3px',
             left: twoFA ? '23px' : '3px',
-            transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            transition: 'left 0.2s', boxShadow: dark ? 'none' : '0 1px 3px rgba(0,0,0,0.2)',
           }} />
         </button>
       </div>
@@ -327,13 +343,13 @@ function SecurityTab() {
           <div key={i} style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '12px 16px', borderRadius: '10px',
-            background: C.surface, border: `1px solid ${s.current ? C.blueTint : C.border}`,
+            background: t.surface, border: `1px solid ${s.current ? t.blueTint : t.border}`,
           }}>
             <div>
-              <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
+              <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>
                 {s.device}
               </div>
-              <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4, marginTop: '2px' }}>
+              <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: '2px' }}>
                 {s.ip} · {s.time}
               </div>
             </div>
@@ -341,14 +357,14 @@ function SecurityTab() {
               <span style={{
                 fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
                 padding: '3px 10px', borderRadius: '10px',
-                background: C.successBg, color: '#15803D',
+                background: t.successBg, color: successText,
               }}>
                 Текущий
               </span>
             ) : (
               <button style={{
                 border: 'none', background: 'none',
-                fontFamily: F.inter, fontSize: '13px', color: '#DC2626',
+                fontFamily: F.inter, fontSize: '13px', color: errorText,
                 cursor: 'pointer',
               }}>
                 Завершить
@@ -365,7 +381,7 @@ function SecurityTab() {
    TAB: УВЕДОМЛЕНИЯ
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function NotificationsTab() {
+function NotificationsTab({ t, dark }: { t: T; dark: boolean }) {
   const [emailNotifs, setEmailNotifs] = useState({
     kpi3: true,
     withdrawal: true,
@@ -381,29 +397,32 @@ function NotificationsTab() {
     newDevice: true,
   });
 
+  const sectionHeading = makeSectionHeading(t);
+  const divider = makeDivider(t);
+
   return (
     <div>
       <h3 style={sectionHeading}>Email уведомления</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <CheckboxRow label="Продавец выполнил KPI 3" checked={emailNotifs.kpi3} onChange={() => setEmailNotifs(p => ({ ...p, kpi3: !p.kpi3 }))} />
-        <CheckboxRow label="Запрос на вывод средств" checked={emailNotifs.withdrawal} onChange={() => setEmailNotifs(p => ({ ...p, withdrawal: !p.withdrawal }))} />
-        <CheckboxRow label="Новые карты назначены" checked={emailNotifs.cardsAssigned} onChange={() => setEmailNotifs(p => ({ ...p, cardsAssigned: !p.cardsAssigned }))} />
-        <CheckboxRow label="Ежедневный отчёт по продавцам" checked={emailNotifs.dailyReport} onChange={() => setEmailNotifs(p => ({ ...p, dailyReport: !p.dailyReport }))} />
-        <CheckboxRow label="Еженедельная сводка" checked={emailNotifs.weeklySummary} onChange={() => setEmailNotifs(p => ({ ...p, weeklySummary: !p.weeklySummary }))} />
+        <CheckboxRow label="Продавец выполнил KPI 3" checked={emailNotifs.kpi3} onChange={() => setEmailNotifs(p => ({ ...p, kpi3: !p.kpi3 }))} t={t} />
+        <CheckboxRow label="Запрос на вывод средств" checked={emailNotifs.withdrawal} onChange={() => setEmailNotifs(p => ({ ...p, withdrawal: !p.withdrawal }))} t={t} />
+        <CheckboxRow label="Новые карты назначены" checked={emailNotifs.cardsAssigned} onChange={() => setEmailNotifs(p => ({ ...p, cardsAssigned: !p.cardsAssigned }))} t={t} />
+        <CheckboxRow label="Ежедневный отчёт по продавцам" checked={emailNotifs.dailyReport} onChange={() => setEmailNotifs(p => ({ ...p, dailyReport: !p.dailyReport }))} t={t} />
+        <CheckboxRow label="Еженедельная сводка" checked={emailNotifs.weeklySummary} onChange={() => setEmailNotifs(p => ({ ...p, weeklySummary: !p.weeklySummary }))} t={t} />
       </div>
 
       <div style={divider} />
 
       <h3 style={sectionHeading}>Push уведомления</h3>
       <div>
-        <ToggleRow label="KPI выполнен" checked={pushNotifs.kpiDone} onChange={() => setPushNotifs(p => ({ ...p, kpiDone: !p.kpiDone }))} />
-        <ToggleRow label="Новый вывод средств" checked={pushNotifs.newWithdrawal} onChange={() => setPushNotifs(p => ({ ...p, newWithdrawal: !p.newWithdrawal }))} />
-        <ToggleRow label="Просроченный KPI" checked={pushNotifs.expiredKpi} onChange={() => setPushNotifs(p => ({ ...p, expiredKpi: !p.expiredKpi }))} />
-        <ToggleRow label="Вход с нового устройства" checked={pushNotifs.newDevice} onChange={() => setPushNotifs(p => ({ ...p, newDevice: !p.newDevice }))} />
+        <ToggleRow label="KPI выполнен" checked={pushNotifs.kpiDone} onChange={() => setPushNotifs(p => ({ ...p, kpiDone: !p.kpiDone }))} t={t} dark={dark} />
+        <ToggleRow label="Новый вывод средств" checked={pushNotifs.newWithdrawal} onChange={() => setPushNotifs(p => ({ ...p, newWithdrawal: !p.newWithdrawal }))} t={t} dark={dark} />
+        <ToggleRow label="Просроченный KPI" checked={pushNotifs.expiredKpi} onChange={() => setPushNotifs(p => ({ ...p, expiredKpi: !p.expiredKpi }))} t={t} dark={dark} />
+        <ToggleRow label="Вход с нового устройства" checked={pushNotifs.newDevice} onChange={() => setPushNotifs(p => ({ ...p, newDevice: !p.newDevice }))} t={t} dark={dark} />
       </div>
 
       <div style={{ marginTop: '32px' }}>
-        <PrimaryButton label="Сохранить" />
+        <PrimaryButton label="Сохранить" t={t} />
       </div>
     </div>
   );
@@ -413,11 +432,17 @@ function NotificationsTab() {
    TAB: ОРГАНИЗАЦИЯ
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function OrganizationTab() {
+function OrganizationTab({ t, dark }: { t: T; dark: boolean }) {
   const [contact, setContact] = useState('Рустам Алиев');
   const [orgPhone, setOrgPhone] = useState('+998 90 123 45 67');
   const [orgEmail, setOrgEmail] = useState('info@mysafar.uz');
   const [address, setAddress] = useState('г. Ташкент, ул. Навои, 12');
+
+  const inputStyle = makeInputStyle(t);
+  const labelStyle = makeLabelStyle(t);
+  const sectionHeading = makeSectionHeading(t);
+  const divider = makeDivider(t);
+  const successText = dark ? t.success : '#15803D';
 
   const kvRows = [
     { label: 'Номер договора', value: 'MC-2026-042', mono: true },
@@ -433,9 +458,9 @@ function OrganizationTab() {
         <div>
           <label style={labelStyle}>Название</label>
           <input value="Mysafar OOO" disabled style={{
-            ...inputStyle, background: '#F9FAFB', color: C.text3, cursor: 'not-allowed',
+            ...inputStyle, background: t.tableHeaderBg, color: t.text3, cursor: 'not-allowed',
           }} />
-          <span style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '4px', display: 'block' }}>
+          <span style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4, marginTop: '4px', display: 'block' }}>
             Изменяется только банком
           </span>
         </div>
@@ -468,19 +493,19 @@ function OrganizationTab() {
 
       <h3 style={sectionHeading}>Договор</h3>
       <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
+        background: t.surface, border: `1px solid ${t.border}`,
         borderRadius: '10px', overflow: 'hidden',
       }}>
         {kvRows.map((row, i) => (
           <div key={row.label} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '12px 16px',
-            borderBottom: i < kvRows.length ? `1px solid ${C.border}` : 'none',
+            borderBottom: i < kvRows.length ? `1px solid ${t.border}` : 'none',
           }}>
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>{row.label}</span>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>{row.label}</span>
             <span style={{
               fontFamily: row.mono ? F.mono : F.inter,
-              fontSize: '14px', fontWeight: 500, color: C.text1,
+              fontSize: '14px', fontWeight: 500, color: t.text1,
             }}>
               {row.value}
             </span>
@@ -491,21 +516,21 @@ function OrganizationTab() {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           padding: '12px 16px',
         }}>
-          <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Статус</span>
+          <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Статус</span>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '5px',
             fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
             padding: '3px 10px', borderRadius: '10px',
-            background: C.successBg, color: '#15803D',
+            background: t.successBg, color: successText,
           }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.success, flexShrink: 0 }} />
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: t.success, flexShrink: 0 }} />
             Активен
           </span>
         </div>
       </div>
 
       <p style={{
-        fontFamily: F.inter, fontSize: '12px', color: C.text4,
+        fontFamily: F.inter, fontSize: '12px', color: t.text4,
         marginTop: '12px',
       }}>
         Для изменения условий договора обратитесь в банк.
@@ -524,8 +549,11 @@ export default function OrgSettingsPage() {
   const [darkMode, setDarkMode] = useDarkMode();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
 
+  const t = theme(darkMode);
+  const dark = darkMode;
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>
       <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -539,33 +567,33 @@ export default function OrgSettingsPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Настройки</span>
+            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Настройки</span>
           </div>
 
           {/* Top Bar */}
           <div style={{ marginBottom: '24px' }}>
-            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
               Настройки
             </h1>
-            <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+            <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
               Настройки профиля и организации
             </p>
           </div>
 
           {/* Layout: Left tabs + Right content */}
           <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
-            <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+            <TabNav activeTab={activeTab} onTabChange={setActiveTab} t={t} />
 
             <div style={{
-              flex: 1, background: C.surface, border: `1px solid ${C.border}`,
+              flex: 1, background: t.surface, border: `1px solid ${t.border}`,
               borderRadius: '12px', padding: '24px', minWidth: 0,
             }}>
-              {activeTab === 'profile' && <ProfileTab />}
-              {activeTab === 'security' && <SecurityTab />}
-              {activeTab === 'notifications' && <NotificationsTab />}
-              {activeTab === 'organization' && <OrganizationTab />}
+              {activeTab === 'profile' && <ProfileTab t={t} dark={dark} />}
+              {activeTab === 'security' && <SecurityTab t={t} dark={dark} />}
+              {activeTab === 'notifications' && <NotificationsTab t={t} dark={dark} />}
+              {activeTab === 'organization' && <OrganizationTab t={t} dark={dark} />}
             </div>
           </div>
 

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -70,14 +72,14 @@ const AVAILABLE_CARDS: CardItem[] = [
    BADGE OUTLINE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function BadgeOutline({ children }: { children: React.ReactNode }) {
+function BadgeOutline({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 9px', borderRadius: '8px',
-      background: 'transparent', border: `1px solid ${C.border}`,
-      color: C.text2, whiteSpace: 'nowrap',
+      background: 'transparent', border: `1px solid ${t.border}`,
+      color: t.text2, whiteSpace: 'nowrap',
     }}>
       {children}
     </span>
@@ -88,14 +90,14 @@ function BadgeOutline({ children }: { children: React.ReactNode }) {
    CHECKBOX
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function Checkbox({ checked, onChange, t }: { checked: boolean; onChange: () => void; t: T }) {
   return (
     <div
       onClick={onChange}
       style={{
         width: '16px', height: '16px', borderRadius: '4px',
-        border: `1.5px solid ${checked ? C.blue : C.inputBorder}`,
-        background: checked ? C.blue : C.surface,
+        border: `1.5px solid ${checked ? t.blue : t.inputBorder}`,
+        background: checked ? t.blue : t.surface,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', flexShrink: 0,
         transition: 'all 0.12s',
@@ -114,14 +116,14 @@ function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => voi
    RADIO
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Radio({ checked, onClick }: { checked: boolean; onClick: () => void }) {
+function Radio({ checked, onClick, t }: { checked: boolean; onClick: () => void; t: T }) {
   return (
     <div
       onClick={onClick}
       style={{
         width: '16px', height: '16px', borderRadius: '50%',
-        border: `2px solid ${checked ? C.blue : C.inputBorder}`,
-        background: checked ? C.blue : 'transparent',
+        border: `2px solid ${checked ? t.blue : t.inputBorder}`,
+        background: checked ? t.blue : 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', flexShrink: 0,
         transition: 'all 0.12s',
@@ -140,6 +142,8 @@ export default function CardAssignmentPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
 
   const [selectedSellerId, setSelectedSellerId] = useState<number | null>(null);
   const [sellerSelectFocused, setSellerSelectFocused] = useState(false);
@@ -150,6 +154,7 @@ export default function CardAssignmentPage() {
 
   const [cancelHov, setCancelHov] = useState(false);
   const [submitHov, setSubmitHov] = useState(false);
+  const [toggleAllHov, setToggleAllHov] = useState(false);
 
   const selectedSeller = SELLERS.find(s => s.id === selectedSellerId) ?? null;
 
@@ -167,8 +172,11 @@ export default function CardAssignmentPage() {
   const selectAll = () => setSelectedCardIds(new Set(AVAILABLE_CARDS.map(c => c.id)));
   const deselectAll = () => setSelectedCardIds(new Set());
 
+  const rowSelectedBg = dark ? 'rgba(59,130,246,0.15)' : t.blueLt;
+  const disabledSubmitBg = dark ? t.border : C.border;
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -182,29 +190,29 @@ export default function CardAssignmentPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Назначение карт</span>
+            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Назначение карт</span>
           </div>
 
           {/* Top Bar */}
           <div style={{ marginBottom: '24px' }}>
-            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
               Назначение карт
             </h1>
-            <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+            <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
               Назначьте карты со склада продавцам
             </p>
           </div>
 
           {/* ── Step 1: Select Seller ── */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '12px', padding: '24px', marginBottom: '16px',
           }}>
             <div style={{
               fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-              color: C.text4, textTransform: 'uppercase', letterSpacing: '0.07em',
+              color: t.text4, textTransform: 'uppercase', letterSpacing: '0.07em',
               marginBottom: '16px',
             }}>
               Шаг 1 — Выберите продавца
@@ -212,7 +220,7 @@ export default function CardAssignmentPage() {
 
             <label style={{
               display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
               Выберите продавца
             </label>
@@ -224,12 +232,12 @@ export default function CardAssignmentPage() {
                 onBlur={() => setSellerSelectFocused(false)}
                 style={{
                   width: '100%', height: '40px', padding: '0 36px 0 12px',
-                  border: `1px solid ${sellerSelectFocused ? C.blue : C.inputBorder}`,
-                  borderRadius: '8px', background: C.surface,
-                  fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                  border: `1px solid ${sellerSelectFocused ? t.blue : t.inputBorder}`,
+                  borderRadius: '8px', background: t.surface,
+                  fontFamily: F.inter, fontSize: '14px', color: t.text1,
                   outline: 'none', appearance: 'none', cursor: 'pointer',
                   boxSizing: 'border-box',
-                  boxShadow: sellerSelectFocused ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: sellerSelectFocused ? `0 0 0 3px ${t.focusRing}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               >
@@ -240,7 +248,7 @@ export default function CardAssignmentPage() {
                   </option>
                 ))}
               </select>
-              <ChevronDown size={14} color={C.text3} style={{
+              <ChevronDown size={14} color={t.text3} style={{
                 position: 'absolute', right: '12px', top: '50%',
                 transform: 'translateY(-50%)', pointerEvents: 'none',
               }} />
@@ -250,24 +258,24 @@ export default function CardAssignmentPage() {
             {selectedSeller && (
               <div style={{
                 marginTop: '16px', padding: '16px',
-                background: C.pageBg, border: `1px solid ${C.border}`,
+                background: t.pageBg, border: `1px solid ${t.border}`,
                 borderRadius: '10px',
               }}>
                 <div style={{
                   fontFamily: F.dm, fontSize: '16px', fontWeight: 600,
-                  color: C.text1, marginBottom: '8px',
+                  color: t.text1, marginBottom: '8px',
                 }}>
                   {selectedSeller.name}
                 </div>
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
-                    Назначено: <span style={{ fontFamily: F.mono, fontWeight: 500, color: C.text2 }}>{selectedSeller.assigned}</span>
+                  <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
+                    Назначено: <span style={{ fontFamily: F.mono, fontWeight: 500, color: t.text2 }}>{selectedSeller.assigned}</span>
                   </span>
-                  <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
-                    Продано: <span style={{ fontFamily: F.mono, fontWeight: 500, color: C.text2 }}>{selectedSeller.sold}</span>
+                  <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
+                    Продано: <span style={{ fontFamily: F.mono, fontWeight: 500, color: t.text2 }}>{selectedSeller.sold}</span>
                   </span>
-                  <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
-                    На руках: <span style={{ fontFamily: F.mono, fontWeight: 500, color: C.text2 }}>{selectedSeller.onHand}</span>
+                  <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
+                    На руках: <span style={{ fontFamily: F.mono, fontWeight: 500, color: t.text2 }}>{selectedSeller.onHand}</span>
                   </span>
                 </div>
               </div>
@@ -276,12 +284,12 @@ export default function CardAssignmentPage() {
 
           {/* ── Step 2: Select Cards ── */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '12px', padding: '24px', marginBottom: '16px',
           }}>
             <div style={{
               fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-              color: C.text4, textTransform: 'uppercase', letterSpacing: '0.07em',
+              color: t.text4, textTransform: 'uppercase', letterSpacing: '0.07em',
               marginBottom: '16px',
             }}>
               Шаг 2 — Выберите карты для назначения
@@ -294,11 +302,11 @@ export default function CardAssignmentPage() {
                   onClick={() => setAssignMode('count')}
                   style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: '10px' }}
                 >
-                  <Radio checked={assignMode === 'count'} onClick={() => setAssignMode('count')} />
+                  <Radio checked={assignMode === 'count'} onClick={() => setAssignMode('count')} t={t} />
                   <span style={{
                     fontFamily: F.inter, fontSize: '14px',
                     fontWeight: assignMode === 'count' ? 500 : 400,
-                    color: assignMode === 'count' ? C.text1 : C.text2,
+                    color: assignMode === 'count' ? t.text1 : t.text2,
                   }}>
                     Назначить количество
                   </span>
@@ -314,13 +322,13 @@ export default function CardAssignmentPage() {
                       onChange={e => setCardCount(Math.max(1, Math.min(AVAILABLE_CARDS.length, parseInt(e.target.value) || 1)))}
                       style={{
                         width: '120px', height: '40px', padding: '0 12px',
-                        border: `1px solid ${C.inputBorder}`, borderRadius: '8px',
-                        background: C.surface, fontFamily: F.mono, fontSize: '14px',
-                        color: C.text1, outline: 'none', boxSizing: 'border-box',
+                        border: `1px solid ${t.inputBorder}`, borderRadius: '8px',
+                        background: t.surface, fontFamily: F.mono, fontSize: '14px',
+                        color: t.text1, outline: 'none', boxSizing: 'border-box',
                       }}
                     />
                     <div style={{
-                      fontFamily: F.inter, fontSize: '12px', color: C.text4, marginTop: '6px',
+                      fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: '6px',
                     }}>
                       Система выберет карты автоматически
                     </div>
@@ -334,11 +342,11 @@ export default function CardAssignmentPage() {
                   onClick={() => setAssignMode('manual')}
                   style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: '10px' }}
                 >
-                  <Radio checked={assignMode === 'manual'} onClick={() => setAssignMode('manual')} />
+                  <Radio checked={assignMode === 'manual'} onClick={() => setAssignMode('manual')} t={t} />
                   <span style={{
                     fontFamily: F.inter, fontSize: '14px',
                     fontWeight: assignMode === 'manual' ? 500 : 400,
-                    color: assignMode === 'manual' ? C.text1 : C.text2,
+                    color: assignMode === 'manual' ? t.text1 : t.text2,
                   }}>
                     Выбрать конкретные карты
                   </span>
@@ -349,29 +357,32 @@ export default function CardAssignmentPage() {
                     {/* Scrollable card list */}
                     <div style={{
                       maxHeight: '300px', overflowY: 'auto',
-                      border: `1px solid ${C.border}`, borderRadius: '10px',
-                      scrollbarWidth: 'thin', scrollbarColor: `${C.border} transparent`,
+                      border: `1px solid ${t.border}`, borderRadius: '10px',
+                      scrollbarWidth: 'thin', scrollbarColor: `${t.border} transparent`,
                     }}>
-                      {AVAILABLE_CARDS.map((card, i) => (
-                        <div
-                          key={card.id}
-                          onClick={() => toggleCard(card.id)}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '12px',
-                            padding: '10px 14px',
-                            borderBottom: i < AVAILABLE_CARDS.length - 1 ? `1px solid ${C.border}` : 'none',
-                            cursor: 'pointer',
-                            background: selectedCardIds.has(card.id) ? C.blueLt : C.surface,
-                            transition: 'background 0.1s',
-                          }}
-                        >
-                          <Checkbox checked={selectedCardIds.has(card.id)} onChange={() => toggleCard(card.id)} />
-                          <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text1, flex: 1 }}>
-                            {card.number}
-                          </span>
-                          <BadgeOutline>{card.type}</BadgeOutline>
-                        </div>
-                      ))}
+                      {AVAILABLE_CARDS.map((card, i) => {
+                        const isSelected = selectedCardIds.has(card.id);
+                        return (
+                          <div
+                            key={card.id}
+                            onClick={() => toggleCard(card.id)}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '12px',
+                              padding: '10px 14px',
+                              borderBottom: i < AVAILABLE_CARDS.length - 1 ? `1px solid ${t.border}` : 'none',
+                              cursor: 'pointer',
+                              background: isSelected ? rowSelectedBg : t.surface,
+                              transition: 'background 0.1s',
+                            }}
+                          >
+                            <Checkbox checked={isSelected} onChange={() => toggleCard(card.id)} t={t} />
+                            <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text1, flex: 1 }}>
+                              {card.number}
+                            </span>
+                            <BadgeOutline t={t}>{card.type}</BadgeOutline>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     {/* Selected count + toggle all */}
@@ -380,20 +391,22 @@ export default function CardAssignmentPage() {
                       marginTop: '12px',
                     }}>
                       <span style={{
-                        fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.blue,
+                        fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.blue,
                       }}>
                         Выбрано: {selectedCardIds.size} карт
                       </span>
                       <button
                         onClick={selectedCardIds.size === AVAILABLE_CARDS.length ? deselectAll : selectAll}
+                        onMouseEnter={() => setToggleAllHov(true)}
+                        onMouseLeave={() => setToggleAllHov(false)}
                         style={{
-                          border: 'none', background: 'none',
-                          fontFamily: F.inter, fontSize: '13px', color: C.text3,
+                          border: 'none',
+                          background: toggleAllHov ? t.tableHover : 'none',
+                          fontFamily: F.inter, fontSize: '13px',
+                          color: toggleAllHov ? t.text1 : t.text3,
                           cursor: 'pointer', padding: '4px 8px', borderRadius: '6px',
                           transition: 'color 0.12s, background 0.12s',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.color = C.text1; e.currentTarget.style.background = '#F3F4F6'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = C.text3; e.currentTarget.style.background = 'none'; }}
                       >
                         {selectedCardIds.size === AVAILABLE_CARDS.length ? 'Снять все' : 'Выбрать все'}
                       </button>
@@ -407,17 +420,17 @@ export default function CardAssignmentPage() {
           {/* ── Summary Card ── */}
           {canSubmit && (
             <div style={{
-              background: C.surface, border: `1px solid ${C.border}`,
-              borderLeft: `4px solid ${C.blue}`,
+              background: t.surface, border: `1px solid ${t.border}`,
+              borderLeft: `4px solid ${t.blue}`,
               borderRadius: '12px', padding: '20px 24px', marginBottom: '24px',
             }}>
               <div style={{
-                fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+                fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
                 marginBottom: '4px',
               }}>
                 Назначить {totalSelected} карт → {selectedSeller!.name}
               </div>
-              <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+              <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
                 После назначения карты перейдут в статус «У продавца»
               </div>
             </div>
@@ -431,11 +444,11 @@ export default function CardAssignmentPage() {
               onClick={() => navigate('/org-dashboard')}
               style={{
                 height: '40px', padding: '0 20px',
-                border: `1px solid ${cancelHov ? C.blue : C.border}`,
+                border: `1px solid ${cancelHov ? t.blue : t.border}`,
                 borderRadius: '8px',
-                background: cancelHov ? C.blueLt : C.surface,
+                background: cancelHov ? t.blueLt : t.surface,
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                color: cancelHov ? C.blue : C.text2,
+                color: cancelHov ? t.blue : t.text2,
                 cursor: 'pointer', transition: 'all 0.12s',
               }}
             >
@@ -452,7 +465,7 @@ export default function CardAssignmentPage() {
                 height: '40px', padding: '0 20px',
                 border: 'none',
                 borderRadius: '8px',
-                background: canSubmit ? (submitHov ? C.blueHover : C.blue) : C.border,
+                background: canSubmit ? (submitHov ? t.blueHover : t.blue) : disabledSubmitBg,
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
                 color: '#FFFFFF',
                 cursor: canSubmit ? 'pointer' : 'not-allowed',

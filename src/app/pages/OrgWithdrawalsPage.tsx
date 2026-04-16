@@ -5,33 +5,43 @@ import {
   ArrowDownToLine, Clock, CheckCircle, X, XCircle, Check,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
 import { DateRangePicker } from '../components/DateRangePicker';
 
+type T = ReturnType<typeof theme>;
+
 /* ═══════════════════════════════════════════════════════════════════════════
    STAT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const VARIANTS = {
-  amber:  { icon: '#D97706', iconBg: '#FFFBEB', border: '#FDE68A' },
-  blue:   { icon: C.blue,    iconBg: C.blueLt,  border: C.blueTint },
-  green:  { icon: '#16A34A', iconBg: '#F0FDF4',  border: '#BBF7D0' },
+const VARIANTS_LIGHT = {
+  amber:  { icon: '#D97706', iconBg: '#FFFBEB',             border: '#FDE68A' },
+  blue:   { icon: C.blue,    iconBg: C.blueLt,              border: C.blueTint },
+  green:  { icon: '#16A34A', iconBg: '#F0FDF4',             border: '#BBF7D0' },
 } as const;
 
-function StatCard({ icon: Icon, variant, label, value, subtitle }: {
+const VARIANTS_DARK = {
+  amber:  { icon: '#FBBF24', iconBg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.30)' },
+  blue:   { icon: '#3B82F6', iconBg: 'rgba(59,130,246,0.15)', border: 'rgba(59,130,246,0.30)' },
+  green:  { icon: '#34D399', iconBg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.30)' },
+} as const;
+
+function StatCard({ icon: Icon, variant, label, value, subtitle, t, dark }: {
   icon: React.ElementType;
-  variant: keyof typeof VARIANTS;
+  variant: keyof typeof VARIANTS_LIGHT;
   label: string;
   value: string;
   subtitle?: string;
+  t: T;
+  dark: boolean;
 }) {
-  const v = VARIANTS[variant];
+  const v = (dark ? VARIANTS_DARK : VARIANTS_LIGHT)[variant];
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', padding: '20px',
       display: 'flex', flexDirection: 'column', gap: '12px', flex: 1,
     }}>
@@ -43,14 +53,14 @@ function StatCard({ icon: Icon, variant, label, value, subtitle }: {
         <Icon size={20} color={v.icon} strokeWidth={1.75} />
       </div>
       <div>
-        <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: C.text3, marginBottom: '4px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: t.text3, marginBottom: '4px' }}>
           {label}
         </div>
-        <div style={{ fontFamily: F.dm, fontSize: '28px', fontWeight: 700, color: C.text1, lineHeight: 1.2 }}>
+        <div style={{ fontFamily: F.dm, fontSize: '28px', fontWeight: 700, color: t.text1, lineHeight: 1.2 }}>
           {value}
         </div>
         {subtitle && (
-          <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4, marginTop: '4px' }}>
+          <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: '4px' }}>
             {subtitle}
           </div>
         )}
@@ -63,8 +73,8 @@ function StatCard({ icon: Icon, variant, label, value, subtitle }: {
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options, value, onChange }: {
-  label: string; options: string[]; value: string; onChange: (v: string) => void;
+function FilterSelect({ label, options, value, onChange, t }: {
+  label: string; options: string[]; value: string; onChange: (v: string) => void; t: T;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -74,18 +84,18 @@ function FilterSelect({ label, options, value, onChange }: {
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         style={{
           height: '40px', padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
-          fontFamily: F.inter, fontSize: '14px', color: C.text2,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
+          fontFamily: F.inter, fontSize: '14px', color: t.text2,
           outline: 'none', appearance: 'none', cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s', minWidth: '160px',
         }}
       >
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={14} color={C.text3} style={{
+      <ChevronDown size={14} color={t.text3} style={{
         position: 'absolute', right: '10px', top: '50%',
         transform: 'translateY(-50%)', pointerEvents: 'none',
       }} />
@@ -99,13 +109,20 @@ function FilterSelect({ label, options, value, onChange }: {
 
 type WdStatus = 'Выполнен' | 'В обработке' | 'Отклонён';
 
-function StatusBadge({ status }: { status: WdStatus }) {
-  const cfg: Record<WdStatus, { bg: string; color: string; dot: string }> = {
-    'Выполнен':     { bg: C.successBg, color: '#15803D', dot: C.success },
-    'В обработке':  { bg: C.warningBg, color: '#B45309', dot: C.warning },
-    'Отклонён':     { bg: '#FEF2F2',   color: '#DC2626', dot: '#EF4444' },
-  };
-  const c = cfg[status];
+const STATUS_BADGE_LIGHT: Record<WdStatus, { bg: string; color: string; dot: string }> = {
+  'Выполнен':     { bg: C.successBg, color: '#15803D', dot: C.success },
+  'В обработке':  { bg: C.warningBg, color: '#B45309', dot: C.warning },
+  'Отклонён':     { bg: '#FEF2F2',   color: '#DC2626', dot: '#EF4444' },
+};
+
+const STATUS_BADGE_DARK: Record<WdStatus, { bg: string; color: string; dot: string }> = {
+  'Выполнен':     { bg: 'rgba(52,211,153,0.12)',  color: '#34D399', dot: '#34D399' },
+  'В обработке':  { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24', dot: '#FBBF24' },
+  'Отклонён':     { bg: 'rgba(248,113,113,0.12)', color: '#F87171', dot: '#F87171' },
+};
+
+function StatusBadge({ status, dark }: { status: WdStatus; dark: boolean }) {
+  const c = (dark ? STATUS_BADGE_DARK : STATUS_BADGE_LIGHT)[status];
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -123,18 +140,20 @@ function StatusBadge({ status }: { status: WdStatus }) {
    AVATAR CELL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function AvatarCell({ name }: { name: string }) {
+function AvatarCell({ name, t, dark }: { name: string; t: T; dark: boolean }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const avatarBg = dark ? 'rgba(59,130,246,0.15)' : C.blueLt;
+  const avatarBorder = dark ? 'rgba(59,130,246,0.30)' : C.blueTint;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
       <div style={{
         width: '28px', height: '28px', borderRadius: '50%',
-        background: C.blueLt, border: `1px solid ${C.blueTint}`,
+        background: avatarBg, border: `1px solid ${avatarBorder}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <span style={{ fontFamily: F.inter, fontSize: '10px', fontWeight: 700, color: C.blue }}>{initials}</span>
+        <span style={{ fontFamily: F.inter, fontSize: '10px', fontWeight: 700, color: t.blue }}>{initials}</span>
       </div>
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2, whiteSpace: 'nowrap' }}>{name}</span>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2, whiteSpace: 'nowrap' }}>{name}</span>
     </div>
   );
 }
@@ -143,7 +162,7 @@ function AvatarCell({ name }: { name: string }) {
    ACTION DROPDOWN
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ActionDropdown({ status, onAction }: { status: WdStatus; onAction: (action: string) => void }) {
+function ActionDropdown({ status, onAction, t, dark }: { status: WdStatus; onAction: (action: string) => void; t: T; dark: boolean }) {
   const pop = usePopoverPosition();
   const [hovered, setHovered] = useState<string | null>(null);
 
@@ -155,6 +174,9 @@ function ActionDropdown({ status, onAction }: { status: WdStatus; onAction: (act
     ] : []),
   ];
 
+  const dangerHoverBg = dark ? 'rgba(248,113,113,0.12)' : '#FEF2F2';
+  const dangerHoverColor = dark ? '#F87171' : '#DC2626';
+
   return (
     <div ref={pop.rootRef} style={{ position: 'relative' }}>
       <button
@@ -162,27 +184,27 @@ function ActionDropdown({ status, onAction }: { status: WdStatus; onAction: (act
         onClick={e => { e.stopPropagation(); pop.toggle(); }}
         style={{
           width: '28px', height: '28px',
-          border: `1px solid ${pop.open ? C.blue : C.border}`,
+          border: `1px solid ${pop.open ? t.blue : t.border}`,
           borderRadius: '6px',
-          background: pop.open ? C.blueLt : C.surface,
+          background: pop.open ? t.blueLt : t.surface,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', transition: 'all 0.12s',
         }}
       >
-        <MoreVertical size={14} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
+        <MoreVertical size={14} color={pop.open ? t.blue : t.text3} strokeWidth={1.75} />
       </button>
 
       {pop.open && (
         <div ref={pop.menuRef} style={{
           ...pop.menuStyle,
-          background: C.surface, border: `1px solid ${C.border}`,
+          background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: '10px', padding: '6px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          boxShadow: dark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.12)',
           minWidth: '180px',
         }}>
-          {actions.map((action, idx) => (
+          {actions.map((action) => (
             <React.Fragment key={action.id}>
-              {action.danger && <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />}
+              {action.danger && <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />}
               <button
                 onMouseEnter={() => setHovered(action.id)}
                 onMouseLeave={() => setHovered(null)}
@@ -191,9 +213,11 @@ function ActionDropdown({ status, onAction }: { status: WdStatus; onAction: (act
                   width: '100%', textAlign: 'left',
                   display: 'flex', alignItems: 'center', gap: '8px',
                   padding: '8px 10px', borderRadius: '7px', border: 'none',
-                  background: hovered === action.id ? (action.danger ? '#FEF2F2' : '#F9FAFB') : 'none',
+                  background: hovered === action.id
+                    ? (action.danger ? dangerHoverBg : t.tableHover)
+                    : 'none',
                   cursor: 'pointer', fontFamily: F.inter, fontSize: '13px',
-                  color: hovered === action.id && action.danger ? '#DC2626' : C.text2,
+                  color: hovered === action.id && action.danger ? dangerHoverColor : t.text2,
                   transition: 'all 0.1s',
                 }}
               >
@@ -237,20 +261,6 @@ const SELLERS_LIST = ['Санжар', 'Абдуллох', 'Ислом', 'Нил�
 const STATUS_OPTIONS = ['Выполнен', 'В обработке', 'Отклонён'];
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TABLE STYLES
-═══════════════════════════════════════════════════════════════════════════ */
-
-const hCell: React.CSSProperties = {
-  padding: '12px 16px', textAlign: 'left',
-  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: C.text4,
-  textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
-};
-
-const dCell: React.CSSProperties = {
-  padding: '14px 16px', whiteSpace: 'nowrap',
-};
-
-/* ═══════════════════════════════════════════════════════════════════════════
    APPROVE WITHDRAWAL MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -276,21 +286,22 @@ function fmtUzs(n: number): string {
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
-function KV({ label, children }: { label: string; children: React.ReactNode }) {
+function KV({ label, children, t }: { label: string; children: React.ReactNode; t?: T }) {
+  const tx = t ?? (C as unknown as T);
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: '110px 1fr',
       alignItems: 'baseline', gap: '14px',
       padding: '6px 0',
     }}>
-      <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>{label}</span>
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>{children}</span>
+      <span style={{ fontFamily: F.inter, fontSize: '12px', color: tx.text4 }}>{label}</span>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: tx.text1 }}>{children}</span>
     </div>
   );
 }
 
-function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
-  open: boolean; wd: WdRow | null; onClose: () => void; onConfirm: () => void;
+function ApproveWithdrawalModal({ open, wd, onClose, onConfirm, t, dark }: {
+  open: boolean; wd: WdRow | null; onClose: () => void; onConfirm: () => void; t: T; dark: boolean;
 }) {
   const [cancelHov, setCancelHov] = useState(false);
   const [confirmHov, setConfirmHov] = useState(false);
@@ -310,12 +321,17 @@ function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
   const amountNum = parseInt(wd.amount.replace(/\s/g, '')) || 0;
   const balanceAfter = balanceBefore - amountNum;
 
+  const closeHovBg = dark ? t.tableAlt : '#F3F4F6';
+  const cancelHovBg = dark ? t.tableHover : '#F9FAFB';
+  const okBorder = dark ? 'rgba(52,211,153,0.35)' : '#BBF7D0';
+  const approveBg = confirmHov ? (dark ? '#10B981' : '#059669') : t.success;
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -324,9 +340,9 @@ function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '480px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '16px',
+          boxShadow: dark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
           maxHeight: 'calc(100vh - 40px)',
         }}
@@ -334,12 +350,12 @@ function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <CheckCircle size={22} color={C.success} strokeWidth={1.75} />
+          <CheckCircle size={22} color={t.success} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Подтвердить вывод средств
           </h2>
@@ -351,13 +367,13 @@ function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
             style={{
               width: '28px', height: '28px',
               border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent',
+              background: closeHov ? closeHovBg : 'transparent',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={closeHov ? t.text1 : t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -368,40 +384,40 @@ function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
         }}>
           {/* Transaction card */}
           <div style={{
-            background: '#F0FDF4',
-            borderTop: `1px solid #BBF7D0`,
-            borderRight: `1px solid #BBF7D0`,
-            borderBottom: `1px solid #BBF7D0`,
-            borderLeft: `3px solid ${C.success}`,
+            background: t.successBg,
+            borderTop: `1px solid ${okBorder}`,
+            borderRight: `1px solid ${okBorder}`,
+            borderBottom: `1px solid ${okBorder}`,
+            borderLeft: `3px solid ${t.success}`,
             borderRadius: '8px', padding: '16px',
           }}>
-            <KV label="Продавец">{fullName}</KV>
-            <KV label="Сумма">
-              <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: C.text1 }}>
+            <KV label="Продавец" t={t}>{fullName}</KV>
+            <KV label="Сумма" t={t}>
+              <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: t.text1 }}>
                 {wd.amount} UZS
               </span>
             </KV>
-            <KV label="Метод">{wd.method}</KV>
-            <KV label="Реквизиты">
-              <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text2 }}>{wd.details}</span>
+            <KV label="Метод" t={t}>{wd.method}</KV>
+            <KV label="Реквизиты" t={t}>
+              <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text2 }}>{wd.details}</span>
             </KV>
-            <KV label="Баланс">
+            <KV label="Баланс" t={t}>
               <span>
-                <span style={{ fontFamily: F.mono, color: C.text3 }}>{fmtUzs(balanceBefore)}</span>
-                <span style={{ margin: '0 6px', color: C.text4 }}>→</span>
-                <span style={{ fontFamily: F.mono, fontWeight: 600, color: C.text1 }}>{fmtUzs(balanceAfter)}</span>
-                <span style={{ color: C.text4, marginLeft: '4px' }}>UZS</span>
+                <span style={{ fontFamily: F.mono, color: t.text3 }}>{fmtUzs(balanceBefore)}</span>
+                <span style={{ margin: '0 6px', color: t.text4 }}>→</span>
+                <span style={{ fontFamily: F.mono, fontWeight: 600, color: t.text1 }}>{fmtUzs(balanceAfter)}</span>
+                <span style={{ color: t.text4, marginLeft: '4px' }}>UZS</span>
               </span>
             </KV>
-            <KV label="Запрошено">
-              <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text2 }}>
+            <KV label="Запрошено" t={t}>
+              <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text2 }}>
                 {wd.date.replace(' ', ', ')}
               </span>
             </KV>
           </div>
 
           <div style={{
-            fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.5,
+            fontFamily: F.inter, fontSize: '12px', color: t.text3, lineHeight: 1.5,
           }}>
             Средства будут переведены на карту продавца через UCOIN.
           </div>
@@ -411,7 +427,7 @@ function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
         <div style={{
           display: 'flex', gap: '10px', justifyContent: 'flex-end',
           padding: '14px 20px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHov(true)}
@@ -419,10 +435,10 @@ function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 18px',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              background: cancelHov ? '#F9FAFB' : C.surface,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
+              background: cancelHov ? cancelHovBg : 'transparent',
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer',
+              color: t.text2, cursor: 'pointer',
               transition: 'background 0.12s',
             }}
           >
@@ -436,11 +452,13 @@ function ApproveWithdrawalModal({ open, wd, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 18px',
               border: 'none', borderRadius: '8px',
-              background: confirmHov ? C.blueHover : C.blue,
+              background: approveBg,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              boxShadow: confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+              boxShadow: dark
+                ? 'none'
+                : confirmHov ? '0 2px 8px rgba(16,185,129,0.32)' : '0 1px 3px rgba(16,185,129,0.20)',
               transition: 'all 0.15s',
             }}
           >
@@ -465,8 +483,8 @@ const REJECT_REASONS = [
   'Другое',
 ];
 
-function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
-  open: boolean; wd: WdRow | null; onClose: () => void; onConfirm: () => void;
+function RejectWithdrawalModal({ open, wd, onClose, onConfirm, t, dark }: {
+  open: boolean; wd: WdRow | null; onClose: () => void; onConfirm: () => void; t: T; dark: boolean;
 }) {
   const [reason, setReason] = useState('');
   const [comment, setComment] = useState('');
@@ -489,12 +507,17 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
   const fullName = SELLER_FULL_NAMES[wd.seller] ?? wd.seller;
   const canConfirm = !!reason;
 
+  const closeHovBg = dark ? t.tableAlt : '#F3F4F6';
+  const cancelHovBg = dark ? t.tableHover : '#F9FAFB';
+  const errBorder = dark ? 'rgba(248,113,113,0.35)' : '#FECACA';
+  const disabledRejectBg = dark ? 'rgba(248,113,113,0.35)' : '#FCA5A5';
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -503,9 +526,9 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '480px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '16px',
+          boxShadow: dark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
           maxHeight: 'calc(100vh - 40px)',
         }}
@@ -513,12 +536,12 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <XCircle size={22} color={C.error} strokeWidth={1.75} />
+          <XCircle size={22} color={t.error} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1,
+            fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1,
           }}>
             Отклонить вывод средств
           </h2>
@@ -530,13 +553,13 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
             style={{
               width: '28px', height: '28px',
               border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent',
+              background: closeHov ? closeHovBg : 'transparent',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={closeHov ? t.text1 : t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -547,26 +570,26 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
         }}>
           {/* Transaction card */}
           <div style={{
-            background: C.errorBg,
-            borderTop: `1px solid #FECACA`,
-            borderRight: `1px solid #FECACA`,
-            borderBottom: `1px solid #FECACA`,
-            borderLeft: `3px solid ${C.error}`,
+            background: t.errorBg,
+            borderTop: `1px solid ${errBorder}`,
+            borderRight: `1px solid ${errBorder}`,
+            borderBottom: `1px solid ${errBorder}`,
+            borderLeft: `3px solid ${t.error}`,
             borderRadius: '8px', padding: '16px',
           }}>
             <div style={{
               fontFamily: F.inter, fontSize: '14px', fontWeight: 600,
-              color: C.text1, marginBottom: '4px',
+              color: t.text1, marginBottom: '4px',
             }}>
               Продавец: {fullName}
             </div>
             <div style={{
-              fontFamily: F.inter, fontSize: '13px', color: C.text2,
+              fontFamily: F.inter, fontSize: '13px', color: t.text2,
               marginBottom: '4px',
             }}>
-              Сумма: <span style={{ fontFamily: F.mono, color: C.text1, fontWeight: 500 }}>{wd.amount} UZS</span>
+              Сумма: <span style={{ fontFamily: F.mono, color: t.text1, fontWeight: 500 }}>{wd.amount} UZS</span>
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
               Запрошено: <span style={{ fontFamily: F.mono }}>{wd.date.replace(' ', ', ')}</span>
             </div>
           </div>
@@ -575,9 +598,9 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
           <div>
             <label style={{
               display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
-              Причина отклонения<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+              Причина отклонения<span style={{ color: t.error, marginLeft: '3px' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <select
@@ -587,19 +610,19 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
                 onBlur={() => setReasonFocus(false)}
                 style={{
                   width: '100%', height: '40px', padding: '0 36px 0 12px',
-                  border: `1px solid ${reasonFocus ? C.blue : C.inputBorder}`,
-                  borderRadius: '8px', background: C.surface,
+                  border: `1px solid ${reasonFocus ? t.blue : t.inputBorder}`,
+                  borderRadius: '8px', background: t.surface,
                   fontFamily: F.inter, fontSize: '13px',
-                  color: reason ? C.text1 : C.text4,
+                  color: reason ? t.text1 : t.text4,
                   outline: 'none', appearance: 'none', cursor: 'pointer',
-                  boxShadow: reasonFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: reasonFocus ? `0 0 0 3px ${t.blueTint}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               >
                 <option value="">Выберите причину</option>
                 {REJECT_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-              <ChevronDown size={14} color={C.text3} style={{
+              <ChevronDown size={14} color={t.text3} style={{
                 position: 'absolute', right: '12px', top: '50%',
                 transform: 'translateY(-50%)', pointerEvents: 'none',
               }} />
@@ -610,7 +633,7 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
           <div>
             <label style={{
               display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
               Комментарий (опционально)
             </label>
@@ -622,11 +645,11 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
               placeholder="Дополнительная информация для продавца..."
               style={{
                 width: '100%', minHeight: '72px', padding: '10px 12px',
-                border: `1px solid ${commentFocus ? C.blue : C.inputBorder}`,
-                borderRadius: '8px', background: C.surface,
-                fontFamily: F.inter, fontSize: '13px', color: C.text1,
+                border: `1px solid ${commentFocus ? t.blue : t.inputBorder}`,
+                borderRadius: '8px', background: t.surface,
+                fontFamily: F.inter, fontSize: '13px', color: t.text1,
                 outline: 'none', boxSizing: 'border-box', resize: 'vertical',
-                boxShadow: commentFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                boxShadow: commentFocus ? `0 0 0 3px ${t.blueTint}` : 'none',
                 transition: 'border-color 0.12s, box-shadow 0.12s',
               }}
             />
@@ -641,8 +664,8 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
               onClick={() => setNotify(n => !n)}
               style={{
                 width: '16px', height: '16px', borderRadius: '4px',
-                border: `1.5px solid ${notify ? C.blue : C.inputBorder}`,
-                background: notify ? C.blue : C.surface,
+                border: `1.5px solid ${notify ? t.blue : t.inputBorder}`,
+                background: notify ? t.blue : t.surface,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
                 transition: 'all 0.12s',
@@ -656,13 +679,13 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
               onChange={e => setNotify(e.target.checked)}
               style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
             />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1 }}>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1 }}>
               Уведомить продавца о причине отклонения
             </span>
           </label>
 
           <div style={{
-            fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.5,
+            fontFamily: F.inter, fontSize: '12px', color: t.text3, lineHeight: 1.5,
           }}>
             Средства будут возвращены на баланс кошелька продавца.
           </div>
@@ -672,7 +695,7 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
         <div style={{
           display: 'flex', gap: '10px', justifyContent: 'flex-end',
           padding: '14px 20px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHov(true)}
@@ -680,10 +703,10 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 18px',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              background: cancelHov ? '#F9FAFB' : C.surface,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
+              background: cancelHov ? cancelHovBg : 'transparent',
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer',
+              color: t.text2, cursor: 'pointer',
               transition: 'background 0.12s',
             }}
           >
@@ -698,13 +721,15 @@ function RejectWithdrawalModal({ open, wd, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 18px',
               border: 'none', borderRadius: '8px',
-              background: !canConfirm ? '#FCA5A5' : confirmHov ? '#DC2626' : C.error,
+              background: !canConfirm ? disabledRejectBg : confirmHov ? (dark ? '#EF4444' : '#DC2626') : t.error,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF',
               cursor: canConfirm ? 'pointer' : 'not-allowed',
-              opacity: canConfirm ? 1 : 0.85,
+              opacity: canConfirm ? 1 : 0.5,
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              boxShadow: canConfirm && confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : canConfirm ? '0 1px 3px rgba(239,68,68,0.20)' : 'none',
+              boxShadow: dark
+                ? 'none'
+                : canConfirm && confirmHov ? '0 2px 8px rgba(239,68,68,0.32)' : canConfirm ? '0 1px 3px rgba(239,68,68,0.20)' : 'none',
               transition: 'all 0.15s',
             }}
           >
@@ -725,6 +750,8 @@ export default function OrgWithdrawalsPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
 
   const [search, setSearch] = useState('');
@@ -735,8 +762,20 @@ export default function OrgWithdrawalsPage() {
   const [approveWd, setApproveWd] = useState<WdRow | null>(null);
   const [rejectWd, setRejectWd] = useState<WdRow | null>(null);
 
+  const hCell: React.CSSProperties = {
+    padding: '12px 16px', textAlign: 'left',
+    fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: t.text4,
+    textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
+  };
+
+  const dCell: React.CSSProperties = {
+    padding: '14px 16px', whiteSpace: 'nowrap',
+  };
+
+  const resetHovBg = dark ? t.tableHover : '#F3F4F6';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>
       <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -750,9 +789,9 @@ export default function OrgWithdrawalsPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Выводы средств</span>
+            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Выводы средств</span>
           </div>
 
           {/* Top Bar */}
@@ -761,10 +800,10 @@ export default function OrgWithdrawalsPage() {
             gap: '16px', marginBottom: '24px', flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Выводы средств
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Запросы на вывод вознаграждений продавцами Mysafar OOO
               </p>
             </div>
@@ -776,9 +815,9 @@ export default function OrgWithdrawalsPage() {
             display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '16px', marginBottom: '24px',
           }}>
-            <StatCard icon={ArrowDownToLine} variant="amber" label="Всего выведено" value="1 200 000" />
-            <StatCard icon={Clock}           variant="blue"  label="В обработке"    value="85 000" subtitle="2 запроса" />
-            <StatCard icon={CheckCircle}     variant="green" label="Баланс в кошельках" value="625 000" subtitle="6 продавцов" />
+            <StatCard icon={ArrowDownToLine} variant="amber" label="Всего выведено" value="1 200 000" t={t} dark={dark} />
+            <StatCard icon={Clock}           variant="blue"  label="В обработке"    value="85 000" subtitle="2 запроса" t={t} dark={dark} />
+            <StatCard icon={CheckCircle}     variant="green" label="Баланс в кошельках" value="625 000" subtitle="6 продавцов" t={t} dark={dark} />
           </div>
 
           {/* Filter Bar */}
@@ -787,7 +826,7 @@ export default function OrgWithdrawalsPage() {
             alignItems: 'center', marginBottom: '24px',
           }}>
             <div style={{ position: 'relative', width: '340px', flexShrink: 0 }}>
-              <Search size={16} color={searchFocused ? C.blue : C.text4} style={{
+              <Search size={16} color={searchFocused ? t.blue : t.text4} style={{
                 position: 'absolute', left: '12px', top: '50%',
                 transform: 'translateY(-50%)', pointerEvents: 'none',
               }} />
@@ -797,29 +836,29 @@ export default function OrgWithdrawalsPage() {
                 placeholder="Поиск по продавцу или номеру транзакции..."
                 style={{
                   width: '100%', height: '40px', paddingLeft: '38px', paddingRight: '12px',
-                  border: `1px solid ${searchFocused ? C.blue : C.inputBorder}`,
-                  borderRadius: '8px', background: C.surface,
-                  fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                  border: `1px solid ${searchFocused ? t.blue : t.inputBorder}`,
+                  borderRadius: '8px', background: t.surface,
+                  fontFamily: F.inter, fontSize: '14px', color: t.text1,
                   outline: 'none', boxSizing: 'border-box',
-                  boxShadow: searchFocused ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: searchFocused ? `0 0 0 3px ${t.focusRing}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               />
             </div>
-            <FilterSelect label="Продавец: Все" options={SELLERS_LIST} value={sellerFilter} onChange={setSellerFilter} />
-            <FilterSelect label="Статус: Все" options={STATUS_OPTIONS} value={statusFilter} onChange={setStatusFilter} />
+            <FilterSelect label="Продавец: Все" options={SELLERS_LIST} value={sellerFilter} onChange={setSellerFilter} t={t} />
+            <FilterSelect label="Статус: Все" options={STATUS_OPTIONS} value={statusFilter} onChange={setStatusFilter} t={t} />
 
             {(search || sellerFilter || statusFilter) && (
               <button
                 onClick={() => { setSearch(''); setSellerFilter(''); setStatusFilter(''); }}
                 style={{
                   border: 'none', background: 'none',
-                  fontFamily: F.inter, fontSize: '13px', color: C.text3,
+                  fontFamily: F.inter, fontSize: '13px', color: t.text3,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
                   padding: '4px 8px', borderRadius: '6px',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = C.text1; e.currentTarget.style.background = '#F3F4F6'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = C.text3; e.currentTarget.style.background = 'none'; }}
+                onMouseEnter={e => { e.currentTarget.style.color = t.text1; e.currentTarget.style.background = resetHovBg; }}
+                onMouseLeave={e => { e.currentTarget.style.color = t.text3; e.currentTarget.style.background = 'none'; }}
               >
                 <span style={{ fontSize: '16px', lineHeight: 1, marginTop: '-1px' }}>×</span>
                 Сбросить
@@ -829,12 +868,12 @@ export default function OrgWithdrawalsPage() {
 
           {/* Data Table */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '12px', overflowX: 'auto',
           }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1100px' }}>
               <thead>
-                <tr style={{ background: '#FAFBFC', borderBottom: `1px solid ${C.border}` }}>
+                <tr style={{ background: t.tableHeaderBg, borderBottom: `1px solid ${t.border}` }}>
                   <th style={hCell}>#</th>
                   <th style={hCell}>Дата</th>
                   <th style={hCell}>Продавец</th>
@@ -855,37 +894,37 @@ export default function OrgWithdrawalsPage() {
                       onMouseEnter={() => setHovRow(i)}
                       onMouseLeave={() => setHovRow(null)}
                       style={{
-                        borderBottom: i < WITHDRAWALS.length - 1 ? `1px solid ${C.border}` : 'none',
-                        background: hov ? '#FAFBFC' : C.surface,
-                        borderLeft: isPending ? `3px solid ${C.warning}` : '3px solid transparent',
+                        borderBottom: i < WITHDRAWALS.length - 1 ? `1px solid ${t.border}` : 'none',
+                        background: hov ? t.tableHover : t.surface,
+                        borderLeft: isPending ? `3px solid ${t.warning}` : '3px solid transparent',
                         transition: 'background 0.1s',
                       }}
                     >
                       <td style={dCell}>
-                        <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>{wd.id}</span>
+                        <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>{wd.id}</span>
                       </td>
                       <td style={dCell}>
-                        <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>{wd.date}</span>
+                        <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>{wd.date}</span>
                       </td>
                       <td style={dCell}>
-                        <AvatarCell name={wd.seller} />
+                        <AvatarCell name={wd.seller} t={t} dark={dark} />
                       </td>
                       <td style={dCell}>
-                        <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: C.text1 }}>
+                        <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: t.text1 }}>
                           {wd.amount}
                         </span>
                       </td>
                       <td style={dCell}>
-                        <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{wd.method}</span>
+                        <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{wd.method}</span>
                       </td>
                       <td style={dCell}>
-                        <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text3 }}>{wd.details}</span>
+                        <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text3 }}>{wd.details}</span>
                       </td>
                       <td style={dCell}>
-                        <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text4 }}>{wd.ucoinTx}</span>
+                        <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text4 }}>{wd.ucoinTx}</span>
                       </td>
                       <td style={dCell}>
-                        <StatusBadge status={wd.status} />
+                        <StatusBadge status={wd.status} dark={dark} />
                       </td>
                       <td style={dCell}>
                         <ActionDropdown
@@ -895,6 +934,8 @@ export default function OrgWithdrawalsPage() {
                             else if (action === 'reject') setRejectWd(wd);
                             else console.log(action, wd.id);
                           }}
+                          t={t}
+                          dark={dark}
                         />
                       </td>
                     </tr>
@@ -907,7 +948,7 @@ export default function OrgWithdrawalsPage() {
           {/* Pagination */}
           <div style={{
             marginTop: '16px', fontFamily: F.inter, fontSize: '13px',
-            color: C.text3, textAlign: 'center',
+            color: t.text3, textAlign: 'center',
           }}>
             Показано 1–8 из 8
           </div>
@@ -921,6 +962,8 @@ export default function OrgWithdrawalsPage() {
         wd={approveWd}
         onClose={() => setApproveWd(null)}
         onConfirm={() => setApproveWd(null)}
+        t={t}
+        dark={dark}
       />
 
       <RejectWithdrawalModal
@@ -928,6 +971,8 @@ export default function OrgWithdrawalsPage() {
         wd={rejectWd}
         onClose={() => setRejectWd(null)}
         onConfirm={() => setRejectWd(null)}
+        t={t}
+        dark={dark}
       />
     </div>
   );

@@ -3,11 +3,13 @@ import {
   ChevronRight, ChevronDown, Search, Plus, MoreVertical, X,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { usePopoverPosition } from '../components/usePopoverPosition';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -45,11 +47,12 @@ const SORT_OPTIONS = ['По имени', 'По продажам', 'По зара
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options, value, onChange }: {
+function FilterSelect({ label, options, value, onChange, t }: {
   label: string;
   options: string[];
   value: string;
   onChange: (v: string) => void;
+  t: T;
 }) {
   const [focused, setFocused] = useState(false);
 
@@ -63,16 +66,16 @@ function FilterSelect({ label, options, value, onChange }: {
         style={{
           height: '40px',
           padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
           borderRadius: '8px',
-          background: C.surface,
+          background: t.surface,
           fontFamily: F.inter,
           fontSize: '14px',
-          color: C.text2,
+          color: t.text2,
           outline: 'none',
           appearance: 'none',
           cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
           minWidth: '160px',
         }}
@@ -80,7 +83,7 @@ function FilterSelect({ label, options, value, onChange }: {
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={14} color={C.text3} style={{
+      <ChevronDown size={14} color={t.text3} style={{
         position: 'absolute',
         right: '10px',
         top: '50%',
@@ -95,13 +98,18 @@ function FilterSelect({ label, options, value, onChange }: {
    STATUS BADGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatusBadge({ status }: { status: SellerRow['status'] }) {
-  const configs: Record<SellerRow['status'], { bg: string; color: string; dot: string }> = {
-    'Активен': { bg: C.successBg, color: '#15803D', dot: C.success },
-    'Неактивен': { bg: '#F3F4F6', color: '#374151', dot: '#9CA3AF' },
-  };
+const STATUS_STYLE_LIGHT: Record<SellerRow['status'], { bg: string; color: string; dot: string }> = {
+  'Активен':   { bg: C.successBg, color: '#15803D', dot: C.success },
+  'Неактивен': { bg: '#F3F4F6',   color: '#374151', dot: '#9CA3AF' },
+};
 
-  const cfg = configs[status];
+const STATUS_STYLE_DARK: Record<SellerRow['status'], { bg: string; color: string; dot: string }> = {
+  'Активен':   { bg: 'rgba(52,211,153,0.12)', color: '#34D399', dot: '#34D399' },
+  'Неактивен': { bg: D.tableAlt,              color: D.text2,   dot: D.text4 },
+};
+
+function StatusBadge({ status, dark }: { status: SellerRow['status']; dark: boolean }) {
+  const cfg = (dark ? STATUS_STYLE_DARK : STATUS_STYLE_LIGHT)[status];
 
   return (
     <span style={{
@@ -128,8 +136,9 @@ function StatusBadge({ status }: { status: SellerRow['status'] }) {
    PROGRESS CELL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ProgressCell({ value }: { value: number }) {
-  const barColor = value >= 60 ? C.success : value >= 40 ? C.warning : C.error;
+function ProgressCell({ value, t, dark }: { value: number; t: T; dark: boolean }) {
+  const barColor = value >= 60 ? t.success : value >= 40 ? t.warning : t.error;
+  const trackBg = dark ? t.tableAlt : '#E5E7EB';
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '100px' }}>
@@ -137,7 +146,7 @@ function ProgressCell({ value }: { value: number }) {
         flex: 1,
         height: '6px',
         borderRadius: '3px',
-        background: '#E5E7EB',
+        background: trackBg,
         overflow: 'hidden',
       }}>
         <div style={{
@@ -150,7 +159,7 @@ function ProgressCell({ value }: { value: number }) {
       <span style={{
         fontFamily: F.mono,
         fontSize: '11px',
-        color: C.text3,
+        color: t.text3,
         flexShrink: 0,
       }}>
         {value}%
@@ -163,7 +172,7 @@ function ProgressCell({ value }: { value: number }) {
    ACTION DOTS DROPDOWN
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ActionDropdown({ sellerId }: { sellerId: number }) {
+function ActionDropdown({ sellerId, t, dark }: { sellerId: number; t: T; dark: boolean }) {
   const pop = usePopoverPosition();
   const [hovered, setHovered] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -175,6 +184,10 @@ function ActionDropdown({ sellerId }: { sellerId: number }) {
     { id: 'deactivate', label: 'Деактивировать', danger: true },
   ];
 
+  const dangerHoverBg = dark ? 'rgba(248,113,113,0.12)' : '#FEF2F2';
+  const dangerText    = dark ? '#F87171' : '#DC2626';
+  const safeHoverBg   = dark ? t.tableHover : '#F9FAFB';
+
   return (
     <div ref={pop.rootRef} style={{ position: 'relative' }}>
       <button
@@ -183,9 +196,9 @@ function ActionDropdown({ sellerId }: { sellerId: number }) {
         style={{
           width: '28px',
           height: '28px',
-          border: `1px solid ${pop.open ? C.blue : C.border}`,
+          border: `1px solid ${pop.open ? t.blue : t.border}`,
           borderRadius: '6px',
-          background: pop.open ? C.blueLt : C.surface,
+          background: pop.open ? t.blueLt : t.surface,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -193,22 +206,22 @@ function ActionDropdown({ sellerId }: { sellerId: number }) {
           transition: 'all 0.12s',
         }}
       >
-        <MoreVertical size={14} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
+        <MoreVertical size={14} color={pop.open ? t.blue : t.text3} strokeWidth={1.75} />
       </button>
 
       {pop.open && (
         <div ref={pop.menuRef} style={{
           ...pop.menuStyle,
-          background: C.surface,
-          border: `1px solid ${C.border}`,
+          background: t.surface,
+          border: `1px solid ${t.border}`,
           borderRadius: '10px',
           padding: '6px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          boxShadow: dark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.12)',
           minWidth: '200px',
         }}>
           {actions.map((action, idx) => (
             <React.Fragment key={action.id}>
-              {idx === actions.length - 1 && <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />}
+              {idx === actions.length - 1 && <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />}
               <button
                 onMouseEnter={() => setHovered(action.id)}
                 onMouseLeave={() => setHovered(null)}
@@ -225,11 +238,11 @@ function ActionDropdown({ sellerId }: { sellerId: number }) {
                   padding: '8px 10px',
                   borderRadius: '7px',
                   border: 'none',
-                  background: hovered === action.id ? (action.danger ? '#FEF2F2' : '#F9FAFB') : 'none',
+                  background: hovered === action.id ? (action.danger ? dangerHoverBg : safeHoverBg) : 'none',
                   cursor: 'pointer',
                   fontFamily: F.inter,
                   fontSize: '13px',
-                  color: hovered === action.id && action.danger ? '#DC2626' : C.text2,
+                  color: hovered === action.id && action.danger ? dangerText : t.text2,
                   transition: 'all 0.1s',
                 }}
               >
@@ -247,14 +260,35 @@ function ActionDropdown({ sellerId }: { sellerId: number }) {
    DATA TABLE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DataTable({ sellers }: { sellers: SellerRow[] }) {
+function DataTable({ sellers, t, dark }: { sellers: SellerRow[]; t: T; dark: boolean }) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const navigate = useNavigate();
 
+  const headerCellStyle: React.CSSProperties = {
+    padding: '12px 16px',
+    textAlign: 'left',
+    fontFamily: F.inter,
+    fontSize: '12px',
+    fontWeight: 600,
+    color: t.text3,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    whiteSpace: 'nowrap',
+  };
+
+  const dataCellStyle: React.CSSProperties = {
+    padding: '14px 16px',
+    textAlign: 'left',
+    whiteSpace: 'nowrap',
+  };
+
+  const headerBg = dark ? t.tableHeaderBg : '#FAFBFC';
+  const rowHoverBg = dark ? t.tableHover : '#FAFBFC';
+
   return (
     <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       overflowX: 'auto',
     }}>
@@ -265,8 +299,8 @@ function DataTable({ sellers }: { sellers: SellerRow[] }) {
       }}>
         <thead>
           <tr style={{
-            background: '#FAFBFC',
-            borderBottom: `1px solid ${C.border}`,
+            background: headerBg,
+            borderBottom: `1px solid ${t.border}`,
           }}>
             <th style={headerCellStyle}>#</th>
             <th style={headerCellStyle}>Продавец</th>
@@ -292,75 +326,75 @@ function DataTable({ sellers }: { sellers: SellerRow[] }) {
               onMouseLeave={() => setHoveredRow(null)}
               onClick={() => navigate(`/sellers/${seller.id}`)}
               style={{
-                borderBottom: `1px solid ${C.border}`,
-                background: hoveredRow === seller.id ? '#FAFBFC' : C.surface,
+                borderBottom: `1px solid ${t.border}`,
+                background: hoveredRow === seller.id ? rowHoverBg : t.surface,
                 cursor: 'pointer',
                 transition: 'background 0.12s',
               }}
             >
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
                   {seller.id}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>
                   {seller.name}
                 </span>
               </td>
               <td style={{ ...dataCellStyle, ...responsivePhone }}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {seller.phone}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {seller.assigned}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {seller.sold}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <ProgressCell value={seller.percentSold} />
+                <ProgressCell value={seller.percentSold} t={t} dark={dark} />
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {seller.kpi1}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {seller.kpi2}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {seller.kpi3}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {seller.earned}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>
                   {seller.withdrawn}
                 </span>
               </td>
               <td style={{ ...dataCellStyle, ...responsiveBalance }}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: C.text1 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: t.text1 }}>
                   {seller.balance}
                 </span>
               </td>
               <td style={dataCellStyle}>
-                <StatusBadge status={seller.status} />
+                <StatusBadge status={seller.status} dark={dark} />
               </td>
               <td style={dataCellStyle}>
-                <ActionDropdown sellerId={seller.id} />
+                <ActionDropdown sellerId={seller.id} t={t} dark={dark} />
               </td>
             </tr>
           ))}
@@ -370,24 +404,6 @@ function DataTable({ sellers }: { sellers: SellerRow[] }) {
   );
 }
 
-const headerCellStyle: React.CSSProperties = {
-  padding: '12px 16px',
-  textAlign: 'left',
-  fontFamily: F.inter,
-  fontSize: '12px',
-  fontWeight: 600,
-  color: C.text3,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
-  whiteSpace: 'nowrap',
-};
-
-const dataCellStyle: React.CSSProperties = {
-  padding: '14px 16px',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
-};
-
 const responsivePhone: React.CSSProperties = {};
 const responsiveBalance: React.CSSProperties = {};
 
@@ -395,7 +411,7 @@ const responsiveBalance: React.CSSProperties = {};
    ADD SELLER MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function AddSellerModal({ open, onClose, t, dark }: { open: boolean; onClose: () => void; t: T; dark: boolean }) {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [wallet, setWallet] = useState('');
@@ -403,6 +419,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
 
   const [saveHover, setSaveHover] = useState(false);
   const [cancelHover, setCancelHover] = useState(false);
+  const [closeHover, setCloseHover] = useState(false);
 
   if (!open) return null;
 
@@ -411,6 +428,10 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
     onClose();
   };
 
+  const overlay = dark ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)';
+  const modalShadow = dark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 20px 60px rgba(0,0,0,0.15)';
+  const closeHovBg = dark ? t.tableHover : '#F3F4F6';
+
   return (
     <div style={{
       position: 'fixed',
@@ -418,19 +439,19 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
       left: 0,
       right: 0,
       bottom: 0,
-      background: 'rgba(0, 0, 0, 0.4)',
+      background: overlay,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 100,
     }}>
       <div style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
+        background: t.surface,
+        border: `1px solid ${t.border}`,
         borderRadius: '16px',
         width: '500px',
         maxWidth: '90vw',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+        boxShadow: modalShadow,
       }}>
         {/* Header */}
         <div style={{
@@ -438,32 +459,35 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '20px 24px',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${t.border}`,
         }}>
           <h2 style={{
             fontFamily: F.dm,
             fontSize: '18px',
             fontWeight: 700,
-            color: C.text1,
+            color: t.text1,
             margin: 0,
           }}>
             Новый продавец
           </h2>
           <button
+            onMouseEnter={() => setCloseHover(true)}
+            onMouseLeave={() => setCloseHover(false)}
             onClick={onClose}
             style={{
               width: '32px',
               height: '32px',
-              border: `1px solid ${C.border}`,
+              border: `1px solid ${t.border}`,
               borderRadius: '8px',
-              background: C.surface,
+              background: closeHover ? closeHovBg : t.surface,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
+              transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={closeHover ? t.text1 : t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -477,7 +501,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 marginBottom: '8px',
               }}>
                 ФИО
@@ -490,12 +514,12 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
                   width: '100%',
                   height: '40px',
                   padding: '0 12px',
-                  border: `1px solid ${C.inputBorder}`,
+                  border: `1px solid ${t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.inter,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -509,7 +533,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 marginBottom: '8px',
               }}>
                 Телефон
@@ -522,12 +546,12 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
                   width: '100%',
                   height: '40px',
                   padding: '0 12px',
-                  border: `1px solid ${C.inputBorder}`,
+                  border: `1px solid ${t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.mono,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -541,7 +565,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 marginBottom: '8px',
               }}>
                 UCOIN кошелёк (опционально)
@@ -554,12 +578,12 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
                   width: '100%',
                   height: '40px',
                   padding: '0 12px',
-                  border: `1px solid ${C.inputBorder}`,
+                  border: `1px solid ${t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.inter,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -573,7 +597,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: 500,
-                color: C.text2,
+                color: t.text2,
                 marginBottom: '8px',
               }}>
                 Карт назначить
@@ -587,12 +611,12 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
                   width: '100%',
                   height: '40px',
                   padding: '0 12px',
-                  border: `1px solid ${C.inputBorder}`,
+                  border: `1px solid ${t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.mono,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -600,7 +624,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
               <span style={{
                 fontFamily: F.inter,
                 fontSize: '12px',
-                color: C.text4,
+                color: t.text4,
                 marginTop: '6px',
                 display: 'block',
               }}>
@@ -617,7 +641,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
           justifyContent: 'flex-end',
           gap: '12px',
           padding: '16px 24px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHover(true)}
@@ -626,13 +650,13 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
             style={{
               height: '40px',
               padding: '0 20px',
-              border: `1px solid ${cancelHover ? C.blue : C.border}`,
+              border: `1px solid ${cancelHover ? t.blue : t.border}`,
               borderRadius: '8px',
-              background: cancelHover ? C.blueLt : C.surface,
+              background: cancelHover ? (dark ? t.tableHover : t.blueLt) : 'transparent',
               fontFamily: F.inter,
               fontSize: '14px',
               fontWeight: 500,
-              color: cancelHover ? C.blue : C.text2,
+              color: cancelHover ? t.blue : t.text2,
               cursor: 'pointer',
               transition: 'all 0.12s',
             }}
@@ -648,7 +672,7 @@ function AddSellerModal({ open, onClose }: { open: boolean; onClose: () => void 
               padding: '0 20px',
               border: 'none',
               borderRadius: '8px',
-              background: saveHover ? C.blueHover : C.blue,
+              background: saveHover ? t.blueHover : t.blue,
               fontFamily: F.inter,
               fontSize: '14px',
               fontWeight: 500,
@@ -673,6 +697,8 @@ export default function SellersManagementPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -681,9 +707,12 @@ export default function SellersManagementPage() {
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addBtnHover, setAddBtnHover] = useState(false);
+  const [clearHover, setClearHover] = useState(false);
+
+  const clearHoverBg = dark ? t.tableHover : '#F3F4F6';
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>
       <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -698,9 +727,9 @@ export default function SellersManagementPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Продавцы</span>
+            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Продавцы</span>
           </div>
 
           {/* Top Bar */}
@@ -713,10 +742,10 @@ export default function SellersManagementPage() {
             flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Продавцы
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Управление продавцами Mysafar OOO
               </p>
             </div>
@@ -730,7 +759,7 @@ export default function SellersManagementPage() {
                 padding: '0 18px',
                 border: 'none',
                 borderRadius: '8px',
-                background: addBtnHover ? C.blueHover : C.blue,
+                background: addBtnHover ? t.blueHover : t.blue,
                 fontFamily: F.inter,
                 fontSize: '14px',
                 fontWeight: 500,
@@ -760,7 +789,7 @@ export default function SellersManagementPage() {
             <div style={{ position: 'relative', width: '300px', flexShrink: 0 }}>
               <Search
                 size={16}
-                color={searchFocused ? C.blue : C.text4}
+                color={searchFocused ? t.blue : t.text4}
                 style={{
                   position: 'absolute',
                   left: '12px',
@@ -781,15 +810,15 @@ export default function SellersManagementPage() {
                   height: '40px',
                   paddingLeft: '38px',
                   paddingRight: '12px',
-                  border: `1px solid ${searchFocused ? C.blue : C.inputBorder}`,
+                  border: `1px solid ${searchFocused ? t.blue : t.inputBorder}`,
                   borderRadius: '8px',
-                  background: C.surface,
+                  background: t.surface,
                   fontFamily: F.inter,
                   fontSize: '14px',
-                  color: C.text1,
+                  color: t.text1,
                   outline: 'none',
                   boxSizing: 'border-box',
-                  boxShadow: searchFocused ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: searchFocused ? `0 0 0 3px ${t.focusRing}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               />
@@ -800,6 +829,7 @@ export default function SellersManagementPage() {
               options={STATUSES}
               value={statusFilter}
               onChange={setStatusFilter}
+              t={t}
             />
 
             <FilterSelect
@@ -807,11 +837,14 @@ export default function SellersManagementPage() {
               options={SORT_OPTIONS}
               value={sortFilter}
               onChange={setSortFilter}
+              t={t}
             />
 
             {/* Clear filters */}
             {(search || statusFilter || sortFilter) && (
               <button
+                onMouseEnter={() => setClearHover(true)}
+                onMouseLeave={() => setClearHover(false)}
                 onClick={() => {
                   setSearch('');
                   setStatusFilter('');
@@ -819,10 +852,10 @@ export default function SellersManagementPage() {
                 }}
                 style={{
                   border: 'none',
-                  background: 'none',
+                  background: clearHover ? clearHoverBg : 'none',
                   fontFamily: F.inter,
                   fontSize: '13px',
-                  color: C.text3,
+                  color: clearHover ? t.text1 : t.text3,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -830,14 +863,6 @@ export default function SellersManagementPage() {
                   padding: '4px 8px',
                   borderRadius: '6px',
                   transition: 'color 0.12s, background 0.12s',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget.style.color = C.text1);
-                  (e.currentTarget.style.background = '#F3F4F6');
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget.style.color = C.text3);
-                  (e.currentTarget.style.background = 'none');
                 }}
               >
                 <span style={{ fontSize: '16px', lineHeight: 1, marginTop: '-1px' }}>×</span>
@@ -847,14 +872,14 @@ export default function SellersManagementPage() {
           </div>
 
           {/* Data Table */}
-          <DataTable sellers={SELLERS} />
+          <DataTable sellers={SELLERS} t={t} dark={dark} />
 
           {/* Pagination */}
           <div style={{
             marginTop: '16px',
             fontFamily: F.inter,
             fontSize: '13px',
-            color: C.text3,
+            color: t.text3,
             textAlign: 'center',
           }}>
             Показано 1–6 из 6
@@ -865,7 +890,7 @@ export default function SellersManagementPage() {
       </div>
 
       {/* Add Seller Modal */}
-      <AddSellerModal open={addModalOpen} onClose={() => setAddModalOpen(false)} />
+      <AddSellerModal open={addModalOpen} onClose={() => setAddModalOpen(false)} t={t} dark={dark} />
 
       {/* Responsive styles */}
       <style>{`

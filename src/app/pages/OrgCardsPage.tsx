@@ -4,10 +4,12 @@ import {
   ShoppingBag, CheckCircle2,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES & DATA
@@ -51,14 +53,20 @@ const KPI_OPTIONS = ['Без KPI', 'KPI 1 ✅', 'KPI 2 ✅', 'KPI 3 ✅'];
    STAT PILL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatPill({ label, value, variant = 'neutral' }: {
+function StatPill({ label, value, variant = 'neutral', t, dark }: {
   label: string;
   value: string | number;
   variant?: 'neutral' | 'success';
+  t: T;
+  dark: boolean;
 }) {
   const colors = {
-    neutral: { bg: '#F3F4F6', color: C.text2, border: C.border },
-    success: { bg: C.successBg, color: '#15803D', border: '#BBF7D0' },
+    neutral: dark
+      ? { bg: 'transparent', color: D.text2, border: D.border }
+      : { bg: '#F3F4F6',     color: C.text2, border: C.border },
+    success: dark
+      ? { bg: 'rgba(52,211,153,0.12)', color: '#34D399', border: 'transparent' }
+      : { bg: C.successBg,             color: '#15803D', border: '#BBF7D0' },
   };
   const cfg = colors[variant];
 
@@ -69,7 +77,7 @@ function StatPill({ label, value, variant = 'neutral' }: {
       background: cfg.bg, border: `1px solid ${cfg.border}`,
       whiteSpace: 'nowrap',
     }}>
-      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>{label}:</span>
+      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>{label}:</span>
       <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: cfg.color }}>{value}</span>
     </div>
   );
@@ -79,8 +87,8 @@ function StatPill({ label, value, variant = 'neutral' }: {
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options, value, onChange }: {
-  label: string; options: string[]; value: string; onChange: (v: string) => void;
+function FilterSelect({ label, options, value, onChange, t }: {
+  label: string; options: string[]; value: string; onChange: (v: string) => void; t: T;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -92,11 +100,11 @@ function FilterSelect({ label, options, value, onChange }: {
         onBlur={() => setFocused(false)}
         style={{
           height: '40px', padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
-          fontFamily: F.inter, fontSize: '14px', color: C.text2,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
+          fontFamily: F.inter, fontSize: '14px', color: t.text2,
           outline: 'none', appearance: 'none', cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
           minWidth: '160px',
         }}
@@ -104,7 +112,7 @@ function FilterSelect({ label, options, value, onChange }: {
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={14} color={C.text3} style={{
+      <ChevronDown size={14} color={t.text3} style={{
         position: 'absolute', right: '10px', top: '50%',
         transform: 'translateY(-50%)', pointerEvents: 'none',
       }} />
@@ -116,15 +124,24 @@ function FilterSelect({ label, options, value, onChange }: {
    STATUS BADGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function StatusBadge({ status }: { status: CardStatus }) {
-  const configs: Record<CardStatus, { bg: string; color: string; dot: string }> = {
-    'Активна':    { bg: C.successBg, color: '#15803D', dot: C.success },
-    'Зарег.':     { bg: C.infoBg,    color: '#0E7490', dot: C.info },
-    'У продавца': { bg: C.warningBg, color: '#B45309', dot: C.warning },
-    'На складе':  { bg: '#F3F4F6',   color: '#374151', dot: '#9CA3AF' },
-    'Продана':    { bg: C.infoBg,    color: '#0E7490', dot: C.info },
-  };
-  const cfg = configs[status];
+const STATUS_BADGE_LIGHT: Record<CardStatus, { bg: string; color: string; dot: string }> = {
+  'Активна':    { bg: C.successBg, color: '#15803D', dot: C.success },
+  'Зарег.':     { bg: C.infoBg,    color: '#0E7490', dot: C.info },
+  'У продавца': { bg: C.warningBg, color: '#B45309', dot: C.warning },
+  'На складе':  { bg: '#F3F4F6',   color: '#374151', dot: '#9CA3AF' },
+  'Продана':    { bg: C.infoBg,    color: '#0E7490', dot: C.info },
+};
+
+const STATUS_BADGE_DARK: Record<CardStatus, { bg: string; color: string; dot: string }> = {
+  'Активна':    { bg: 'rgba(52,211,153,0.12)',  color: '#34D399', dot: '#34D399' },
+  'Зарег.':     { bg: 'rgba(34,211,238,0.12)',  color: '#22D3EE', dot: '#22D3EE' },
+  'У продавца': { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24', dot: '#FBBF24' },
+  'На складе':  { bg: D.tableAlt,               color: D.text2,   dot: D.text4 },
+  'Продана':    { bg: 'rgba(34,211,238,0.12)',  color: '#22D3EE', dot: '#22D3EE' },
+};
+
+function StatusBadge({ status, dark }: { status: CardStatus; dark: boolean }) {
+  const cfg = (dark ? STATUS_BADGE_DARK : STATUS_BADGE_LIGHT)[status];
 
   return (
     <span style={{
@@ -143,14 +160,14 @@ function StatusBadge({ status }: { status: CardStatus }) {
    TYPE BADGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function TypeBadge({ type }: { type: string }) {
+function TypeBadge({ type, t }: { type: string; t: T }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '3px 9px', borderRadius: '8px',
-      background: 'transparent', border: `1px solid ${C.border}`,
-      color: C.text2, whiteSpace: 'nowrap', flexShrink: 0,
+      background: 'transparent', border: `1px solid ${t.border}`,
+      color: t.text2, whiteSpace: 'nowrap', flexShrink: 0,
     }}>
       {type}
     </span>
@@ -161,15 +178,16 @@ function TypeBadge({ type }: { type: string }) {
    KPI CHECK CELL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function KPICheckCell({ value }: { value: boolean | number | null }) {
+function KPICheckCell({ value, t, dark }: { value: boolean | number | null; t: T; dark: boolean }) {
   if (value === null) {
-    return <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text4 }}>—</span>;
+    return <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text4 }}>—</span>;
   }
   if (value === true) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         <div style={{
-          width: '16px', height: '16px', borderRadius: '4px', background: C.success,
+          width: '16px', height: '16px', borderRadius: '4px',
+          background: dark ? '#34D399' : C.success,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <Check size={10} color="#FFFFFF" strokeWidth={3} />
@@ -178,12 +196,13 @@ function KPICheckCell({ value }: { value: boolean | number | null }) {
     );
   }
   const pct = value as number;
+  const trackBg = dark ? D.progressTrack : '#E5E7EB';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '100px' }}>
-      <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: '#E5E7EB', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: C.blue, borderRadius: '3px' }} />
+      <div style={{ flex: 1, height: '6px', borderRadius: '3px', background: trackBg, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: t.blue, borderRadius: '3px' }} />
       </div>
-      <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.text3, flexShrink: 0 }}>{pct}%</span>
+      <span style={{ fontFamily: F.mono, fontSize: '11px', color: t.text3, flexShrink: 0 }}>{pct}%</span>
     </div>
   );
 }
@@ -192,21 +211,34 @@ function KPICheckCell({ value }: { value: boolean | number | null }) {
    DATA TABLE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DataTable({ cards, onRowClick, onRecordSale }: {
+function DataTable({ cards, onRowClick, onRecordSale, t, dark }: {
   cards: CardRow[];
   onRowClick: (id: number) => void;
   onRecordSale: (card: CardRow) => void;
+  t: T;
+  dark: boolean;
 }) {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
+  const hCell: React.CSSProperties = {
+    padding: '12px 16px', textAlign: 'left',
+    fontFamily: F.inter, fontSize: '12px', fontWeight: 600,
+    color: t.text3, textTransform: 'uppercase',
+    letterSpacing: '0.04em', whiteSpace: 'nowrap',
+  };
+
+  const dCell: React.CSSProperties = {
+    padding: '14px 16px', textAlign: 'left', whiteSpace: 'nowrap',
+  };
+
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', overflowX: 'auto',
     }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1400px' }}>
         <thead>
-          <tr style={{ background: '#FAFBFC', borderBottom: `1px solid ${C.border}` }}>
+          <tr style={{ background: t.tableHeaderBg, borderBottom: `1px solid ${t.border}` }}>
             <th style={hCell}>Карта</th>
             <th style={hCell}>Тип</th>
             <th style={hCell}>Продавец</th>
@@ -229,41 +261,41 @@ function DataTable({ cards, onRowClick, onRecordSale }: {
               onMouseLeave={() => setHoveredRow(null)}
               onClick={() => onRowClick(card.id)}
               style={{
-                borderBottom: `1px solid ${C.border}`,
-                background: hoveredRow === card.id ? '#FAFBFC' : C.surface,
+                borderBottom: `1px solid ${t.border}`,
+                background: hoveredRow === card.id ? t.tableHover : t.surface,
                 cursor: 'pointer', transition: 'background 0.12s',
               }}
             >
               <td style={dCell}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text1 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text1 }}>
                   ...{card.cardNumber.slice(-4)}
                 </span>
               </td>
-              <td style={dCell}><TypeBadge type={card.type} /></td>
+              <td style={dCell}><TypeBadge type={card.type} t={t} /></td>
               <td style={dCell}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{card.seller}</span>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{card.seller}</span>
               </td>
               <td style={dCell}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{card.client}</span>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{card.client}</span>
               </td>
               <td style={dCell}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text3 }}>{card.phone}</span>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text3 }}>{card.phone}</span>
               </td>
-              <td style={dCell}><StatusBadge status={card.status} /></td>
-              <td style={dCell}><KPICheckCell value={card.kpi1} /></td>
-              <td style={dCell}><KPICheckCell value={card.kpi2} /></td>
-              <td style={dCell}><KPICheckCell value={card.kpi3} /></td>
+              <td style={dCell}><StatusBadge status={card.status} dark={dark} /></td>
+              <td style={dCell}><KPICheckCell value={card.kpi1} t={t} dark={dark} /></td>
+              <td style={dCell}><KPICheckCell value={card.kpi2} t={t} dark={dark} /></td>
+              <td style={dCell}><KPICheckCell value={card.kpi3} t={t} dark={dark} /></td>
               <td style={dCell}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{card.topup}</span>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{card.topup}</span>
               </td>
               <td style={dCell}>
-                <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{card.spent}</span>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{card.spent}</span>
               </td>
               <td style={{ ...dCell, textAlign: 'right' }}>
                 {card.status === 'У продавца' ? (
-                  <RecordSaleBtn onClick={e => { e.stopPropagation(); onRecordSale(card); }} />
+                  <RecordSaleBtn onClick={e => { e.stopPropagation(); onRecordSale(card); }} t={t} dark={dark} />
                 ) : (
-                  <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>—</span>
+                  <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4 }}>—</span>
                 )}
               </td>
             </tr>
@@ -274,15 +306,13 @@ function DataTable({ cards, onRowClick, onRecordSale }: {
   );
 }
 
-const hCell: React.CSSProperties = {
-  padding: '12px 16px', textAlign: 'left',
-  fontFamily: F.inter, fontSize: '12px', fontWeight: 600,
-  color: C.text3, textTransform: 'uppercase',
-  letterSpacing: '0.04em', whiteSpace: 'nowrap',
-};
-
-function RecordSaleBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+function RecordSaleBtn({ onClick, t, dark }: { onClick: (e: React.MouseEvent) => void; t: T; dark: boolean }) {
   const [hov, setHov] = useState(false);
+  const idleBg = dark ? 'rgba(52,211,153,0.12)' : C.successBg;
+  const idleBorder = dark ? 'rgba(52,211,153,0.35)' : '#BBF7D0';
+  const idleColor = dark ? '#34D399' : '#15803D';
+  const hoverBg = dark ? '#10B981' : C.success;
+  const hoverBorder = dark ? '#10B981' : C.success;
   return (
     <button
       onMouseEnter={() => setHov(true)}
@@ -291,11 +321,11 @@ function RecordSaleBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) 
       aria-label="Зафиксировать продажу"
       style={{
         height: '30px', padding: '0 12px',
-        border: `1px solid ${hov ? C.success : '#BBF7D0'}`,
+        border: `1px solid ${hov ? hoverBorder : idleBorder}`,
         borderRadius: '7px',
-        background: hov ? C.success : C.successBg,
+        background: hov ? hoverBg : idleBg,
         fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
-        color: hov ? '#FFFFFF' : '#15803D',
+        color: hov ? '#FFFFFF' : idleColor,
         display: 'inline-flex', alignItems: 'center', gap: '5px',
         cursor: 'pointer', transition: 'all 0.12s',
       }}
@@ -306,33 +336,31 @@ function RecordSaleBtn({ onClick }: { onClick: (e: React.MouseEvent) => void }) 
   );
 }
 
-const dCell: React.CSSProperties = {
-  padding: '14px 16px', textAlign: 'left', whiteSpace: 'nowrap',
-};
-
 /* ═══════════════════════════════════════════════════════════════════════════
    RECORD SALE MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function OutlineBadge({ children }: { children: React.ReactNode }) {
+function OutlineBadge({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '2px 8px', borderRadius: '8px',
-      border: `1px solid ${C.border}`, background: C.surface,
-      color: C.text2, whiteSpace: 'nowrap',
+      border: `1px solid ${t.border}`, background: t.surface,
+      color: t.text2, whiteSpace: 'nowrap',
     }}>
       {children}
     </span>
   );
 }
 
-function RecordSaleModal({ open, card, onClose, onConfirm }: {
+function RecordSaleModal({ open, card, onClose, onConfirm, t, dark }: {
   open: boolean;
   card: CardRow | null;
   onClose: () => void;
   onConfirm: (phone: string) => void;
+  t: T;
+  dark: boolean;
 }) {
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
@@ -353,12 +381,16 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
 
   const canConfirm = phone.trim().length >= 9;
 
+  const closeHovBg = dark ? t.tableAlt : '#F3F4F6';
+  const cancelHovBg = dark ? t.tableHover : '#F9FAFB';
+  const disabledConfirmBg = dark ? 'rgba(59,130,246,0.35)' : '#93C5FD';
+
   return (
     <div
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(17, 24, 39, 0.50)',
+        background: dark ? 'rgba(0,0,0,0.6)' : 'rgba(17, 24, 39, 0.50)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 100, padding: '20px',
       }}
@@ -367,9 +399,9 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: '520px',
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: '12px',
-          boxShadow: '0 24px 48px rgba(0,0,0,0.18)',
+          background: t.surface, border: `1px solid ${t.border}`,
+          borderRadius: '16px',
+          boxShadow: dark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 24px 48px rgba(0,0,0,0.18)',
           display: 'flex', flexDirection: 'column',
           maxHeight: 'calc(100vh - 40px)',
         }}
@@ -377,12 +409,12 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '12px',
-          padding: '18px 20px', borderBottom: `1px solid ${C.border}`,
+          padding: '18px 20px', borderBottom: `1px solid ${t.border}`,
         }}>
-          <ShoppingBag size={22} color={C.success} strokeWidth={1.75} />
+          <ShoppingBag size={22} color={t.success} strokeWidth={1.75} />
           <h2 style={{
             flex: 1, margin: 0,
-            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: C.text1,
+            fontFamily: F.dm, fontSize: '17px', fontWeight: 700, color: t.text1,
           }}>
             Фиксация продажи
           </h2>
@@ -394,13 +426,13 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
             style={{
               width: '28px', height: '28px',
               border: 'none', borderRadius: '7px',
-              background: closeHov ? '#F3F4F6' : 'transparent',
+              background: closeHov ? closeHovBg : 'transparent',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               transition: 'background 0.12s',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={closeHov ? t.text1 : t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
@@ -411,18 +443,19 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
         }}>
           {/* Card info strip */}
           <div style={{
-            background: C.blueLt,
+            background: t.blueLt,
+            borderLeft: `3px solid ${t.blue}`,
             borderRadius: '8px', padding: '12px',
             display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
           }}>
             <span style={{
-              fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: C.text1,
+              fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: t.text1,
             }}>
               Карта ...{card.cardNumber.slice(-4)}
             </span>
-            <OutlineBadge>{card.type}</OutlineBadge>
-            <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Продавец: <span style={{ color: C.text1, fontWeight: 500 }}>{card.seller}</span>
+            <OutlineBadge t={t}>{card.type}</OutlineBadge>
+            <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Продавец: <span style={{ color: t.text1, fontWeight: 500 }}>{card.seller}</span>
             </span>
           </div>
 
@@ -430,9 +463,9 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
           <div>
             <label style={{
               display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
-              Телефон клиента<span style={{ color: C.error, marginLeft: '3px' }}>*</span>
+              Телефон клиента<span style={{ color: t.error, marginLeft: '3px' }}>*</span>
             </label>
             <input
               value={phone}
@@ -442,16 +475,16 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
               placeholder="+998 __ ___ __ __"
               style={{
                 width: '100%', height: '40px', padding: '0 12px',
-                border: `1px solid ${phoneFocus ? C.blue : C.inputBorder}`,
-                borderRadius: '8px', background: C.surface,
-                fontFamily: F.mono, fontSize: '14px', color: C.text1,
+                border: `1px solid ${phoneFocus ? t.blue : t.inputBorder}`,
+                borderRadius: '8px', background: t.surface,
+                fontFamily: F.mono, fontSize: '14px', color: t.text1,
                 outline: 'none', boxSizing: 'border-box',
-                boxShadow: phoneFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                boxShadow: phoneFocus ? `0 0 0 3px ${t.blueTint}` : 'none',
                 transition: 'border-color 0.12s, box-shadow 0.12s',
               }}
             />
             <div style={{
-              fontFamily: F.inter, fontSize: '11px', color: C.text4,
+              fontFamily: F.inter, fontSize: '11px', color: t.text4,
               marginTop: '6px',
             }}>
               Номер для привязки и уведомлений
@@ -462,7 +495,7 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
           <div>
             <label style={{
               display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
               ФИО клиента
             </label>
@@ -474,16 +507,16 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
               placeholder="Фамилия Имя"
               style={{
                 width: '100%', height: '40px', padding: '0 12px',
-                border: `1px solid ${nameFocus ? C.blue : C.inputBorder}`,
-                borderRadius: '8px', background: C.surface,
-                fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                border: `1px solid ${nameFocus ? t.blue : t.inputBorder}`,
+                borderRadius: '8px', background: t.surface,
+                fontFamily: F.inter, fontSize: '14px', color: t.text1,
                 outline: 'none', boxSizing: 'border-box',
-                boxShadow: nameFocus ? `0 0 0 3px ${C.blueTint}` : 'none',
+                boxShadow: nameFocus ? `0 0 0 3px ${t.blueTint}` : 'none',
                 transition: 'border-color 0.12s, box-shadow 0.12s',
               }}
             />
             <div style={{
-              fontFamily: F.inter, fontSize: '11px', color: C.text4,
+              fontFamily: F.inter, fontSize: '11px', color: t.text4,
               marginTop: '6px',
             }}>
               Опционально — будет отображаться в отчётах
@@ -491,12 +524,12 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
           </div>
 
           {/* Divider */}
-          <div style={{ height: '1px', background: C.border, margin: '2px 0' }} />
+          <div style={{ height: '1px', background: t.border, margin: '2px 0' }} />
 
           {/* Outcome list */}
           <div>
             <div style={{
-              fontFamily: F.inter, fontSize: '12px', color: C.text4,
+              fontFamily: F.inter, fontSize: '12px', color: t.text4,
               marginBottom: '8px',
             }}>
               После фиксации:
@@ -512,9 +545,9 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
               ].map((txt, i) => (
                 <li key={i} style={{
                   display: 'flex', gap: '8px',
-                  fontFamily: F.inter, fontSize: '12px', color: C.text2, lineHeight: 1.5,
+                  fontFamily: F.inter, fontSize: '12px', color: t.text2, lineHeight: 1.5,
                 }}>
-                  <span style={{ color: C.text4, flexShrink: 0 }}>•</span>
+                  <span style={{ color: t.text4, flexShrink: 0 }}>•</span>
                   <span>{txt}</span>
                 </li>
               ))}
@@ -526,7 +559,7 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
         <div style={{
           display: 'flex', gap: '10px', justifyContent: 'flex-end',
           padding: '14px 20px',
-          borderTop: `1px solid ${C.border}`,
+          borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHov(true)}
@@ -534,10 +567,10 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
             onClick={onClose}
             style={{
               height: '38px', padding: '0 18px',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              background: cancelHov ? '#F9FAFB' : C.surface,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
+              background: cancelHov ? cancelHovBg : 'transparent',
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text1, cursor: 'pointer',
+              color: t.text2, cursor: 'pointer',
               transition: 'background 0.12s',
             }}
           >
@@ -551,13 +584,15 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
             style={{
               height: '38px', padding: '0 18px',
               border: 'none', borderRadius: '8px',
-              background: !canConfirm ? '#93C5FD' : confirmHov ? C.blueHover : C.blue,
+              background: !canConfirm ? disabledConfirmBg : confirmHov ? t.blueHover : t.blue,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
               color: '#FFFFFF',
               cursor: canConfirm ? 'pointer' : 'not-allowed',
-              opacity: canConfirm ? 1 : 0.85,
+              opacity: canConfirm ? 1 : 0.5,
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              boxShadow: canConfirm && confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : canConfirm ? '0 1px 3px rgba(37,99,235,0.16)' : 'none',
+              boxShadow: dark
+                ? 'none'
+                : canConfirm && confirmHov ? '0 2px 8px rgba(37,99,235,0.28)' : canConfirm ? '0 1px 3px rgba(37,99,235,0.16)' : 'none',
               transition: 'all 0.15s',
             }}
           >
@@ -574,11 +609,14 @@ function RecordSaleModal({ open, card, onClose, onConfirm }: {
    SUCCESS TOAST
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SuccessToast({ message, onClose }: { message: string; onClose: () => void }) {
+function SuccessToast({ message, onClose, t, dark }: { message: string; onClose: () => void; t: T; dark: boolean }) {
   useEffect(() => {
-    const t = setTimeout(onClose, 4000);
-    return () => clearTimeout(t);
+    const tm = setTimeout(onClose, 4000);
+    return () => clearTimeout(tm);
   }, [onClose]);
+
+  const border = dark ? 'rgba(52,211,153,0.35)' : '#BBF7D0';
+  const iconBg = dark ? 'rgba(52,211,153,0.15)' : C.successBg;
 
   return (
     <div
@@ -587,12 +625,12 @@ function SuccessToast({ message, onClose }: { message: string; onClose: () => vo
       style={{
         position: 'fixed', bottom: '24px', right: '24px',
         maxWidth: '420px',
-        background: C.surface, border: `1px solid #BBF7D0`,
-        borderLeft: `3px solid ${C.success}`,
+        background: t.surface, border: `1px solid ${border}`,
+        borderLeft: `3px solid ${t.success}`,
         borderRadius: '10px',
         padding: '12px 14px',
         display: 'flex', alignItems: 'flex-start', gap: '10px',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
+        boxShadow: dark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 12px 32px rgba(0,0,0,0.12)',
         zIndex: 200,
         animation: 'toastIn 0.2s ease-out',
       }}
@@ -605,21 +643,21 @@ function SuccessToast({ message, onClose }: { message: string; onClose: () => vo
       `}</style>
       <div style={{
         width: '22px', height: '22px', borderRadius: '50%',
-        background: C.successBg,
+        background: iconBg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, marginTop: '1px',
       }}>
-        <CheckCircle2 size={14} color={C.success} strokeWidth={2} />
+        <CheckCircle2 size={14} color={t.success} strokeWidth={2} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
-          color: C.text1, marginBottom: '2px',
+          color: t.text1, marginBottom: '2px',
         }}>
           Продажа зафиксирована
         </div>
         <div style={{
-          fontFamily: F.inter, fontSize: '12px', color: C.text3, lineHeight: 1.4,
+          fontFamily: F.inter, fontSize: '12px', color: t.text3, lineHeight: 1.4,
         }}>
           {message}
         </div>
@@ -634,7 +672,7 @@ function SuccessToast({ message, onClose }: { message: string; onClose: () => vo
           borderRadius: '5px', flexShrink: 0,
         }}
       >
-        <X size={13} color={C.text4} strokeWidth={1.75} />
+        <X size={13} color={t.text4} strokeWidth={1.75} />
       </button>
     </div>
   );
@@ -648,6 +686,8 @@ export default function OrgCardsPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
 
   const [search, setSearch] = useState('');
   const [sellerFilter, setSellerFilter] = useState('');
@@ -670,8 +710,10 @@ export default function OrgCardsPage() {
     setSaleCard(null);
   };
 
+  const resetHovBg = dark ? t.tableHover : '#F3F4F6';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>
       <Sidebar role="org"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -685,9 +727,9 @@ export default function OrgCardsPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Карты</span>
+            <span onClick={() => navigate('/org-dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Карты</span>
           </div>
 
           {/* Top Bar */}
@@ -696,10 +738,10 @@ export default function OrgCardsPage() {
             gap: '16px', marginBottom: '24px', flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Карты
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Карты организации Mysafar OOO
               </p>
             </div>
@@ -712,11 +754,13 @@ export default function OrgCardsPage() {
                   height: '40px', padding: '0 18px',
                   border: 'none',
                   borderRadius: '8px',
-                  background: bulkHov ? C.blueHover : C.blue,
+                  background: bulkHov ? t.blueHover : t.blue,
                   fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
                   color: '#FFFFFF',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px',
-                  boxShadow: bulkHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+                  boxShadow: dark
+                    ? 'none'
+                    : bulkHov ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
                   transition: 'all 0.15s',
                 }}
               >
@@ -727,11 +771,11 @@ export default function OrgCardsPage() {
                 onMouseLeave={() => setExportHover(false)}
                 style={{
                   height: '40px', padding: '0 18px',
-                  border: `1px solid ${exportHover ? C.blue : C.border}`,
+                  border: `1px solid ${exportHover ? t.blue : t.border}`,
                   borderRadius: '8px',
-                  background: exportHover ? C.blueLt : C.surface,
+                  background: exportHover ? t.blueLt : t.surface,
                   fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                  color: exportHover ? C.blue : C.text2,
+                  color: exportHover ? t.blue : t.text2,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px',
                   transition: 'all 0.12s',
                 }}
@@ -744,11 +788,11 @@ export default function OrgCardsPage() {
 
           {/* Stat Pills */}
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '24px' }}>
-            <StatPill label="Всего" value="500" />
-            <StatPill label="На складе" value="140" />
-            <StatPill label="У продавцов" value="130" />
-            <StatPill label="Продано" value="230" variant="success" />
-            <StatPill label="KPI 3 ✅" value="45" />
+            <StatPill label="Всего" value="500" t={t} dark={dark} />
+            <StatPill label="На складе" value="140" t={t} dark={dark} />
+            <StatPill label="У продавцов" value="130" t={t} dark={dark} />
+            <StatPill label="Продано" value="230" variant="success" t={t} dark={dark} />
+            <StatPill label="KPI 3 ✅" value="45" t={t} dark={dark} />
           </div>
 
           {/* Filter Bar */}
@@ -759,7 +803,7 @@ export default function OrgCardsPage() {
             <div style={{ position: 'relative', width: '340px', flexShrink: 0 }}>
               <Search
                 size={16}
-                color={searchFocused ? C.blue : C.text4}
+                color={searchFocused ? t.blue : t.text4}
                 style={{
                   position: 'absolute', left: '12px', top: '50%',
                   transform: 'translateY(-50%)', pointerEvents: 'none',
@@ -775,32 +819,32 @@ export default function OrgCardsPage() {
                 style={{
                   width: '100%', height: '40px',
                   paddingLeft: '38px', paddingRight: '12px',
-                  border: `1px solid ${searchFocused ? C.blue : C.inputBorder}`,
-                  borderRadius: '8px', background: C.surface,
-                  fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                  border: `1px solid ${searchFocused ? t.blue : t.inputBorder}`,
+                  borderRadius: '8px', background: t.surface,
+                  fontFamily: F.inter, fontSize: '14px', color: t.text1,
                   outline: 'none', boxSizing: 'border-box',
-                  boxShadow: searchFocused ? `0 0 0 3px ${C.blueTint}` : 'none',
+                  boxShadow: searchFocused ? `0 0 0 3px ${t.focusRing}` : 'none',
                   transition: 'border-color 0.12s, box-shadow 0.12s',
                 }}
               />
             </div>
 
-            <FilterSelect label="Продавец: Все" options={SELLERS_LIST} value={sellerFilter} onChange={setSellerFilter} />
-            <FilterSelect label="Статус: Все" options={STATUSES} value={statusFilter} onChange={setStatusFilter} />
-            <FilterSelect label="KPI: Все" options={KPI_OPTIONS} value={kpiFilter} onChange={setKpiFilter} />
+            <FilterSelect label="Продавец: Все" options={SELLERS_LIST} value={sellerFilter} onChange={setSellerFilter} t={t} />
+            <FilterSelect label="Статус: Все" options={STATUSES} value={statusFilter} onChange={setStatusFilter} t={t} />
+            <FilterSelect label="KPI: Все" options={KPI_OPTIONS} value={kpiFilter} onChange={setKpiFilter} t={t} />
 
             {(search || sellerFilter || statusFilter || kpiFilter) && (
               <button
                 onClick={() => { setSearch(''); setSellerFilter(''); setStatusFilter(''); setKpiFilter(''); }}
                 style={{
                   border: 'none', background: 'none',
-                  fontFamily: F.inter, fontSize: '13px', color: C.text3,
+                  fontFamily: F.inter, fontSize: '13px', color: t.text3,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
                   padding: '4px 8px', borderRadius: '6px',
                   transition: 'color 0.12s, background 0.12s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = C.text1; e.currentTarget.style.background = '#F3F4F6'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = C.text3; e.currentTarget.style.background = 'none'; }}
+                onMouseEnter={e => { e.currentTarget.style.color = t.text1; e.currentTarget.style.background = resetHovBg; }}
+                onMouseLeave={e => { e.currentTarget.style.color = t.text3; e.currentTarget.style.background = 'none'; }}
               >
                 <span style={{ fontSize: '16px', lineHeight: 1, marginTop: '-1px' }}>×</span>
                 Сбросить
@@ -809,12 +853,12 @@ export default function OrgCardsPage() {
           </div>
 
           {/* Data Table */}
-          <DataTable cards={CARDS} onRowClick={handleRowClick} onRecordSale={setSaleCard} />
+          <DataTable cards={CARDS} onRowClick={handleRowClick} onRecordSale={setSaleCard} t={t} dark={dark} />
 
           {/* Pagination */}
           <div style={{
             marginTop: '16px', fontFamily: F.inter, fontSize: '13px',
-            color: C.text3, textAlign: 'center',
+            color: t.text3, textAlign: 'center',
           }}>
             Показано 1–10 из 500
           </div>
@@ -828,9 +872,11 @@ export default function OrgCardsPage() {
         card={saleCard}
         onClose={() => setSaleCard(null)}
         onConfirm={handleConfirmSale}
+        t={t}
+        dark={dark}
       />
 
-      {toast && <SuccessToast message={toast} onClose={() => setToast(null)} />}
+      {toast && <SuccessToast message={toast} onClose={() => setToast(null)} t={t} dark={dark} />}
     </div>
   );
 }
