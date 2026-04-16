@@ -4,6 +4,26 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
+## 2026-04-16 (evening) — DS showcase rows themed + flagged-item cleanup
+
+**Module:** all (design-system showcase + small fixes)
+**Commits:** uncommitted working tree — 15 files, +945 / −837 lines. Session builds on `8573129`.
+**Files touched:** 15 — 10 DS rows + `Sidebar.tsx` + `CardBatchDetailPage.tsx` + `SettingsPage.tsx` + 2 sidebar showcase pages.
+
+**What changed:**
+
+- **10/10 DS showcase rows now themed** — `Row1_ColorTypo`, `Row2_SidebarBtnBadge`, `Row3_StatCards`, `Row4_Table`, `Row5_KPIStepper`, `Row6_Charts`, `Row7_Forms`, `Row8_DrawerModalToast`, `Row9_Misc`, `Row10_DateDark`. Each row now hoists `const [dark] = useDarkMode(); const t = theme(dark);` at the top and threads `t` / `dark` into its page-local helpers. Card chrome, labels, dividers, input chromes, chart axis / grid / tooltip, drawer tabs, modal shadows + overlay-tint icons, toast accents, sidebar item hover/active, stat-card icon tints all switch via the tokens. Status pills with multi-state palettes (Table status / Card-status flow / Row2 badge grid / Row3 trend pills / Row3 icon tints) use dedicated `_LIGHT` / `_DARK` sibling maps branched on `dark`. Funnel + donut chart palettes split into `FUNNEL_LIGHT` / `FUNNEL_DARK` and `DONUT_LIGHT` / `DONUT_DARK` so the lightest blues don't wash out on the dark surface.
+- **Palette + typography specimens stay literal.** Swatch tiles in Row1 keep `background: hex` as-is (they exist to demonstrate that exact color), and Row1's `typeScale` sample `color` values stay literal for the same reason. Only the chrome around them themes. Row10's "Dark Theme Token Overrides" strip is a pinned side-by-side light + dark reference regardless of the global theme.
+- **`<Sidebar>` gained `activePath?: string`** — overrides `useLocation()` for active-item detection. Both `/sidebar` and `/sidebar-org` showcase pages now pass `activePath="/dashboard"` / `"/org-dashboard"` so each 4-quadrant matrix cell highlights a realistic nav item.
+- **Sidebar dead code deleted** — `BankAdminSidebarDemo`, `OrgAdminSidebarDemo`, and the `StateLabel` helper used only by them were removed (~85 lines). No page imported them; the showcase pages render `<Sidebar>` directly.
+- **`CardBatchDetailPage` `ArchiveModal` confirm button reverted to primary-blue in both themes.** Archive is reversible (data stays accessible in "Архив") — the destructive-outline treatment that landed during T-13 was wrong for a reversible action. Now: filled `t.blue` / `t.blueHover` with white text + Archive icon in both themes.
+- **`SettingsPage` `ThemeThumbnail` SVG fixed.** The `system` variant referenced `mask="url(#dark)"` without a matching `<mask>` definition — dead code that silently rendered wrong. Replaced with a proper `systemSplitDark` complement clip so the lower-right triangle actually shows dark sidebar + content rects.
+- **Docs**: `AI_CONTEXT.md` bumped to "10/10 DS showcase rows" and notes the DS-row theming rule (chrome themes, specimens stay literal); `ROUTES.md` updated `<Sidebar>` prop contract to include `activePath`.
+
+**Follow-ups:** none — all flagged items from the prior session ("Dark-theme rollout completed") are now closed. Dev build green: `2301 modules transformed`, `built in 12.92s`.
+
+---
+
 ## 2026-04-16 (late) — Dark-theme rollout completed (50/50 pages) + login/logout wiring
 
 **Module:** all

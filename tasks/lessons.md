@@ -21,6 +21,13 @@ Root cause: Every page-local helper in this codebase uses `dark: boolean` as its
 Fix: When the theming agent reports complete, grep each touched file for `<Sidebar ` / `<Navbar ` and confirm the prop name is `darkMode`, not `dark`.
 Rule: Shared shell components (`Sidebar`, `Navbar`) take `darkMode={darkMode}`. Every other component in the codebase takes `dark={dark}`. When reviewing a page's theming work, audit the shell props first.
 
+## 2026-04-16 — DS showcase rows: theme the chrome, keep the specimens literal
+
+Mistake: First instinct when "theming" `Row1_ColorTypo` was to replace every hardcoded hex — including the `background: hex` on `Swatch` tiles and the `color` on `typeScale` samples — with `t.*` tokens. That would turn the palette demo into a demo of the *current theme only*, erasing the entire purpose of a swatch catalogue.
+Root cause: The DS rows look like regular UI at first glance. But a swatch is a specimen, not a styled element — its whole job is to render the raw hex so a designer can point to it and say "this is `C.blue`". Typography specimens are the same: each row demonstrates "body text at #374151 looks like this". Theming the sample overwrites the demonstration.
+Fix: Theme only the chrome — card container (`t.surface` / `t.border`), section headings, group labels, captions, dividers, table borders, hover bgs, input chromes, chart axis/grid, tooltip, drawer tabs, modal shadows, toast surfaces, status-pill multi-state maps via `_LIGHT`/`_DARK` siblings. Leave literal: (a) hex values inside `Swatch` tile backgrounds, (b) per-row `color` values in typography specimens, (c) Row10's light + dark side-by-side "Dark Theme Token Overrides" strip which is a pinned reference regardless of global theme.
+Rule: In any showcase/reference page, ask "is this element a *specimen* or *chrome*?" Specimens demonstrate a specific literal value — leave them alone. Chrome is everything else (container, navigation, structure) — theme it. When in doubt, check: does the element appear in the page's "title" (the thing being demonstrated)? If yes, it's a specimen.
+
 ## 2026-04-16 — Modal-first theming is a valid middle state
 
 Mistake: When asked to "theme every modal across the platform," the first instinct was to theme each modal's parent page in full — which ballooned scope to ~10,000 lines and blocked delivery.

@@ -114,10 +114,11 @@ interface SidebarProps {
   /** @deprecated — theme toggle moved to Navbar; prop kept for backward compat */
   onDarkModeToggle?: () => void;
   orgName?: string;         // shown as subtitle when role === 'org'
+  activePath?: string;      // overrides useLocation(); used by showcases where the URL doesn't match any menu entry
 }
 ```
 
-Routing-aware: highlights the nav item whose `path` matches `useLocation().pathname` (exact match or a `path + '/'` prefix). Groups are defined in `BANK_NAV` and `ORG_NAV` at the top of the file — add a new entry there when creating a new page. Uses dedicated `sidebarBg` / `sidebarBorder` tokens (`#FFFFFF` → `#12141C`, `#E5E7EB` → `#2D3148`).
+Routing-aware: highlights the nav item whose `path` matches the current pathname (exact match or a `path + '/'` prefix). By default the pathname comes from `useLocation()`, but showcase pages (`/sidebar`, `/sidebar-org`) pass `activePath="/dashboard"` / `"/org-dashboard"` so each 4-quadrant matrix cell still shows a realistic active item. Groups are defined in `BANK_NAV` and `ORG_NAV` at the top of the file — add a new entry there when creating a new page. Uses dedicated `sidebarBg` / `sidebarBorder` tokens (`#FFFFFF` → `#12141C`, `#E5E7EB` → `#2D3148`).
 
 ### `<Navbar />`
 File: [Navbar.tsx](../src/app/components/Navbar.tsx)
