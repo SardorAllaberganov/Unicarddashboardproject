@@ -1,5 +1,8 @@
 import React from 'react';
-import { F, C } from './tokens';
+import { F, C, theme } from './tokens';
+import { useDarkMode } from '../useDarkMode';
+
+type T = ReturnType<typeof theme>;
 
 const colorGroups = [
   {
@@ -72,8 +75,7 @@ const colorGroups = [
   },
 ];
 
-function Swatch({ name, hex, border }: { name: string; hex: string; border?: boolean }) {
-  const isDark = parseInt(hex.replace('#', ''), 16) < 0xaaaaaa;
+function Swatch({ name, hex, border, t }: { name: string; hex: string; border?: boolean; t: T }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
       <div
@@ -86,10 +88,10 @@ function Swatch({ name, hex, border }: { name: string; hex: string; border?: boo
           boxSizing: 'border-box',
         }}
       />
-      <div style={{ fontFamily: F.inter, fontSize: '11px', color: '#6B7280', textAlign: 'center', lineHeight: 1.3 }}>
+      <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text3, textAlign: 'center', lineHeight: 1.3 }}>
         {name}
       </div>
-      <div style={{ fontFamily: F.mono, fontSize: '10px', color: '#9CA3AF', textAlign: 'center' }}>
+      <div style={{ fontFamily: F.mono, fontSize: '10px', color: t.text4, textAlign: 'center' }}>
         {hex}
       </div>
     </div>
@@ -115,22 +117,25 @@ const typeScale = [
 ];
 
 export function Row1ColorTypo() {
+  const [darkMode] = useDarkMode();
+  const t = theme(darkMode);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
       {/* Color Tokens */}
-      <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '24px' }}>
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '24px' }}>
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: t.text1, marginBottom: '24px' }}>
           Color Tokens
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {colorGroups.map((group) => (
             <div key={group.title}>
-              <div style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>
+              <div style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: t.text4, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>
                 {group.title}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
                 {group.colors.map((c) => (
-                  <Swatch key={c.hex + c.name} {...c} />
+                  <Swatch key={c.hex + c.name} {...c} t={t} />
                 ))}
               </div>
             </div>
@@ -139,40 +144,40 @@ export function Row1ColorTypo() {
       </div>
 
       {/* Typography Scale */}
-      <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '24px' }}>
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '24px' }}>
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: t.text1, marginBottom: '24px' }}>
           Typography Scale
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {typeScale.map((t, i) => (
+          {typeScale.map((ts, i) => (
             <div
-              key={t.name}
+              key={ts.name}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 padding: '12px 0',
-                borderBottom: i < typeScale.length - 1 ? `1px solid #E5E7EB` : 'none',
+                borderBottom: i < typeScale.length - 1 ? `1px solid ${t.border}` : 'none',
                 gap: '24px',
               }}
             >
               <div style={{ width: '160px', flexShrink: 0 }}>
-                <div style={{ fontFamily: F.inter, fontSize: '12px', color: '#6B7280' }}>{t.name}</div>
-                <div style={{ fontFamily: F.mono, fontSize: '11px', color: '#9CA3AF', marginTop: '2px' }}>
-                  {t.size} / {t.weight} / {t.color}
+                <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>{ts.name}</div>
+                <div style={{ fontFamily: F.mono, fontSize: '11px', color: t.text4, marginTop: '2px' }}>
+                  {ts.size} / {ts.weight} / {ts.color}
                 </div>
               </div>
               <div style={{ flex: 1 }}>
                 <span
                   style={{
-                    fontFamily: t.font,
-                    fontSize: t.size,
-                    fontWeight: t.weight,
-                    color: t.color,
-                    letterSpacing: t.letterSpacing,
-                    textTransform: t.upper ? 'uppercase' : 'none',
+                    fontFamily: ts.font,
+                    fontSize: ts.size,
+                    fontWeight: ts.weight,
+                    color: ts.color,
+                    letterSpacing: ts.letterSpacing,
+                    textTransform: ts.upper ? 'uppercase' : 'none',
                   }}
                 >
-                  {t.sample}
+                  {ts.sample}
                 </span>
               </div>
             </div>

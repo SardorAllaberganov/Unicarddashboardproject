@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
 import { Upload, FileText, X, Check, CreditCard, Package, ChevronRight } from 'lucide-react';
-import { F, C } from './tokens';
+import { F, C, theme } from './tokens';
+import { useDarkMode } from '../useDarkMode';
+
+type T = ReturnType<typeof theme>;
 
 // ─── FILE UPLOAD ──────────────────────────────────────────────────────────
 
-function FileUpload({ state }: { state: 'default' | 'hover' | 'uploaded' }) {
+function FileUpload({ state, t, dark }: { state: 'default' | 'hover' | 'uploaded'; t: T; dark: boolean }) {
   const isHover = state === 'hover';
   const isUploaded = state === 'uploaded';
 
   return (
     <div>
-      <div style={{ fontFamily: F.inter, fontSize: '12px', fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+      <div style={{ fontFamily: F.inter, fontSize: '12px', fontWeight: 600, color: t.text4, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
         {state === 'default' ? 'Default' : state === 'hover' ? 'Hover / Drag Over' : 'Uploaded'}
       </div>
       <div style={{
-        border: `2px dashed ${isHover ? '#2563EB' : '#D1D5DB'}`,
+        border: `2px dashed ${isHover ? t.blue : t.inputBorder}`,
         borderRadius: '12px',
         height: '180px',
-        background: isHover ? '#EFF6FF' : '#FFFFFF',
+        background: isHover ? t.blueLt : t.surface,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -28,31 +31,31 @@ function FileUpload({ state }: { state: 'default' | 'hover' | 'uploaded' }) {
       }}>
         {isUploaded ? (
           <div style={{ width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F9FAFB', borderRadius: '8px', border: `1px solid #E5E7EB` }}>
-              <FileText size={20} color="#6B7280" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: t.pageBg, borderRadius: '8px', border: `1px solid ${t.border}` }}>
+              <FileText size={20} color={t.text3} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#111827' }}>cards_april_2026.xlsx</div>
-                <div style={{ fontFamily: F.inter, fontSize: '12px', color: '#9CA3AF' }}>2.4 MB · 500 карт</div>
+                <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>cards_april_2026.xlsx</div>
+                <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4 }}>2.4 MB · 500 карт</div>
               </div>
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: t.success, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Check size={12} color="#FFFFFF" strokeWidth={3} />
               </div>
-              <button style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#EF4444', fontFamily: F.inter, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button style={{ border: 'none', background: 'none', cursor: 'pointer', color: t.error, fontFamily: F.inter, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <X size={14} /> Удалить
               </button>
             </div>
           </div>
         ) : (
           <>
-            <Upload size={48} color={isHover ? '#2563EB' : '#9CA3AF'} strokeWidth={1.5} />
-            <div style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: isHover ? '#2563EB' : '#374151', marginTop: '12px', textAlign: 'center' }}>
+            <Upload size={48} color={isHover ? t.blue : t.text4} strokeWidth={1.5} />
+            <div style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: isHover ? t.blue : t.text2, marginTop: '12px', textAlign: 'center' }}>
               Перетащите файл сюда
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', color: '#9CA3AF', margin: '4px 0 12px' }}>или</div>
-            <button style={{ height: '36px', padding: '0 16px', border: `1px solid ${isHover ? '#2563EB' : '#D1D5DB'}`, borderRadius: '8px', background: '#FFFFFF', fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: isHover ? '#2563EB' : '#374151', cursor: 'pointer' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text4, margin: '4px 0 12px' }}>или</div>
+            <button style={{ height: '36px', padding: '0 16px', border: `1px solid ${isHover ? t.blue : t.inputBorder}`, borderRadius: '8px', background: t.surface, fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: isHover ? t.blue : t.text2, cursor: 'pointer' }}>
               Выбрать файл
             </button>
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: '#9CA3AF', marginTop: '8px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: '8px' }}>
               Форматы: .xlsx, .xls, .csv
             </div>
           </>
@@ -64,11 +67,11 @@ function FileUpload({ state }: { state: 'default' | 'hover' | 'uploaded' }) {
 
 // ─── EMPTY STATE ──────────────────────────────────────────────────────────
 
-function EmptyState({ withCTA }: { withCTA: boolean }) {
+function EmptyState({ withCTA, t }: { withCTA: boolean; t: T }) {
   return (
     <div style={{
-      background: '#FFFFFF',
-      border: `1px solid #E5E7EB`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       padding: '48px 32px',
       display: 'flex',
@@ -78,20 +81,20 @@ function EmptyState({ withCTA }: { withCTA: boolean }) {
       flex: 1,
     }}>
       <div style={{ width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-        <CreditCard size={48} color="#D1D5DB" strokeWidth={1.5} />
+        <CreditCard size={48} color={t.textDisabled} strokeWidth={1.5} />
       </div>
-      <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+      <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: t.text2, marginBottom: '8px' }}>
         Карты не найдены
       </div>
-      <div style={{ fontFamily: F.inter, fontSize: '14px', color: '#6B7280', lineHeight: 1.6, maxWidth: '280px', marginBottom: withCTA ? '24px' : '0' }}>
+      <div style={{ fontFamily: F.inter, fontSize: '14px', color: t.text3, lineHeight: 1.6, maxWidth: '280px', marginBottom: withCTA ? '24px' : '0' }}>
         Попробуйте изменить фильтры или импортировать новую партию карт
       </div>
       {withCTA && (
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button style={{ height: '40px', padding: '0 16px', border: `1px solid #D1D5DB`, borderRadius: '8px', background: '#FFFFFF', fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#374151', cursor: 'pointer' }}>
+          <button style={{ height: '40px', padding: '0 16px', border: `1px solid ${t.inputBorder}`, borderRadius: '8px', background: t.surface, fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text2, cursor: 'pointer' }}>
             Сбросить фильтры
           </button>
-          <button style={{ height: '40px', padding: '0 16px', border: 'none', borderRadius: '8px', background: '#2563EB', fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button style={{ height: '40px', padding: '0 16px', border: 'none', borderRadius: '8px', background: t.blue, fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Package size={16} /> Импорт партии
           </button>
         </div>
@@ -102,12 +105,30 @@ function EmptyState({ withCTA }: { withCTA: boolean }) {
 
 // ─── CARD STATUS FLOW ────────────────────────────────────────────────────
 
-const statusFlow = [
-  { label: 'На складе', badge: { bg: '#F3F4F6', color: '#4B5563' }, desc: 'Карта получена на склад' },
-  { label: 'У продавца', badge: { bg: '#FFFBEB', color: '#B45309' }, desc: 'Выдана продавцу' },
-  { label: 'Продана', badge: { bg: '#ECFEFF', color: '#0E7490' }, desc: 'Клиент получил карту' },
-  { label: 'Зарег.', badge: { bg: '#EFF6FF', color: '#1D4ED8' }, desc: 'Клиент зарегистрирован' },
-  { label: 'Активна', badge: { bg: '#F0FDF4', color: '#15803D' }, desc: 'Карта активирована' },
+type FlowKey = 'stock' | 'seller' | 'sold' | 'registered' | 'active';
+
+const FLOW_LIGHT: Record<FlowKey, { bg: string; color: string }> = {
+  stock:      { bg: '#F3F4F6', color: '#4B5563' },
+  seller:     { bg: '#FFFBEB', color: '#B45309' },
+  sold:       { bg: '#ECFEFF', color: '#0E7490' },
+  registered: { bg: '#EFF6FF', color: '#1D4ED8' },
+  active:     { bg: '#F0FDF4', color: '#15803D' },
+};
+
+const FLOW_DARK: Record<FlowKey, { bg: string; color: string }> = {
+  stock:      { bg: 'rgba(160,165,184,0.12)', color: '#A0A5B8' },
+  seller:     { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24' },
+  sold:       { bg: 'rgba(34,211,238,0.12)',  color: '#22D3EE' },
+  registered: { bg: 'rgba(59,130,246,0.12)',  color: '#3B82F6' },
+  active:     { bg: 'rgba(52,211,153,0.12)',  color: '#34D399' },
+};
+
+const statusFlow: Array<{ key: FlowKey; label: string; desc: string }> = [
+  { key: 'stock',      label: 'На складе',   desc: 'Карта получена на склад' },
+  { key: 'seller',     label: 'У продавца',  desc: 'Выдана продавцу' },
+  { key: 'sold',       label: 'Продана',     desc: 'Клиент получил карту' },
+  { key: 'registered', label: 'Зарег.',      desc: 'Клиент зарегистрирован' },
+  { key: 'active',     label: 'Активна',     desc: 'Карта активирована' },
 ];
 
 function Badge({ label, bg, color }: any) {
@@ -118,102 +139,121 @@ function Badge({ label, bg, color }: any) {
   );
 }
 
-function CardStatusFlow() {
+function CardStatusFlow({ t, dark }: { t: T; dark: boolean }) {
+  const palette = dark ? FLOW_DARK : FLOW_LIGHT;
   return (
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0', flexWrap: 'nowrap', overflowX: 'auto' }}>
-      {statusFlow.map((status, i) => (
-        <React.Fragment key={status.label}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: '100px' }}>
-            <Badge label={status.label} bg={status.badge.bg} color={status.badge.color} />
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: '#9CA3AF', textAlign: 'center', maxWidth: '90px', lineHeight: 1.4 }}>
-              {status.desc}
+      {statusFlow.map((status, i) => {
+        const p = palette[status.key];
+        return (
+          <React.Fragment key={status.label}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minWidth: '100px' }}>
+              <Badge label={status.label} bg={p.bg} color={p.color} />
+              <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, textAlign: 'center', maxWidth: '90px', lineHeight: 1.4 }}>
+                {status.desc}
+              </div>
             </div>
-          </div>
-          {i < statusFlow.length - 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', paddingTop: '8px', paddingBottom: '24px', margin: '0 4px' }}>
-              <div style={{ height: '1px', width: '24px', background: '#D1D5DB' }} />
-              <ChevronRight size={12} color="#D1D5DB" />
-            </div>
-          )}
-        </React.Fragment>
-      ))}
+            {i < statusFlow.length - 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', paddingTop: '8px', paddingBottom: '24px', margin: '0 4px' }}>
+                <div style={{ height: '1px', width: '24px', background: t.inputBorder }} />
+                <ChevronRight size={12} color={t.inputBorder} />
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }
 
 // ─── ACTIVITY TIMELINE ───────────────────────────────────────────────────
 
-const events = [
-  { color: '#10B981', text: 'KPI 2 выполнен', detail: 'Камола Юсупова — карта •••• 1002', time: 'сегодня, 14:32' },
-  { color: '#2563EB', text: 'Партия «Май 2026» создана', detail: '1 000 карт добавлено в систему', time: 'сегодня, 12:01' },
-  { color: '#D97706', text: 'KPI 1 в процессе', detail: 'Дилноза Алиева — 12% выполнения', time: 'сегодня, 10:45' },
-  { color: '#2563EB', text: 'Карта •••• 1003 активирована', detail: 'Клиент успешно прошёл регистрацию', time: 'вчера, 18:22' },
-  { color: '#6B7280', text: 'Экспорт данных выполнен', detail: 'Администратор bank_admin', time: 'вчера, 16:00' },
+const eventsLight = [
+  { color: '#10B981', text: 'KPI 2 выполнен',                     detail: 'Камола Юсупова — карта •••• 1002',       time: 'сегодня, 14:32' },
+  { color: '#2563EB', text: 'Партия «Май 2026» создана',           detail: '1 000 карт добавлено в систему',         time: 'сегодня, 12:01' },
+  { color: '#D97706', text: 'KPI 1 в процессе',                   detail: 'Дилноза Алиева — 12% выполнения',         time: 'сегодня, 10:45' },
+  { color: '#2563EB', text: 'Карта •••• 1003 активирована',        detail: 'Клиент успешно прошёл регистрацию',      time: 'вчера, 18:22' },
+  { color: '#6B7280', text: 'Экспорт данных выполнен',             detail: 'Администратор bank_admin',                time: 'вчера, 16:00' },
 ];
 
-function ActivityTimeline() {
+const eventsDark = [
+  { color: '#34D399' },
+  { color: '#3B82F6' },
+  { color: '#FBBF24' },
+  { color: '#3B82F6' },
+  { color: '#A0A5B8' },
+];
+
+function ActivityTimeline({ t, dark }: { t: T; dark: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-      {events.map((ev, i) => (
-        <div key={i} style={{ display: 'flex', gap: '12px' }}>
-          {/* Left dot + line */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
-            <div style={{ marginTop: '4px' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: ev.color }} />
+      {eventsLight.map((ev, i) => {
+        const markerColor = dark ? eventsDark[i].color : ev.color;
+        return (
+          <div key={i} style={{ display: 'flex', gap: '12px' }}>
+            {/* Left dot + line */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
+              <div style={{ marginTop: '4px' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: markerColor }} />
+              </div>
+              {i < eventsLight.length - 1 && (
+                <div style={{ width: '1px', flex: 1, background: t.border, margin: '4px 0' }} />
+              )}
             </div>
-            {i < events.length - 1 && (
-              <div style={{ width: '1px', flex: 1, background: '#E5E7EB', margin: '4px 0' }} />
-            )}
-          </div>
 
-          {/* Content */}
-          <div style={{ flex: 1, paddingBottom: i < events.length - 1 ? '16px' : '0', display: 'flex', justifyContent: 'space-between', gap: '16px', paddingTop: '2px' }}>
-            <div>
-              <div style={{ fontFamily: F.inter, fontSize: '14px', color: '#374151', fontWeight: 500 }}>{ev.text}</div>
-              <div style={{ fontFamily: F.inter, fontSize: '13px', color: '#6B7280', marginTop: '2px' }}>{ev.detail}</div>
-            </div>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', color: '#9CA3AF', whiteSpace: 'nowrap', flexShrink: 0 }}>
-              {ev.time}
+            {/* Content */}
+            <div style={{ flex: 1, paddingBottom: i < eventsLight.length - 1 ? '16px' : '0', display: 'flex', justifyContent: 'space-between', gap: '16px', paddingTop: '2px' }}>
+              <div>
+                <div style={{ fontFamily: F.inter, fontSize: '14px', color: t.text2, fontWeight: 500 }}>{ev.text}</div>
+                <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '2px' }}>{ev.detail}</div>
+              </div>
+              <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text4, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                {ev.time}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 export function Row9Misc() {
+  const [darkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* File Upload */}
-      <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '20px' }}>File Upload / Drop Zone — 3 states</div>
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '24px' }}>
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: t.text1, marginBottom: '20px' }}>File Upload / Drop Zone — 3 states</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px' }}>
-          <FileUpload state="default" />
-          <FileUpload state="hover" />
-          <FileUpload state="uploaded" />
+          <FileUpload state="default" t={t} dark={dark} />
+          <FileUpload state="hover" t={t} dark={dark} />
+          <FileUpload state="uploaded" t={t} dark={dark} />
         </div>
       </div>
 
       {/* Empty States */}
-      <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '20px' }}>Empty State — 2 variants</div>
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '24px' }}>
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: t.text1, marginBottom: '20px' }}>Empty State — 2 variants</div>
         <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-          <EmptyState withCTA={true} />
-          <EmptyState withCTA={false} />
+          <EmptyState withCTA={true} t={t} />
+          <EmptyState withCTA={false} t={t} />
         </div>
       </div>
 
       {/* Card Status Flow */}
-      <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '20px' }}>Card Status Flow</div>
-        <CardStatusFlow />
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '24px' }}>
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: t.text1, marginBottom: '20px' }}>Card Status Flow</div>
+        <CardStatusFlow t={t} dark={dark} />
       </div>
 
       {/* Activity Timeline */}
-      <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: '12px', padding: '24px' }}>
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: '#111827', marginBottom: '20px' }}>Activity Timeline</div>
-        <ActivityTimeline />
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '24px' }}>
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: t.text1, marginBottom: '20px' }}>Activity Timeline</div>
+        <ActivityTimeline t={t} dark={dark} />
       </div>
     </div>
   );
