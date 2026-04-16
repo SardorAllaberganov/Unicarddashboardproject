@@ -38,6 +38,7 @@ import SkeletonStatesShowcasePage from './pages/SkeletonStatesShowcasePage';
 import PaginationShowcasePage from './pages/PaginationShowcasePage';
 import RadioCardShowcasePage from './pages/RadioCardShowcasePage';
 import MarkdownShowcasePage from './pages/MarkdownShowcasePage';
+import ExportToastShowcasePage from './pages/ExportToastShowcasePage';
 import NotificationRulesPage from './pages/NotificationRulesPage';
 import NotificationRuleDetailPage from './pages/NotificationRuleDetailPage';
 import NotificationRuleEditorPage from './pages/NotificationRuleEditorPage';
@@ -162,6 +163,10 @@ export const router = createBrowserRouter([
   {
     path: '/markdown-showcase',
     Component: MarkdownShowcasePage,
+  },
+  {
+    path: '/export-toast-showcase',
+    Component: ExportToastShowcasePage,
   },
   {
     path: '/notification-rules',
