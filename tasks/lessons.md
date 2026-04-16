@@ -119,6 +119,27 @@ Root cause: Default thinking for "global state" goes to Context or external stor
 Fix: Built `useDarkMode()` to return the exact shape of `useState<boolean>(false)` — `[value, setter]` where the setter accepts both `boolean` and updater functions. All 42 pages needed only a 1-line swap: `const [darkMode, setDarkMode] = useState(false)` → `= useDarkMode()`. Done via `sed` in a single bash loop.
 Rule: When retrofitting global state into an existing codebase, match the signature the pages are already using. A hook that mimics `useState<T>()` is a trivial swap; a Context provider that forces call-site restructure is a refactor. Corollary: when you design a hook from scratch, consider whether a future upgrade to "shared" might happen — preserving the `[value, setter]` shape keeps the upgrade painless.
 
+## 2026-04-16 — Dark theming needs page-local helpers to accept `t` as a prop, not read the hook
+
+Mistake: First attempt at retrofitting dark mode into `OrganizationsPage` did a global `C.*` → `t.*` sed swap. The page's default export compiled, but every helper component defined in the same file (`StatusBadge`, `FilterSelect`, `SortIcons`, `PaginationBtn`, `PrimaryButton`) broke with `t is not defined` at runtime because `t` was only in the default export's scope.
+Root cause: Inline styles reference `t` as a closed-over variable. Helpers compiled in a different scope can't see it.
+Fix: Thread `t: T` + `dark: boolean` as props into every helper component, top-down from the default export. Don't have helpers call `useDarkMode()` inline — it breaks the showcase pattern where multiple themes render on one page.
+Rule: Page-local helpers (`StatusBadge`, `FilterSelect`, `StatCard`, `ActionMenu`, … — anything defined inside the page file) take `t` + `dark` as props. Shared primitives (`EmptyState`, `PaginationBar`, `RadioGroup`, `ExportToast`, `FormatToolbar`, `DateRangePicker`, `OrgDetailDrawer`) take the opposite approach — read `useDarkMode()` by default, accept optional `dark` prop to force a variant for showcase use. `renderMarkdown()` is a function (not a component) so it gets the dark flag as its 2nd positional arg.
+
+## 2026-04-16 — Status badges need dedicated dark palettes, not token-level colors
+
+Mistake: Attempted to reuse `t.successBg` / `t.warning` for status pill backgrounds and text colors. The pill text became unreadable — `C.success` (green-500) on light pill bg worked, but `D.success` (emerald-400) against a `rgba(52,211,153,0.10)` tint flattened into mush.
+Root cause: Semantic tokens in `C` / `D` are designed for icons, borders, and plain text on neutral surfaces — not for the saturated "pill text on tinted pill bg" combination. The text color for a dark status pill needs to match the pill's accent hue at `~#34D399`, not the same `D.success` token used elsewhere.
+Fix: Define sibling `STATUS_STYLE_LIGHT` + `STATUS_STYLE_DARK` maps at module scope. The dark map's `bg` is a `rgba(..., 0.12)` tint, the `color` is the saturated lucide-palette variant (`#34D399` / `#FBBF24` / `#F87171`), and `dot` matches `color`. Branch on `dark` at use site.
+Rule: When a status pill is one of N states (Активна / На паузе / Неактивна / Черновик / Завершена etc.), write a dedicated `_DARK` sibling map instead of trying to derive it from `t.*`. Saturated accent colors aren't in the token layer and shouldn't be forced there — tokens are for UI chrome, not for brand-level status color systems.
+
+## 2026-04-16 — `:focus-visible` ring needs a CSS variable when multiple themes share the page
+
+Mistake: Radio-card showcase rendered five states × two themes on one page. Both the light-variant and dark-variant rows produced the same focus ring color because the injected stylesheet used a literal `${C.focusRing}` — hard-coded into the CSS text, not reactive.
+Root cause: `ensureStyles()` runs once. The injected CSS is a static string. It can't branch on a component's `dark` prop.
+Fix: Inject a single CSS rule using `var(--rc-focus-ring, ${C.focusRing})`. Each `radiogroup` root sets `--rc-focus-ring` inline via `style={{ ['--rc-focus-ring' as string]: t.focusRing }}`. The variable cascades only inside that group's DOM subtree, so light and dark groups on the same page get their own ring color.
+Rule: When `:focus-visible` (or any pseudo-class) styling must vary per instance, don't inject per-variant stylesheets — inject one rule that references a CSS custom property, then set the property inline on the root of each instance. This works for any shared primitive that has multiple color-reactive visuals: focus rings, hover outlines, placeholder colors, etc.
+
 ## 2026-04-16 — `location.state` handoff needs a consumed-ref guard + state clear
 
 Mistake: Early draft of the "compose sends announcement → history highlights row" flow re-prepended the row every time the history page re-rendered (React StrictMode's double-invoke surfaced the bug immediately).

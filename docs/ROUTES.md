@@ -69,8 +69,10 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/empty-states` | shared | [EmptyStatesShowcasePage](../src/app/pages/EmptyStatesShowcasePage.tsx) | 6 filtered-empty variants |
 | `/empty-states-first-use` | shared | [FirstUseEmptyStatesShowcasePage](../src/app/pages/FirstUseEmptyStatesShowcasePage.tsx) | 7 "no data yet" variants — Bell / Megaphone / MessageSquare / ListChecks / Wallet / Clock / Activity |
 | `/skeleton-states` | shared | [SkeletonStatesShowcasePage](../src/app/pages/SkeletonStatesShowcasePage.tsx) | 6 shimmer variants (table / stat cards / KPI stepper / charts / full page / filter bar) |
-| `/pagination-showcase` | shared | [PaginationShowcasePage](../src/app/pages/PaginationShowcasePage.tsx) | 3 live `<PaginationBar />` states |
-| `/radio-card-showcase` | shared | [RadioCardShowcasePage](../src/app/pages/RadioCardShowcasePage.tsx) | Accessible radio-group demo + keyboard diagram + focus matrix |
+| `/pagination-showcase` | shared | [PaginationShowcasePage](../src/app/pages/PaginationShowcasePage.tsx) | 3 states × 2 themes — Light / Dark columns, first / middle / last page scenarios |
+| `/radio-card-showcase` | shared | [RadioCardShowcasePage](../src/app/pages/RadioCardShowcasePage.tsx) | Live radio-group demo + keyboard diagram + 5 states × 2 themes matrix (default / selected / hover / focused / disabled) |
+| `/markdown-showcase` | shared | [MarkdownShowcasePage](../src/app/pages/MarkdownShowcasePage.tsx) | Compose (FormatToolbar + themed textarea) + rendered preview; follows global theme |
+| `/export-toast-showcase` | shared | [ExportToastShowcasePage](../src/app/pages/ExportToastShowcasePage.tsx) | All 3 `ExportToast` phases stacked in both light and dark variants |
 | `/design-system` | shared | [DesignSystemPage](../src/app/pages/DesignSystemPage.tsx) | 10-row DS tour |
 | `/sidebar` | shared | [SidebarShowcasePage](../src/app/pages/SidebarShowcasePage.tsx) | |
 | `/sidebar-org` | shared | [OrgSidebarShowcasePage](../src/app/pages/OrgSidebarShowcasePage.tsx) | |
@@ -108,12 +110,13 @@ interface SidebarProps {
   collapsed?: boolean;
   onToggle?: () => void;
   darkMode?: boolean;
+  /** @deprecated — theme toggle moved to Navbar; prop kept for backward compat */
   onDarkModeToggle?: () => void;
   orgName?: string;         // shown as subtitle when role === 'org'
 }
 ```
 
-Routing-aware: highlights the nav item whose `path` matches `useLocation().pathname` (exact match or a `path + '/'` prefix). Groups are defined in `BANK_NAV` and `ORG_NAV` at the top of the file — add a new entry there when creating a new page.
+Routing-aware: highlights the nav item whose `path` matches `useLocation().pathname` (exact match or a `path + '/'` prefix). Groups are defined in `BANK_NAV` and `ORG_NAV` at the top of the file — add a new entry there when creating a new page. Uses dedicated `sidebarBg` / `sidebarBorder` tokens (`#FFFFFF` → `#12141C`, `#E5E7EB` → `#2D3148`).
 
 ### `<Navbar />`
 File: [Navbar.tsx](../src/app/components/Navbar.tsx)
@@ -126,6 +129,8 @@ interface NavbarProps {
 ```
 
 Self-detects role via `detectRole(pathname)` against the module-level `ORG_PATHS` array. Current membership: `/org-dashboard`, `/sellers`, `/org-cards`, `/card-assignment`, `/org-rewards`, `/org-withdrawals`, `/org-settings`, `/seller-messages`. **Add new org routes to that array** or the navbar will show the wrong avatar and "switch to other role" target.
+
+Theme toggle is a 36×36 button in the right-hand cluster. Clicking runs the `themeIconSpin` keyframe — icon rotates from `-180deg` → `0deg` over 250 ms, so it always lands back at 0° regardless of click count (prior implementation accumulated `+180deg` unbounded).
 
 ### `usePopoverPosition()`
 File: [usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts)
@@ -152,25 +157,37 @@ const { open, toggle, close, triggerRef, menuRef, rootRef, menuStyle } = usePopo
 
 Handles fixed positioning, auto-flip via layout-effect measurement, outside-click, and scroll/resize **re-anchoring** (the popover follows its trigger as the container scrolls; it only closes if the trigger leaves the viewport). **Default `alignRight: true`** — override for left-anchored triggers.
 
-### `useExportToast()`
+### `useExportToast()` / `<ExportToast />`
 File: [useExportToast.tsx](../src/app/components/useExportToast.tsx)
 
 ```ts
 useExportToast() → {
-  start: (p: {
-    title?: string;
-    subtitle?: string;       // e.g. 'Отчёт по организациям за 01.04–13.04.2026'
-    fileName?: string;       // shown in success
-    fileSize?: string;       // '245 KB'
-    shouldError?: boolean;   // force error phase (for retry demo)
-    delayMs?: number;        // default 1500
-  }) => void;
+  start: (p: ExportToastParams) => void;
   close: () => void;
   node: ReactNode;           // render once, e.g. inside the page root
 }
+
+interface ExportToastParams {
+  title?: string;
+  subtitle?: string;       // e.g. 'Отчёт по организациям за 01.04–13.04.2026'
+  fileName?: string;       // shown in success
+  fileSize?: string;       // '245 KB'
+  shouldError?: boolean;   // force error phase (for retry demo)
+  delayMs?: number;        // default 1500
+}
+
+// Also exported for showcase pages:
+<ExportToast
+  phase="processing" | "success" | "error"
+  params={ExportToastParams}
+  onClose={() => void}
+  onRetry?={() => void}
+  inline?={boolean}      // static positioning instead of fixed top-right
+  dark?={boolean}        // override global useDarkMode()
+/>
 ```
 
-Phases: `processing` (spinner, no close) → `success` (8s auto-dismiss, Download ghost) or `error` (Retry ghost, manual close).
+Phases: `processing` (spinner, no close) → `success` (8s auto-dismiss, Download ghost) or `error` (Retry ghost, manual close). Dark theme: card bg `#1A1D27`, 1px border `#2D3148`, 3px left-border semantic color, subtle `0 2px 8px rgba(0,0,0,0.3)` shadow, 8px radius. Auto-themes via `useDarkMode()`.
 
 ### `<EmptyState />`
 File: [EmptyState.tsx](../src/app/components/EmptyState.tsx)
@@ -186,10 +203,11 @@ interface EmptyStateProps {
   outline?: EmptyStateAction;
   ghost?: EmptyStateAction;
   padding?: string;          // default '56px 24px'
+  dark?: boolean;            // force theme variant; omit to follow useDarkMode()
 }
 ```
 
-Drop inside any empty table body or dashboard card. Six canonical variants are showcased at `/empty-states`.
+Drop inside any empty table body or dashboard card. Six canonical variants are showcased at `/empty-states`. Dark spec — icon `#4A4F63`, title `D.text2 #A0A5B8` (subdued, not `text1`), subtext `#6B7280`, outline-btn hover bg `D.tableHover #1E2130`. Typography: DM-Sans 18/600.
 
 ### `useDarkMode()` / `useThemePref()`
 File: [useDarkMode.tsx](../src/app/components/useDarkMode.tsx)
@@ -202,20 +220,23 @@ useThemePref(): [ThemePref, resolvedDark: boolean, setPref: (p: ThemePref) => vo
 
 Module-level store backed by `localStorage['moment-kpi-theme']`. `useDarkMode()` is a **drop-in** for `useState<boolean>(false)` — the signature is identical, but state is shared across all pages and persists across route changes. Writes always normalize to `'light'` / `'dark'`; use `useThemePref()` to write `'system'`. Listens to OS `prefers-color-scheme` changes when pref is `'system'`.
 
-### `renderMarkdown(text)` / `<FormatToolbar />`
+### `renderMarkdown(text, dark?)` / `<FormatToolbar />`
 File: [renderMarkdown.tsx](../src/app/components/renderMarkdown.tsx)
 
 ```ts
-renderMarkdown(text: string): React.ReactNode
+renderMarkdown(text: string, dark?: boolean = false): React.ReactNode
 
 <FormatToolbar
   textareaRef={React.RefObject<HTMLTextAreaElement | null>}
   value={string}
   onChange={(next: string) => void}
+  dark?={boolean}          // omit to follow useDarkMode()
 />
 ```
 
 Grammar (deliberately narrow): `**bold**`, `_italic_`, lines starting with `-`/`•`/`*` grouped into `<ul>`, blank lines separate paragraphs, single `\n` → `<br>`. Output is pure React nodes (no `dangerouslySetInnerHTML`). Toolbar wraps selection using `setSelectionRange`; the bullet button toggles list prefix across selected lines.
+
+Dark rendering: body text `D.text2`, strong `D.text1`, em `D.text2`, bullets `D.text4`, links `D.blue`. Toolbar — container bg `D.tableAlt #161822`, icons `D.text2`, active/hover icon `D.blue`, hover bg `D.tableHover`. Callers must pass `darkMode` to `renderMarkdown(body, darkMode)` — it does **not** read the hook directly since it's a function, not a component.
 
 ### `<PaginationBar />`
 File: [PaginationBar.tsx](../src/app/components/PaginationBar.tsx)
@@ -229,16 +250,23 @@ interface PaginationBarProps {
   onPageSizeChange: (size: number) => void;
   storageKey?: string;        // persists pageSize to localStorage['pagesize:{key}']
   pageSizeOptions?: number[]; // default [10, 20, 50, 100]
+  dark?: boolean;             // omit to follow useDarkMode()
 }
 ```
 
-Three sections: left range readout ("Показано X–Y из Z"), center page-size select (72 px compact), right page buttons with ellipsis algorithm (always show first + last + current ±1). Changing `pageSize` automatically resets `page` to 1 via `onPageChange(1)`.
+Three sections: left range readout ("Показано X–Y из Z"), center page-size select (72 px compact), right page buttons with ellipsis algorithm (always show first + last + current ±1). Changing `pageSize` automatically resets `page` to 1 via `onPageChange(1)`. Dark spec — container transparent (sits on card), top border `D.border #2D3148`, arrows `D.text3 #6B7280` → `D.text2 #A0A5B8` on hover, page buttons `D.text2` default / `D.blue` active bg with white text, hover bg `D.tableHover #1E2130`, page-size select bg `D.surface`.
 
 ### `<RadioGroup />` / `<RadioIndicator />`
 File: [RadioCard.tsx](../src/app/components/RadioCard.tsx)
 
 ```ts
-interface RadioOption<T> { value: T; label: string; sub?: string; children?: React.ReactNode }
+interface RadioOption<T> {
+  value: T;
+  label: string;
+  sub?: string;
+  disabled?: boolean;         // non-interactive, muted, excluded from roving tabindex
+  children?: React.ReactNode;
+}
 interface RadioGroupProps<T> {
   label: string;              // aria-label on the radiogroup container
   name: string;
@@ -246,20 +274,23 @@ interface RadioGroupProps<T> {
   options: RadioOption<T>[];
   onChange: (next: T) => void;
   orientation?: 'horizontal' | 'vertical';
+  dark?: boolean;             // omit to follow useDarkMode()
 }
 ```
 
-WAI-ARIA `radiogroup` pattern. Roving tabindex: only the selected card is `tabIndex=0`. Keyboard — ↑/↓/←/→ wraps through options, Home/End jumps, Space/Enter re-selects. Focus ring is rendered only for `:focus-visible` (keyboard focus); injected via a scoped `<style id="rc-focus-styles">` block on first mount.
+WAI-ARIA `radiogroup` pattern. Roving tabindex: only the selected card is `tabIndex=0`. Keyboard — ↑/↓/←/→ wraps through **enabled** options, Home/End jumps, Space/Enter re-selects. Focus ring is rendered only for `:focus-visible` (keyboard focus); injected once via a scoped `<style id="rc-focus-styles">` that references a CSS variable `--rc-focus-ring` set inline on each `radiogroup` root — so light and dark groups on the same page can coexist with different ring colors. `RadioIndicator` fills solid blue with white inner dot when selected (no hollow-ring quirks on dark).
+
+Dark states: default border `D.border`, hover bg `D.tableHover`, selected bg `D.blueLt #1E2A4A` + 2px `D.blue` border, disabled bg `D.tableAlt #161822` + text `D.text4 #4A4F63`, focus ring `D.focusRing #1E3A5F`.
 
 ### `<DateRangePicker />`
 File: [DateRangePicker.tsx](../src/app/components/DateRangePicker.tsx)
 
-Range picker with a quick-presets panel (Сегодня / Вчера / 7 дней / 30 дней / этот месяц / прошлый месяц). No fixed width on the presets column — it sizes to content.
+Range picker with a quick-presets panel (Сегодня / Вчера / 7 дней / 30 дней / этот месяц / прошлый месяц). No fixed width on the presets column — it sizes to content. Fully dark-themed: trigger, popover, preset list, dual-calendar nav, day cells, footer action bar, warning pill, Cancel/Apply. Reads `useDarkMode()` internally — no prop required. Popover shadow deepens on dark bg.
 
 ### `<OrgDetailDrawer />`
 File: [OrgDetailDrawer.tsx](../src/app/components/OrgDetailDrawer.tsx)
 
-Slide-in drawer used from [OrganizationsPage](../src/app/pages/OrganizationsPage.tsx). Full-page equivalent is [OrgDetailPage](../src/app/pages/OrgDetailPage.tsx) at `/organizations/:id`.
+Slide-in drawer used from [OrganizationsPage](../src/app/pages/OrganizationsPage.tsx). Full-page equivalent is [OrgDetailPage](../src/app/pages/OrgDetailPage.tsx) at `/organizations/:id`. Fully dark-aware: 4 tabs (Сводка / Продавцы / Карты / Финансы) all themed, status badges + card-row status pills use dedicated dark palettes (`ORG_STATUS_DARK`, `CARD_STATUS_DARK`). `CompactStatCard` variant colors (blue/green/violet/amber) swap to 15% opacity tints on dark. Backdrop deepens from `rgba(17,24,39,0.35)` to `rgba(0,0,0,0.55)` on dark. Reads `useDarkMode()` internally.
 
 ---
 

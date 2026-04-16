@@ -4,6 +4,33 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
+## 2026-04-16 (pm) — Dark-theme rollout across shell, primitives, drawer, and bank-admin pages
+
+**Module:** all
+**Commits:** `d5bc097`, `28e39d8`, `ade2adb`, `b708241`, `7bbb9a2`, `ecf92c6`, `5179611`, `80ce29b` (all pushed); plus an in-flight working tree with `OrgDetailDrawer`, `useExportToast`, 6 bank-admin pages, and showcase-label updates for the deleted legacy sidebars.
+**Files touched:** 20+ pages/components + 5 docs + routes + 2 deletions.
+
+**What changed:**
+
+- **Tokens ([ds/tokens.ts](../src/app/components/ds/tokens.ts))** — Spec-aligned dark palette per Prompt 0. Dark semantic bg tints dropped `0.12 → 0.10` opacity; `text4 #7C8194 → #4A4F63`; `textDisabled #4B5060 → #3A3F50`; `infoBg` changed to cyan `rgba(8,145,178,0.10)`. **New tokens** in both `C` and `D`: `sidebarBg` (`#FFFFFF` → `#12141C`), `sidebarBorder`, `tableHeaderBg` (`#F9FAFB` → `#161822`), `tableHover`, `tableAlt`, `focusRing` (`#DBEAFE` → `#1E3A5F`), `skeletonBase` (`#E5E7EB` → `#2D3148`), `skeletonShimmer` (`#F3F4F6` → `#363B52`), `overlay` (`rgba(0,0,0,0.2)` → `rgba(0,0,0,0.4)`), `progressTrack`.
+- **Shell** — Theme toggle **moved from sidebar to navbar**. Navbar button uses a one-shot `themeIconSpin` keyframe (`-180deg → 0deg`) so the icon always lands back at 0° regardless of click count (prior impl accumulated `+180deg` unbounded). Navbar fully dark-themed across shell, bell dropdown, flyout, user menu, demo controls. Sidebar now uses dedicated `sidebarBg` / `sidebarBorder` tokens and exposes `onDarkModeToggle` as a deprecated no-op.
+- **Shared primitives dark-aware**: [EmptyState](../src/app/components/EmptyState.tsx) (+ `dark?` override; font weight 600 per spec), [PaginationBar](../src/app/components/PaginationBar.tsx) (+ `dark?`), [RadioCard](../src/app/components/RadioCard.tsx) (+ `dark?`, `disabled?` on option, hover state added; focus ring scoped via `--rc-focus-ring` CSS var so groups with different themes coexist on one page), [renderMarkdown](../src/app/components/renderMarkdown.tsx) (+ 2nd arg `dark = false`) + `<FormatToolbar dark? />`, [DateRangePicker](../src/app/components/DateRangePicker.tsx) (auto reads hook), [useExportToast](../src/app/components/useExportToast.tsx) (`<ExportToast>` now exported with `inline` + `dark` props for showcase use; container radius 10→8 px to match spec).
+- **OrgDetailDrawer** fully dark-themed — all 4 tabs (Сводка / Продавцы / Карты / Финансы), status badges with dedicated `ORG_STATUS_DARK` / `CARD_STATUS_DARK` maps, stat-card variant tints at 15% opacity, backdrop deepened to `rgba(0,0,0,0.55)`.
+- **OrganizationsPage** — first full page-level dark theme as the reference impl. Fixed a stray `useState(false)` straggler from the earlier mass migration.
+- **Bank-admin pages dark-themed (batch-by-batch)**: `ReportsExportPage`, `NewOrganizationPage`, `EditOrganizationPage`, `EditCardBatchPage`, `CardBatchesPage`, `AllCardsPage`. Per-page pattern: `const t = theme(darkMode); const dark = darkMode;` at the root, thread `t`/`dark` as props through every local helper, add `_DARK` sibling maps for status pills, substitute hardcoded hex hovers (`'#F9FAFB'`, `'#D1D5DB'`) with `dark ? D.tableHover : '#F9FAFB'` etc.
+- **Showcase pages**: new [/markdown-showcase](../src/app/pages/MarkdownShowcasePage.tsx) (compose + preview follows global theme) and [/export-toast-showcase](../src/app/pages/ExportToastShowcasePage.tsx) (all 3 phases stacked light + dark). Existing showcases for EmptyState / Pagination / Radio reworked to render dark comparisons using forced-dark wrappers.
+- **Legacy sidebars deleted** — `BankAdminSidebar.tsx` (418 lines) and `OrgAdminSidebar.tsx` (441 lines) were orphaned (no page imported them). Removed entirely; `BankAdminSidebarDemo` / `OrgAdminSidebarDemo` still re-export from the unified [Sidebar](../src/app/components/Sidebar.tsx). Showcase pages' "Component" label updated from `BankAdminSidebar` → `Sidebar role="bank"`.
+- **Routing**. 2 new routes: `/markdown-showcase`, `/export-toast-showcase`.
+- **Lessons**: added `:focus-visible` via injected stylesheet (scoped CSS var pattern), dark-theme token-threading pattern, status-pill dedicated dark maps.
+
+**Follow-ups (known-incomplete):**
+- 6 of 12 bank-admin pages in the requested "all 12 pages" batch are **still light-only**: `OrgDetailPage` (890 lines), `NewBatchWizardPage` (772), `CardImportPage` (814), `KPIConfigurationPage` (1,305), `RewardsFinancePage` (1,351), `CardBatchDetailPage` (1,710). Each has 60–176 color refs + dozens of internal helpers — best tackled in a dedicated session.
+- All 11 org-admin pages still light-only. Same pattern applies.
+- Showcase pages `SidebarShowcasePage`, `OrgSidebarShowcasePage`, `FirstUseEmptyStatesShowcasePage`, `SkeletonStatesShowcasePage`, `AnnouncementFlowPage` have not been themed.
+- `ds/Row1…Row10` showcase rows (under `/design-system`) are static palette demos — theming them means either redesigning them to show tokens inline, or preserving their static intent.
+
+---
+
 ## 2026-04-16 — Cross-page integration + design-system primitives
 
 **Module:** all
