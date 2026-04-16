@@ -35,6 +35,8 @@ interface SidebarProps {
   /** @deprecated theme toggle moved to Navbar; prop kept for backward compatibility */
   onDarkModeToggle?: () => void;
   orgName?: string;
+  /** Override active-item detection (defaults to useLocation() pathname). Useful for showcases where the real URL doesn't match any menu entry. */
+  activePath?: string;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -210,11 +212,13 @@ export function Sidebar({
   onToggle,
   darkMode = false,
   orgName = 'Mysafar OOO',
+  activePath,
 }: SidebarProps) {
   const dark = darkMode;
   const [collapseHovered, setCollapseHovered] = useState(false);
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname: locationPath } = useLocation();
+  const pathname = activePath ?? locationPath;
 
   const surfaceBg       = dark ? D.sidebarBg     : C.sidebarBg;
   const borderColor     = dark ? D.sidebarBorder : C.sidebarBorder;
@@ -342,95 +346,6 @@ export function Sidebar({
             </>
           )}
         </button>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   DEMO COMPONENTS (for showcase pages)
-═══════════════════════════════════════════════════════════════════════════ */
-
-function StateLabel({ text, dark }: { text: string; dark: boolean }) {
-  return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: '6px',
-      marginBottom: '12px', padding: '3px 10px', borderRadius: '6px',
-      background: dark ? '#111827' : '#F3F4F6',
-      border: `1px solid ${dark ? '#374151' : C.border}`,
-    }}>
-      <div style={{
-        width: '6px', height: '6px', borderRadius: '50%',
-        background: dark ? '#6B7280' : C.blue,
-      }} />
-      <span style={{
-        fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-        color: dark ? '#9CA3AF' : C.text3,
-        textTransform: 'uppercase' as const, letterSpacing: '0.06em',
-      }}>
-        {text}
-      </span>
-    </div>
-  );
-}
-
-export function BankAdminSidebarDemo() {
-  return (
-    <div style={{ display: 'flex', gap: '48px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-      <div>
-        <StateLabel text="Bank · Expanded" dark={false} />
-        <div style={{ height: '680px', display: 'flex', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${C.border}` }}>
-          <Sidebar role="bank" collapsed={false} onToggle={() => {}} darkMode={false} />
-        </div>
-      </div>
-      <div>
-        <StateLabel text="Bank · Collapsed" dark={false} />
-        <div style={{ height: '680px', display: 'flex', borderRadius: '12px', overflow: 'visible', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${C.border}` }}>
-          <Sidebar role="bank" collapsed={true} onToggle={() => {}} darkMode={false} />
-        </div>
-      </div>
-      <div>
-        <StateLabel text="Bank · Dark" dark={true} />
-        <div style={{ height: '680px', display: 'flex', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.24)', border: '1px solid #374151' }}>
-          <Sidebar role="bank" collapsed={false} onToggle={() => {}} darkMode={true} />
-        </div>
-      </div>
-      <div>
-        <StateLabel text="Bank · Collapsed Dark" dark={true} />
-        <div style={{ height: '680px', display: 'flex', borderRadius: '12px', overflow: 'visible', boxShadow: '0 1px 3px rgba(0,0,0,0.24)', border: '1px solid #374151' }}>
-          <Sidebar role="bank" collapsed={true} onToggle={() => {}} darkMode={true} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function OrgAdminSidebarDemo() {
-  return (
-    <div style={{ display: 'flex', gap: '48px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-      <div>
-        <StateLabel text="Org · Expanded" dark={false} />
-        <div style={{ height: '600px', display: 'flex', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${C.border}` }}>
-          <Sidebar role="org" collapsed={false} onToggle={() => {}} darkMode={false} />
-        </div>
-      </div>
-      <div>
-        <StateLabel text="Org · Collapsed" dark={false} />
-        <div style={{ height: '600px', display: 'flex', borderRadius: '12px', overflow: 'visible', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', border: `1px solid ${C.border}` }}>
-          <Sidebar role="org" collapsed={true} onToggle={() => {}} darkMode={false} />
-        </div>
-      </div>
-      <div>
-        <StateLabel text="Org · Dark" dark={true} />
-        <div style={{ height: '600px', display: 'flex', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.24)', border: '1px solid #374151' }}>
-          <Sidebar role="org" collapsed={false} onToggle={() => {}} darkMode={true} />
-        </div>
-      </div>
-      <div>
-        <StateLabel text="Org · Collapsed Dark" dark={true} />
-        <div style={{ height: '600px', display: 'flex', borderRadius: '12px', overflow: 'visible', boxShadow: '0 1px 3px rgba(0,0,0,0.24)', border: '1px solid #374151' }}>
-          <Sidebar role="org" collapsed={true} onToggle={() => {}} darkMode={true} />
-        </div>
       </div>
     </div>
   );

@@ -258,6 +258,7 @@ function QuadrantCell({ q, t }: { q: Quadrant; t: T }) {
           onToggle={() => {}}
           darkMode={q.dark}
           orgName="Mysafar OOO"
+          activePath="/org-dashboard"
         />
       </div>
     </div>

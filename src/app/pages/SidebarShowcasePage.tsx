@@ -210,6 +210,7 @@ function QuadrantCell({ q, t }: { q: Quadrant; t: T }) {
           collapsed={q.collapsed}
           onToggle={() => {}}
           darkMode={q.dark}
+          activePath="/dashboard"
         />
       </div>
     </div>
