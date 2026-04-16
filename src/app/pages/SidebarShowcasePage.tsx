@@ -65,7 +65,7 @@ export default function SidebarShowcasePage() {
         {/* Tag strip */}
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
-            { label: 'Component',   value: 'BankAdminSidebar' },
+            { label: 'Component',   value: 'Sidebar role="bank"' },
             { label: 'Expanded',    value: '260px' },
             { label: 'Collapsed',   value: '68px' },
             { label: 'Nav items',   value: '10' },

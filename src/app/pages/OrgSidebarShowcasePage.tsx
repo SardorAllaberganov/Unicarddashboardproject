@@ -89,7 +89,7 @@ export default function OrgSidebarShowcasePage() {
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {[
-            { label: 'Component',  value: 'OrgAdminSidebar' },
+            { label: 'Component',  value: 'Sidebar role="org"' },
             { label: 'Expanded',   value: '260px' },
             { label: 'Collapsed',  value: '68px'  },
             { label: 'Nav items',  value: '7'     },
