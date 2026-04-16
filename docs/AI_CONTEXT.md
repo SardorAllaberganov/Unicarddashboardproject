@@ -1,6 +1,6 @@
 # AI Context — Moment Card KPI Platform
 
-Last synced: 2026-04-16 (dark-theme rollout)
+Last synced: 2026-04-16 (dark-theme rollout complete — 50/50 pages)
 
 ## Current state
 
@@ -9,7 +9,7 @@ Moment Card KPI is a React 18 + TypeScript + Vite single-page app serving two ad
 - **Bank Admin** — oversees every partner organization, card batch, KPI config, reward payout, notification rule, delivery log, and system announcement across the platform.
 - **Organization Admin** — runs their own shop: sellers, card inventory, KPI conversion, UCOIN withdrawals, and direct messaging to sellers.
 
-There is no backend. All data is mock TypeScript arrays inside each page file. Role is inferred from the URL path (and `?from=org` for shared pages like `/notifications` and `/card-detail/:id`). Dark mode persists via a module-level theme store backed by `localStorage['moment-kpi-theme']` with values `'light' | 'dark' | 'system'`. The target resolution is 1920×1080 desktop.
+There is no backend. All data is mock TypeScript arrays inside each page file. Role is inferred from the URL path (and `?from=org` for shared pages like `/notifications` and `/card-detail/:id`). Dark mode persists via a module-level theme store backed by `localStorage['moment-kpi-theme']` with values `'light' | 'dark' | 'system'`. Every page, showcase, and modal now themes against the `theme(dark)` token surface — the rollout hit 100%. The target resolution is 1920×1080 desktop.
 
 ## Feature map (what lives where)
 
@@ -17,7 +17,7 @@ There is no backend. All data is mock TypeScript arrays inside each page file. R
 
 | Route | Page | Notes |
 |---|---|---|
-| `/` | [LoginPage](../src/app/pages/LoginPage.tsx) | Entry, seeds demo credentials |
+| `/`, `/login` | [LoginPage](../src/app/pages/LoginPage.tsx) | Entry; both paths mount the same page. "Войти" / "Войти через Unired ID" auto-routes to `/org-dashboard` if the login field matches `/org|mysafar|muhammad/i`, else `/dashboard`. |
 | `/card-detail/:id` | [CardDetailPage](../src/app/pages/CardDetailPage.tsx) | KPI Stepper Variant B + Block Card modal |
 | `/notifications` | [NotificationsHistoryPage](../src/app/pages/NotificationsHistoryPage.tsx) | `?from=org` flips sidebar/navbar |
 | `/empty-states` | [EmptyStatesShowcasePage](../src/app/pages/EmptyStatesShowcasePage.tsx) | 6 filtered-empty variants |
@@ -90,7 +90,7 @@ There is no backend. All data is mock TypeScript arrays inside each page file. R
 | [PaginationBar.tsx](../src/app/components/PaginationBar.tsx) | `<PaginationBar dark? />` | Range readout + 10/20/50/100 page-size select + ellipsis page buttons. Persists size via `storageKey` → `pagesize:{key}`. Dark-aware. |
 | [RadioCard.tsx](../src/app/components/RadioCard.tsx) | `<RadioGroup dark? />`, `<RadioIndicator />` | Accessible radio pattern: `role="radiogroup"`, roving tabindex, arrow/Home/End/Space keys, `:focus-visible`-only ring (via scoped CSS variable `--rc-focus-ring`). `RadioOption.disabled?` supported. |
 | [EmptyState.tsx](../src/app/components/EmptyState.tsx) | `<EmptyState dark? />` | 64 px muted icon + DM-Sans 600 title + subtitle + up to 3 actions. Dark-aware via global store or explicit `dark` prop. |
-| [Navbar.tsx](../src/app/components/Navbar.tsx) | `<Navbar />`, `ORG_PATHS`, `detectRole()` | Role switcher, **theme toggle** (180° keyframe spin, lands back at 0° each click), notification bell with 4 states (`app:notif:new` / `app:notif:batch` CustomEvents), bell flyout, user menu. Fully dark-themed across shell, bell dropdown, flyout, user menu, demo controls. |
+| [Navbar.tsx](../src/app/components/Navbar.tsx) | `<Navbar />`, `ORG_PATHS`, `detectRole()` | Role switcher, **theme toggle** (180° keyframe spin, lands back at 0° each click), notification bell with 4 states (`app:notif:new` / `app:notif:batch` CustomEvents), bell flyout, user menu. "Выйти из системы" menu item navigates to `/login`. Fully dark-themed across shell, bell dropdown, flyout, user menu, demo controls. |
 | [Sidebar.tsx](../src/app/components/Sidebar.tsx) | `<Sidebar role="bank"│"org" />` | Unified sidebar; 260 px / 68 px. Uses dedicated `sidebarBg` / `sidebarBorder` tokens (`#FFFFFF` → `#12141C`). Theme toggle **removed** (moved to navbar); bottom row is the collapse button only. `onDarkModeToggle` prop is a deprecated no-op kept for backward compat. |
 | [DateRangePicker.tsx](../src/app/components/DateRangePicker.tsx) | `<DateRangePicker />` | Range picker with quick-preset panel. Fully dark-themed; reads `useDarkMode()` internally. |
 | [OrgDetailDrawer.tsx](../src/app/components/OrgDetailDrawer.tsx) | `<OrgDetailDrawer />` | 4-tab slide-in drawer used on `/organizations`. Full dark theme; status badges use dedicated dark palettes. |
@@ -126,5 +126,6 @@ Full interface catalogue in [DATA_MODELS.md](./DATA_MODELS.md). Each page owns i
 - **Status pills need dedicated dark palettes.** The semantic token layer (`t.successBg` etc.) only covers pill backgrounds, not the saturated pill text colors. For status badges with multiple-state maps (Активна / На паузе / Неактивна, Активна / Зарег. / На складе …), define a `_DARK` sibling map at module scope and branch on `dark`.
 - **Notification bell consumes `window` CustomEvents** (`app:notif:new`, `app:notif:batch`). Events dispatched before `navigate()` are lost (navbar unmounts) — needs a module-level store for real cross-page delivery.
 - **`:focus-visible` only, not `:focus`.** Accessible radio/checkbox cards inject a scoped `<style>` block since inline styles can't express the pseudo-class. Pattern at [RadioCard.tsx](../src/app/components/RadioCard.tsx) — focus-ring color is driven by a scoped CSS variable `--rc-focus-ring` so multiple groups with different themes can coexist on the same page.
-- **Legacy sidebars deleted.** `BankAdminSidebar.tsx` / `OrgAdminSidebar.tsx` were orphaned after the unified `Sidebar` rollout; they were removed entirely. Only `Sidebar` with `role="bank"` / `role="org"` remains. Showcase pages re-export `BankAdminSidebarDemo` / `OrgAdminSidebarDemo` from [Sidebar.tsx](../src/app/components/Sidebar.tsx) for historical demo routes.
+- **Legacy sidebars deleted.** `BankAdminSidebar.tsx` / `OrgAdminSidebar.tsx` were orphaned after the unified `Sidebar` rollout; they were removed entirely. Only `Sidebar` with `role="bank"` / `role="org"` remains. [Sidebar.tsx](../src/app/components/Sidebar.tsx) still re-exports `BankAdminSidebarDemo` / `OrgAdminSidebarDemo` but no page imports them anymore — the sidebar showcase pages now render `<Sidebar role=… darkMode=…>` directly in a 4-quadrant matrix (light/dark × expanded/collapsed).
+- **`<Sidebar>` / `<Navbar>` accept `darkMode: boolean`, NOT `dark`.** Agents theming pages frequently trip on this because every page-local helper uses `dark` as the prop name. Remember: for the shared shell components, pass `darkMode={darkMode}`.
 - **Figma & `ImageWithFallback` are protected.** Do not modify [`ImageWithFallback.tsx`](../src/app/components/figma/ImageWithFallback.tsx) or `pnpm-lock.yaml`.

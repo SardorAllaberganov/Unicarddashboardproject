@@ -4,7 +4,32 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
-## 2026-04-16 (pm) — Dark-theme rollout across shell, primitives, drawer, and bank-admin pages
+## 2026-04-16 (late) — Dark-theme rollout completed (50/50 pages) + login/logout wiring
+
+**Module:** all
+**Commits:** uncommitted working tree — Navbar + routes + 41 page files.
+**Files touched:** 43 — +7,679 / −6,222 lines.
+
+**What changed:**
+
+- **T-09 — 11 remaining bank-admin pages themed** (followed the 6 done in the prior session): `UsersManagementPage`, `NotificationRulesPage`, `NotificationRuleEditorPage`, `NotificationRuleDetailPage`, `AnnouncementHistoryPage`, `AnnouncementDetailPage`, `AnnouncementComposePage`, `NotificationDeliveryLogPage`, `ReportPreviewPage`, `OverdueKpiReportPage`, `SettingsPage`. Same pattern as the first batch — `const t = theme(darkMode); const dark = darkMode;` at root, thread `t`/`dark` through every page-local helper, `_LIGHT`/`_DARK` sibling maps for multi-state pills. Charts (recharts bar + donut) get grid-stroke `t.border`, axis-tick `t.text3`, bar-fill `t.blue`, tooltip `t.surface`.
+- **T-10 — all 12 org-admin pages themed**: `OrgAdminDashboardPage`, `OrgCardsPage`, `OrgFinancePage`, `OrgSettingsPage`, `OrgWithdrawalsPage`, `SellersManagementPage`, `SellerDetailPage`, `CardAssignmentPage`, `BulkCardAssignmentPage`, `SellerMessageComposePage`, `SellerMessageHistoryPage`, `SellerMessageDetailPage`. Sibling-map pills for `STATUS_STYLE` / `ROLE_STYLE` / `VARIANT_COLORS` / `TX_TYPE` / `TX_STATUS` / `CARD_STATUS`. Avatar circles switch bg `#E5E7EB` → `#2D3148` on dark with `#F1F2F6` initials.
+- **T-11 — 4 shared pages themed**: `LoginPage` (dual-panel with pinned dark card border), `CardDetailPage` (KPI stepper + financial rows + transaction list + BlockCardModal; role-aware via `?from=org` preserved), `NotificationsHistoryPage` (unread left-border `3px t.blue`, read-state bg `t.tableHeaderBg`, sticky date labels), `DesignSystemPage` (shell only; Row1..Row10 left intentionally light).
+- **T-12 — 8 showcase pages rebuilt as pinned light + dark matrix references**: `EmptyStatesShowcasePage`, `FirstUseEmptyStatesShowcasePage`, `SkeletonStatesShowcasePage`, `PaginationShowcasePage`, `RadioCardShowcasePage`, `SidebarShowcasePage` (4-quadrant light/dark × expanded/collapsed using `Sidebar`'s `darkMode` override), `OrgSidebarShowcasePage`, `AnnouncementFlowPage` (follows global theme — it's an architectural reference doc, no visual mock-ups). `Skeleton` primitive inside the skeleton showcase now accepts a `dark?` override so each matrix cell can be pinned.
+- **T-13 — 15+ modals themed as a batch** across 10 host pages: `OrgDetailPage` (E-03 Deactivate), `CardBatchDetailPage` (F-04 Archive, F-05 Delete, L-03 Duplicate), `SellersManagementPage` (AddSellerModal), `SellerDetailPage` (G-01 Edit, G-02 Deactivate, G-03 Reassign), `OrgCardsPage` (H-02 Record Sale), `OrgWithdrawalsPage` (J-01 Approve, J-02 Reject), `RewardsFinancePage` (L-04 Manual Reward Adjustment), `SellerMessageComposePage` (SendConfirmDialog), `SellerMessageHistoryPage` (DeleteMessageModal), `SellerMessageDetailPage` (DeleteMessageModal). Universal treatment: overlay `rgba(0,0,0,0.6)` on dark, container `t.surface` + `1px solid ${t.border}` (no border on light), shadow `0 4px 24px rgba(0,0,0,0.4)` on dark, semantic header icons use `D` variants, info/warning cards use 8%-opacity tints, type-to-confirm inputs themed, destructive/primary/approve footer buttons follow T-08 spec.
+- **6 deferred bank-admin pages finally themed**: `NewBatchWizardPage`, `CardImportPage`, `OrgDetailPage`, `KPIConfigurationPage`, `RewardsFinancePage`, `CardBatchDetailPage` (the non-modal parts that the T-13 modal pass left alone). `labelStyle`/`inputStyle` module-scope constants in `NewBatchWizardPage` were converted to factory functions `(t) => …` to thread tokens. `CardImportPage` drop-zone keeps `2px dashed t.inputBorder` idle and `t.blue` on drag-over.
+- **Routes — new `/login` alias** added alongside `/`, both mount `LoginPage`. Needed so the logout button has a stable target to navigate to without guessing the app's root path.
+- **Login form wired**. `handleLogin` in `LoginPage` routes to `/org-dashboard` if the login value matches `/org|mysafar|muhammad/i`, else `/dashboard`. Both "Войти" (primary) and "Войти через Unired ID" (outline) call the same handler.
+- **Logout wired** — Navbar's "Выйти из системы" menu item gets an `onClick={() => { setMenuOpen(false); navigate('/login'); }}`.
+
+**Follow-ups (known-incomplete):**
+- `CardBatchDetailPage` `ArchiveModal`: confirm button was changed in BOTH themes from primary-blue to destructive-outline during the T-13 sweep (following T-08 spec literally). Light mode may want to revert to primary-blue — flag for designer review.
+- `Sidebar.tsx` still exports `BankAdminSidebarDemo` / `OrgAdminSidebarDemo` but no page imports them anymore (sidebar showcase pages now render `<Sidebar>` directly). Safe to delete in a follow-up.
+- `SettingsPage.tsx:1362` `ThemeThumbnail` SVG references `mask="url(#dark)"` with no matching `<mask id="dark">` — pre-existing silent no-op, not touched per "flag, don't silently fix".
+- `ds/Row1…Row10` showcase rows under `/design-system` are still light-only — intentionally deferred (they're static palette demos).
+- Sidebar showcase pages (`/sidebar`, `/sidebar-org`) won't show an active nav item because `Sidebar` reads `useLocation()` and neither path matches any menu entry.
+
+---
 
 **Module:** all
 **Commits:** `d5bc097`, `28e39d8`, `ade2adb`, `b708241`, `7bbb9a2`, `ecf92c6`, `5179611`, `80ce29b` (all pushed); plus an in-flight working tree with `OrgDetailDrawer`, `useExportToast`, 6 bank-admin pages, and showcase-label updates for the deleted legacy sidebars.

@@ -63,7 +63,8 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 
 | Path | Role | Component | Notes |
 |---|---|---|---|
-| `/` | shared | [LoginPage](../src/app/pages/LoginPage.tsx) | Role-based login, demo credentials |
+| `/` | shared | [LoginPage](../src/app/pages/LoginPage.tsx) | Role-based login, demo credentials. Submit routes to `/dashboard` (bank) or `/org-dashboard` if the login value matches `/org|mysafar|muhammad/i`. |
+| `/login` | shared | [LoginPage](../src/app/pages/LoginPage.tsx) | Alias of `/`. Exists so logout can `navigate('/login')` without guessing. Navbar's "Выйти из системы" menu item sends users here. |
 | `/card-detail/:id` | shared | [CardDetailPage](../src/app/pages/CardDetailPage.tsx) | Block Card modal; navbar role flips via `?from=org` |
 | `/notifications` | shared | [NotificationsHistoryPage](../src/app/pages/NotificationsHistoryPage.tsx) | `?from=org` switches sidebar to org role |
 | `/empty-states` | shared | [EmptyStatesShowcasePage](../src/app/pages/EmptyStatesShowcasePage.tsx) | 6 filtered-empty variants |
@@ -131,6 +132,10 @@ interface NavbarProps {
 Self-detects role via `detectRole(pathname)` against the module-level `ORG_PATHS` array. Current membership: `/org-dashboard`, `/sellers`, `/org-cards`, `/card-assignment`, `/org-rewards`, `/org-withdrawals`, `/org-settings`, `/seller-messages`. **Add new org routes to that array** or the navbar will show the wrong avatar and "switch to other role" target.
 
 Theme toggle is a 36×36 button in the right-hand cluster. Clicking runs the `themeIconSpin` keyframe — icon rotates from `-180deg` → `0deg` over 250 ms, so it always lands back at 0° regardless of click count (prior implementation accumulated `+180deg` unbounded).
+
+User-menu actions:
+- **"Сменить роль"** — toggles between `/dashboard` and `/org-dashboard` (or the equivalent home path for whichever role the user is currently in).
+- **"Выйти из системы"** — `navigate('/login')` + closes the menu.
 
 ### `usePopoverPosition()`
 File: [usePopoverPosition.ts](../src/app/components/usePopoverPosition.ts)

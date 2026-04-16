@@ -14,6 +14,22 @@ Rule: What to do differently next time
 
 ---
 
+## 2026-04-16 — `<Sidebar>` / `<Navbar>` use `darkMode`, NOT `dark`
+
+Mistake: Multiple theming agents threaded `dark={dark}` into `<Sidebar>` / `<Navbar>` instead of `darkMode={darkMode}`. TypeScript tolerated it as an unknown prop (stripped at runtime), so the shell appeared to work in light mode but flickered on theme toggle.
+Root cause: Every page-local helper in this codebase uses `dark: boolean` as its prop name, so it feels natural to pass `dark` everywhere. But the shared shell components were written before the `dark`-prop convention solidified and kept their original name `darkMode: boolean`.
+Fix: When the theming agent reports complete, grep each touched file for `<Sidebar ` / `<Navbar ` and confirm the prop name is `darkMode`, not `dark`.
+Rule: Shared shell components (`Sidebar`, `Navbar`) take `darkMode={darkMode}`. Every other component in the codebase takes `dark={dark}`. When reviewing a page's theming work, audit the shell props first.
+
+## 2026-04-16 — Modal-first theming is a valid middle state
+
+Mistake: When asked to "theme every modal across the platform," the first instinct was to theme each modal's parent page in full — which ballooned scope to ~10,000 lines and blocked delivery.
+Root cause: Modals are rendered as helpers inside parent pages, so a modal can only read `t = theme(darkMode)` if the page sets that up at root. Feels like the page must be themed first.
+Fix: Each unthemed parent page already called `useDarkMode()` to forward `darkMode` to the shell. Adding `const t = theme(darkMode); const dark = darkMode;` right after that line takes the modal dependencies from zero to ready in one edit — no page-level changes needed. Then thread `t`/`dark` into just the modal helpers. The page stays visually light; the modal flips correctly with the global toggle.
+Rule: For multi-pass rollouts (ship modal theming before page-body theming), add the `t`/`dark` derivation at page root even if you're not going to consume it outside helpers yet. The derivation is a no-op cost and unblocks modal theming immediately. The resulting half-themed state is fine as a landing pad — it's ugly but functional, and the next pass only needs to walk the JSX.
+
+---
+
 ## 2026-04-14 — Action dropdowns clipped inside table with `overflow-x: auto`
 
 Mistake: The `ActionDropdown` menu on the last row of `UsersManagementPage` was cut off at the table's bottom edge — only a few items were visible.
