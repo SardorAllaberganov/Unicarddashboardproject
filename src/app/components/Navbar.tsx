@@ -271,6 +271,7 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
 
               {/* Logout */}
               <button
+                onClick={() => { setMenuOpen(false); navigate('/login'); }}
                 onMouseEnter={() => setLogoutHov(true)}
                 onMouseLeave={() => setLogoutHov(false)}
                 style={{

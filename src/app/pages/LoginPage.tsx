@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Check } from 'lucide-react';
-import { F, C } from '../components/ds/tokens';
+import { useNavigate } from 'react-router';
+import { F, C, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+
+type T = ReturnType<typeof theme>;
 
 const dm = F.dm;
 const inter = F.inter;
 
 /* ─── Reusable primitives ─── */
 
-function Label({ children }: { children: React.ReactNode }) {
+function Label({ children, t }: { children: React.ReactNode; t: T }) {
   return (
-    <label style={{ fontFamily: inter, fontSize: '14px', fontWeight: 500, color: C.text2, display: 'block', marginBottom: '6px' }}>
+    <label style={{ fontFamily: inter, fontSize: '14px', fontWeight: 500, color: t.text2, display: 'block', marginBottom: '6px' }}>
       {children}
     </label>
   );
@@ -22,12 +25,14 @@ function TextInput({
   value,
   onChange,
   suffix,
+  t,
 }: {
   placeholder?: string;
   type?: string;
   value: string;
   onChange: (v: string) => void;
   suffix?: React.ReactNode;
+  t: T;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -43,15 +48,15 @@ function TextInput({
           height: '40px',
           width: '100%',
           boxSizing: 'border-box',
-          border: focused ? `1px solid ${C.blue}` : `1px solid ${C.inputBorder}`,
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          border: focused ? `1px solid ${t.blue}` : `1px solid ${t.inputBorder}`,
+          boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
           borderRadius: '8px',
           padding: '0 12px',
           paddingRight: suffix ? '44px' : '12px',
           fontFamily: inter,
           fontSize: '14px',
-          color: C.text1,
-          background: C.surface,
+          color: t.text1,
+          background: t.surface,
           outline: 'none',
           transition: 'border-color 0.15s, box-shadow 0.15s',
         }}
@@ -68,27 +73,27 @@ function TextInput({
   );
 }
 
-function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
+function Checkbox({ checked, onChange, label, t }: { checked: boolean; onChange: () => void; label: string; t: T }) {
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
       <div
         onClick={onChange}
         style={{
           width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0,
-          border: checked ? 'none' : `1px solid ${C.inputBorder}`,
-          background: checked ? C.blue : C.surface,
+          border: checked ? 'none' : `1px solid ${t.inputBorder}`,
+          background: checked ? t.blue : t.surface,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', transition: 'background 0.15s',
         }}
       >
         {checked && <Check size={10} color="#FFFFFF" strokeWidth={3} />}
       </div>
-      <span style={{ fontFamily: inter, fontSize: '14px', color: C.text2 }}>{label}</span>
+      <span style={{ fontFamily: inter, fontSize: '14px', color: t.text2 }}>{label}</span>
     </label>
   );
 }
 
-function PrimaryButton({ children, onClick, fullWidth }: { children: React.ReactNode; onClick?: () => void; fullWidth?: boolean }) {
+function PrimaryButton({ children, onClick, fullWidth, t }: { children: React.ReactNode; onClick?: () => void; fullWidth?: boolean; t: T }) {
   const [hovered, setHovered] = useState(false);
   return (
     <button
@@ -98,7 +103,7 @@ function PrimaryButton({ children, onClick, fullWidth }: { children: React.React
       style={{
         height: '44px',
         width: fullWidth ? '100%' : 'auto',
-        background: hovered ? C.blueHover : C.blue,
+        background: hovered ? t.blueHover : t.blue,
         border: 'none',
         borderRadius: '8px',
         fontFamily: inter,
@@ -116,8 +121,9 @@ function PrimaryButton({ children, onClick, fullWidth }: { children: React.React
   );
 }
 
-function OutlineButton({ children, onClick, fullWidth }: { children: React.ReactNode; onClick?: () => void; fullWidth?: boolean }) {
+function OutlineButton({ children, onClick, fullWidth, t, dark }: { children: React.ReactNode; onClick?: () => void; fullWidth?: boolean; t: T; dark: boolean }) {
   const [hovered, setHovered] = useState(false);
+  const hoverBg = dark ? t.tableHover : t.pageBg;
   return (
     <button
       onClick={onClick}
@@ -126,13 +132,13 @@ function OutlineButton({ children, onClick, fullWidth }: { children: React.React
       style={{
         height: '44px',
         width: fullWidth ? '100%' : 'auto',
-        background: hovered ? C.pageBg : C.surface,
-        border: `1px solid ${C.border}`,
+        background: hovered ? hoverBg : t.surface,
+        border: `1px solid ${t.border}`,
         borderRadius: '8px',
         fontFamily: inter,
         fontSize: '14px',
         fontWeight: 500,
-        color: C.text2,
+        color: t.text2,
         cursor: 'pointer',
         transition: 'background 0.15s',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -144,12 +150,12 @@ function OutlineButton({ children, onClick, fullWidth }: { children: React.React
   );
 }
 
-function Divider({ label }: { label: string }) {
+function Divider({ label, t }: { label: string; t: T }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <div style={{ flex: 1, height: '1px', background: C.border }} />
-      <span style={{ fontFamily: inter, fontSize: '13px', color: C.text4, flexShrink: 0 }}>{label}</span>
-      <div style={{ flex: 1, height: '1px', background: C.border }} />
+      <div style={{ flex: 1, height: '1px', background: t.border }} />
+      <span style={{ fontFamily: inter, fontSize: '13px', color: t.text4, flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, height: '1px', background: t.border }} />
     </div>
   );
 }
@@ -157,28 +163,46 @@ function Divider({ label }: { label: string }) {
 /* ─── Main Page ─── */
 
 export default function LoginPage() {
+  const [darkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
+
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [remember, setRemember] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = () => {
+    const isOrg = /org|mysafar|muhammad/i.test(login);
+    navigate(isOrg ? '/org-dashboard' : '/dashboard');
+  };
+
+  const rightPanelBg = dark ? '#0F1117' : C.surface;
+  const loginCardBorder = dark ? `1px solid ${t.border}` : 'none';
+  const illustrationBorderColor = dark ? '#4A4F63' : C.inputBorder;
+  const secondaryCardBg = dark ? t.tableAlt : '#F1F5F9';
+  const cardShadow = dark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 4px 12px rgba(37,99,235,0.25)';
 
   return (
     <div style={{
       display: 'flex',
       minHeight: '100vh',
       fontFamily: inter,
-      background: C.surface,
+      background: rightPanelBg,
+      transition: 'background 0.2s',
     }}>
       {/* ── Left Panel ── */}
       <div style={{
         flex: 1,
-        background: C.pageBg,
+        background: t.pageBg,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '48px',
-        borderRight: `1px solid ${C.border}`,
+        borderRight: `1px solid ${t.border}`,
+        transition: 'background 0.2s',
       }}
         className="left-panel"
       >
@@ -188,25 +212,26 @@ export default function LoginPage() {
           <div style={{
             width: '280px',
             height: '200px',
-            border: `2px dashed ${C.border}`,
+            border: `2px dashed ${illustrationBorderColor}`,
             borderRadius: '16px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '10px',
-            background: C.surface,
+            background: t.surface,
+            boxShadow: loginCardBorder ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
           }}>
             {/* Mini VISA card illustration */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
               <div style={{
                 width: '120px', height: '76px', borderRadius: '10px',
-                background: C.blue,
+                background: t.blue,
                 display: 'flex', flexDirection: 'column',
                 justifyContent: 'space-between',
                 padding: '10px 12px',
                 boxSizing: 'border-box',
-                boxShadow: '0 4px 12px rgba(37,99,235,0.25)',
+                boxShadow: cardShadow,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ width: '24px', height: '18px', borderRadius: '3px', background: '#F59E0B' }} />
@@ -219,15 +244,15 @@ export default function LoginPage() {
               {/* Second card offset */}
               <div style={{
                 width: '100px', height: '64px', borderRadius: '8px',
-                background: '#F1F5F9',
-                border: `1px solid ${C.border}`,
+                background: secondaryCardBg,
+                border: `1px solid ${t.border}`,
                 marginTop: '-52px',
                 marginLeft: '20px',
                 alignSelf: 'flex-end',
                 boxSizing: 'border-box',
               }} />
             </div>
-            <span style={{ fontFamily: inter, fontSize: '12px', color: C.text4, marginTop: '4px' }}>Illustration</span>
+            <span style={{ fontFamily: inter, fontSize: '12px', color: t.text4, marginTop: '4px' }}>Illustration</span>
           </div>
 
           {/* Description text */}
@@ -235,7 +260,7 @@ export default function LoginPage() {
             <p style={{
               fontFamily: inter,
               fontSize: '14px',
-              color: C.text3,
+              color: t.text3,
               margin: 0,
               lineHeight: 1.6,
               maxWidth: '320px',
@@ -254,13 +279,13 @@ export default function LoginPage() {
               <div key={stat.label} style={{
                 textAlign: 'center',
                 padding: '12px 16px',
-                background: C.surface,
-                border: `1px solid ${C.border}`,
+                background: t.surface,
+                border: `1px solid ${t.border}`,
                 borderRadius: '10px',
                 minWidth: '72px',
               }}>
-                <div style={{ fontFamily: dm, fontSize: '18px', fontWeight: 700, color: C.blue }}>{stat.value}</div>
-                <div style={{ fontFamily: inter, fontSize: '11px', color: C.text4, marginTop: '2px' }}>{stat.label}</div>
+                <div style={{ fontFamily: dm, fontSize: '18px', fontWeight: 700, color: t.blue }}>{stat.value}</div>
+                <div style={{ fontFamily: inter, fontSize: '11px', color: t.text4, marginTop: '2px' }}>{stat.label}</div>
               </div>
             ))}
           </div>
@@ -276,17 +301,28 @@ export default function LoginPage() {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '48px 0 32px',
-        background: C.surface,
+        background: rightPanelBg,
+        transition: 'background 0.2s',
       }}
         className="right-panel"
       >
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', width: '100%', padding: '0 60px', boxSizing: 'border-box' }}>
-          <div style={{ width: '100%', maxWidth: '400px', margin: '0 auto' }}>
+          <div style={{
+            width: '100%',
+            maxWidth: '400px',
+            margin: '0 auto',
+            padding: dark ? '32px' : 0,
+            background: dark ? t.surface : 'transparent',
+            border: loginCardBorder,
+            borderRadius: dark ? '12px' : 0,
+            boxSizing: 'border-box',
+          }}>
 
             {/* 1. Logo placeholder */}
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              background: C.blue,
+              background: t.blue,
+              border: `1px solid ${t.border}`,
               borderRadius: '6px',
               padding: '0 12px',
               height: '32px',
@@ -308,7 +344,7 @@ export default function LoginPage() {
               fontFamily: dm,
               fontSize: '26px',
               fontWeight: 700,
-              color: C.text1,
+              color: t.text1,
               margin: '0 0 4px',
               lineHeight: 1.25,
             }}>
@@ -319,7 +355,7 @@ export default function LoginPage() {
             <p style={{
               fontFamily: inter,
               fontSize: '14px',
-              color: C.text3,
+              color: t.text3,
               margin: '0 0 28px',
             }}>
               Moment Card KPI Platform
@@ -327,26 +363,28 @@ export default function LoginPage() {
 
             {/* 4. Phone/Login field */}
             <div style={{ marginBottom: '16px' }}>
-              <Label>Телефон или логин</Label>
+              <Label t={t}>Телефон или логин</Label>
               <TextInput
                 placeholder="+998 __ ___ __ __"
                 value={login}
                 onChange={setLogin}
+                t={t}
               />
             </div>
 
             {/* 5. Password field */}
             <div style={{ marginBottom: '16px' }}>
-              <Label>Пароль</Label>
+              <Label t={t}>Пароль</Label>
               <TextInput
                 placeholder="••••••••"
                 type={showPass ? 'text' : 'password'}
                 value={password}
                 onChange={setPassword}
+                t={t}
                 suffix={
                   <button
                     onClick={() => setShowPass(s => !s)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: C.text4 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: t.text4 }}
                     tabIndex={-1}
                   >
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -357,10 +395,10 @@ export default function LoginPage() {
 
             {/* 6. Remember me + Forgot password */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <Checkbox checked={remember} onChange={() => setRemember(r => !r)} label="Запомнить меня" />
+              <Checkbox checked={remember} onChange={() => setRemember(r => !r)} label="Запомнить меня" t={t} />
               <button style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontFamily: inter, fontSize: '14px', color: C.blue, padding: 0,
+                fontFamily: inter, fontSize: '14px', color: t.blue, padding: 0,
                 fontWeight: 500,
               }}>
                 Забыли пароль?
@@ -369,33 +407,33 @@ export default function LoginPage() {
 
             {/* 7. Primary CTA */}
             <div style={{ marginBottom: '20px' }}>
-              <PrimaryButton fullWidth>Войти</PrimaryButton>
+              <PrimaryButton fullWidth t={t} onClick={handleLogin}>Войти</PrimaryButton>
             </div>
 
             {/* 8. Divider */}
             <div style={{ marginBottom: '20px' }}>
-              <Divider label="или" />
+              <Divider label="или" t={t} />
             </div>
 
             {/* 9. Outline CTA */}
-            <OutlineButton fullWidth>Войти через Unired ID</OutlineButton>
+            <OutlineButton fullWidth t={t} dark={dark} onClick={handleLogin}>Войти через Unired ID</OutlineButton>
 
           </div>
         </div>
 
         {/* Footer */}
         <div style={{ padding: '0 60px', width: '100%', boxSizing: 'border-box' }}>
-          <p style={{ fontFamily: inter, fontSize: '13px', color: C.text4, margin: '0 0 12px', textAlign: 'center' }}>
+          <p style={{ fontFamily: inter, fontSize: '13px', color: t.text4, margin: '0 0 12px', textAlign: 'center' }}>
             © 2026 Universalbank. Все права защищены.
           </p>
           <div style={{
             display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap',
           }}>
-            <span style={{ fontFamily: inter, fontSize: '12px', color: C.text4 }}>
-              Bank Admin: <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.text3 }}>admin / admin123</span>
+            <span style={{ fontFamily: inter, fontSize: '12px', color: t.text4 }}>
+              Bank Admin: <span style={{ fontFamily: F.mono, fontSize: '11px', color: t.text3 }}>admin / admin123</span>
             </span>
-            <span style={{ fontFamily: inter, fontSize: '12px', color: C.text4 }}>
-              Org Admin: <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.text3 }}>org / org123</span>
+            <span style={{ fontFamily: inter, fontSize: '12px', color: t.text4 }}>
+              Org Admin: <span style={{ fontFamily: F.mono, fontSize: '11px', color: t.text3 }}>org / org123</span>
             </span>
           </div>
         </div>
