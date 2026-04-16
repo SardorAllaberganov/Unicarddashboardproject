@@ -41,6 +41,9 @@ src/
 │       ├── ds/
 │       │   ├── tokens.ts          # F (fonts), C (colors), D (dark), theme()
 │       │   └── Row1…Row10.tsx     # design-system showcase rows
+│       ├── mds/                   # mobile design system sections (desktop-canvas reference, not mobile routes)
+│       │   ├── frame.tsx          # PhoneFrame / Pair / SectionBlock + MDS constants (safe areas, tab-bar blur bg)
+│       │   └── M_*.tsx            # section components for /mobile-design-system (§1 Navigation…§20 Advanced)
 │       ├── ui/                    # ~40 shadcn/ui primitives
 │       └── figma/
 │           └── ImageWithFallback.tsx   # PROTECTED — do not modify

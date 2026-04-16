@@ -75,6 +75,8 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/markdown-showcase` | shared | [MarkdownShowcasePage](../src/app/pages/MarkdownShowcasePage.tsx) | Compose (FormatToolbar + themed textarea) + rendered preview; follows global theme |
 | `/export-toast-showcase` | shared | [ExportToastShowcasePage](../src/app/pages/ExportToastShowcasePage.tsx) | All 3 `ExportToast` phases stacked in both light and dark variants |
 | `/design-system` | shared | [DesignSystemPage](../src/app/pages/DesignSystemPage.tsx) | 10-row DS tour |
+| `/mobile-design-system` | shared | [MobileDesignSystemPage](../src/app/pages/MobileDesignSystemPage.tsx) | 20-section mobile reference (390×844). Each section in a pinned light+dark `PhoneFrame` matrix. Desktop shell wraps the canvas — not a real mobile route. |
+| `/mobile-tab-bar` | shared | [MobileTabBarShowcasePage](../src/app/pages/MobileTabBarShowcasePage.tsx) | Detailed bottom-tab-bar spec — 2×2 phone matrix (Bank/Org × Light/Dark), pressed state on Bank·Light tab 2, 36×5 home indicator. Drills into X-00 §2. |
 | `/sidebar` | shared | [SidebarShowcasePage](../src/app/pages/SidebarShowcasePage.tsx) | |
 | `/sidebar-org` | shared | [OrgSidebarShowcasePage](../src/app/pages/OrgSidebarShowcasePage.tsx) | |
 

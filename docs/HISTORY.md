@@ -4,6 +4,26 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
+## 2026-04-16 (night) — Mobile design system foundation
+
+**Module:** mobile (new area)
+**Commits:** uncommitted working tree — 1 modified + 11 new files, builds on `f81983c`.
+**Files touched:** 12 — see below.
+
+**What changed:**
+
+- **New folder [src/app/components/mds/](../src/app/components/mds/)** — mobile design system building blocks. Contains [frame.tsx](../src/app/components/mds/frame.tsx) (`PhoneFrame`, `Pair` light+dark matrix, `SectionBlock`, `VariantLabel`, `MDS` constants) plus 8 section files — `M_Navigation` (§1 Headers, §2 Tab bars, §3 More menu), `M_Lists` (§4 List rows, §5 Section headers, §20 Swipe actions), `M_Cards` (§6 Stat cards), `M_Sheets` (§7 Filter sheet, §11 Bottom sheet), `M_Detail` (§8 Detail page, §9 Segmented control), `M_Forms` (§10 Form, §12 Sticky action, §17 Search), `M_Feedback` (§13 Toast, §14 Pull-to-refresh, §15 Empty, §16 Skeleton), `M_Advanced` (§18 KPI stepper, §19 Badges). ~2,582 lines.
+- **New master reference page [MobileDesignSystemPage](../src/app/pages/MobileDesignSystemPage.tsx) at `/mobile-design-system`** — 20-section tour, 390×844 baseline. Each section renders pinned light+dark phone-frame matrices via `<Pair>`. Shell uses the standard bank-admin sidebar+navbar so devs can navigate back to `/design-system`.
+- **New detailed spec page [MobileTabBarShowcasePage](../src/app/pages/MobileTabBarShowcasePage.tsx) at `/mobile-tab-bar`** — 2×2 matrix (Bank/Org × Light/Dark) drilling into X-00 §2. Shows pressed state (`transform: scale(0.96); opacity: 0.7`) on Bank·Light tab 2, active-tab 8 px red dot badge on icon, 14×14 "3" count badge on Ещё tab, 36×5 iOS home indicator in the safe area. Spec token table + per-role tab composition table beneath the matrix.
+- **Mobile-specific tokens** — `MDS` const in `frame.tsx` (not added to `tokens.ts`): `phoneW 390`, `safeTop 44`, `safeBottom 34`, `headerH 56`, `tabBarH 64`, `cardRadius 16`, `frameRadius 40`, `touchTarget 48`, plus tab-bar translucent bgs, iOS touch highlights, Android ripple. All color values inherit from existing `F`/`C`/`D`/`theme()`.
+- **Convention:** mobile is a **desktop-canvas reference**, not a mobile-responsive route. Static mocks — no real tab switching, sheet open/close, or PTR gestures. Converting any section to a live mobile route is a separate future task.
+- **Routes** — 2 new entries in [routes.tsx](../src/app/routes.tsx): `/mobile-design-system` and `/mobile-tab-bar`.
+- **Docs** — `AI_CONTEXT.md` + `ROUTES.md` + `ARCHITECTURE.md` all bumped to reference the new folder, routes, and mobile-reference convention.
+
+**Follow-ups:** none. Dev build green: 2312 modules, 8.74 s. Home indicator uses 36×5 per the spec in the user's prompt (iOS hardware is ~134×5) — flagged in the Tab Bar page report for decision.
+
+---
+
 ## 2026-04-16 (evening) — DS showcase rows themed + flagged-item cleanup
 
 **Module:** all (design-system showcase + small fixes)

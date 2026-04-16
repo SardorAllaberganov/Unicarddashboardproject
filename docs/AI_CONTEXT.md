@@ -1,6 +1,6 @@
 # AI Context — Moment Card KPI Platform
 
-Last synced: 2026-04-16 (dark-theme rollout complete — 50/50 pages + 10/10 DS showcase rows)
+Last synced: 2026-04-16 (+ mobile design system foundation — `/mobile-design-system` + `/mobile-tab-bar`)
 
 ## Current state
 
@@ -10,6 +10,8 @@ Moment Card KPI is a React 18 + TypeScript + Vite single-page app serving two ad
 - **Organization Admin** — runs their own shop: sellers, card inventory, KPI conversion, UCOIN withdrawals, and direct messaging to sellers.
 
 There is no backend. All data is mock TypeScript arrays inside each page file. Role is inferred from the URL path (and `?from=org` for shared pages like `/notifications` and `/card-detail/:id`). Dark mode persists via a module-level theme store backed by `localStorage['moment-kpi-theme']` with values `'light' | 'dark' | 'system'`. Every page, showcase, modal, and Design System showcase row (Row 1 through Row 10) now themes against the `theme(dark)` token surface — the rollout hit 100%. The target resolution is 1920×1080 desktop.
+
+A parallel **mobile design system** now lives at [/mobile-design-system](../src/app/pages/MobileDesignSystemPage.tsx) (master reference, 20 sections) plus a detailed per-component showcase at [/mobile-tab-bar](../src/app/pages/MobileTabBarShowcasePage.tsx). These are rendered **inside `PhoneFrame` wrappers on the desktop canvas** — they are reference catalogues, not actual mobile-responsive routes. The app itself still targets desktop.
 
 ## Feature map (what lives where)
 
@@ -28,6 +30,8 @@ There is no backend. All data is mock TypeScript arrays inside each page file. R
 | `/markdown-showcase` | [MarkdownShowcasePage](../src/app/pages/MarkdownShowcasePage.tsx) | FormatToolbar + textarea + rendered preview |
 | `/export-toast-showcase` | [ExportToastShowcasePage](../src/app/pages/ExportToastShowcasePage.tsx) | Processing / success / error — light + dark stacks |
 | `/design-system` | [DesignSystemPage](../src/app/pages/DesignSystemPage.tsx) | 10-row DS tour |
+| `/mobile-design-system` | [MobileDesignSystemPage](../src/app/pages/MobileDesignSystemPage.tsx) | 20-section mobile reference (390×844 baseline, pinned light+dark phone frames) |
+| `/mobile-tab-bar` | [MobileTabBarShowcasePage](../src/app/pages/MobileTabBarShowcasePage.tsx) | Detailed bottom-tab-bar spec (2 roles × 2 themes, pressed state, home indicator) |
 | `/sidebar`, `/sidebar-org` | Sidebar showcases |  |
 | `/flow/announcements` | [AnnouncementFlowPage](../src/app/pages/AnnouncementFlowPage.tsx) | Dev-handoff diagram (no sidebar/navbar) |
 
@@ -124,6 +128,7 @@ Full interface catalogue in [DATA_MODELS.md](./DATA_MODELS.md). Each page owns i
 - **Dark-mode state is global** via `useDarkMode()`. Do not re-introduce `useState(false)` — toggle in Navbar or Settings must persist across route changes. (Sidebar no longer has a theme toggle — it moved to the Navbar.)
 - **Page-level dark theming uses `theme()`, not CSS variables.** Pattern: `const t = theme(darkMode); const dark = darkMode;` at the top of the default export, then `t.pageBg` / `t.surface` / `t.border` / `t.text1-4` / `t.blue` etc. in inline styles. Page-local helper components must accept `t` + `dark` as props (not read `useDarkMode()` inline) so showcase pages can force a specific variant. Shared primitives (EmptyState, PaginationBar, RadioGroup, ExportToast, FormatToolbar) follow the opposite pattern — read `useDarkMode()` by default, accept optional `dark` override.
 - **DS showcase rows (Row1–Row10) theme the chrome, not the specimens.** Each row card container, labels, captions, dividers, and interactive samples switch via `t`. But hardcoded hex inside `Swatch` tiles (Row1 palette) and `color` values on `typeScale` entries (Row1 typography specimens) stay literal — they exist to demonstrate that exact color. Row10 deliberately shows both light + dark swatches side-by-side in the "Dark Theme Token Overrides" strip regardless of global theme (it's a reference strip).
+- **Mobile design system is a desktop-canvas reference, not a mobile route.** [/mobile-design-system](../src/app/pages/MobileDesignSystemPage.tsx) and [/mobile-tab-bar](../src/app/pages/MobileTabBarShowcasePage.tsx) wrap every section in the `PhoneFrame` primitive from [mds/frame.tsx](../src/app/components/mds/frame.tsx) — a 390 px fixed-width rounded bezel — so the existing desktop sidebar/navbar frame the mobile mockups. Mobile-specific tokens (safe areas, tab-bar backdrop blur, iOS touch highlight, Android ripple) live in the `MDS` const in `frame.tsx`, not in `ds/tokens.ts`. All color values inherit from existing `F`/`C`/`D`/`theme()`. Sections render pinned light+dark via the `<Pair>` helper. Interactions are static representational mocks (no real tab switching, sheet open/close, PTR gesture) — converting any section to a real mobile route is a separate future task.
 - **Status pills need dedicated dark palettes.** The semantic token layer (`t.successBg` etc.) only covers pill backgrounds, not the saturated pill text colors. For status badges with multiple-state maps (Активна / На паузе / Неактивна, Активна / Зарег. / На складе …), define a `_DARK` sibling map at module scope and branch on `dark`.
 - **Notification bell consumes `window` CustomEvents** (`app:notif:new`, `app:notif:batch`). Events dispatched before `navigate()` are lost (navbar unmounts) — needs a module-level store for real cross-page delivery.
 - **`:focus-visible` only, not `:focus`.** Accessible radio/checkbox cards inject a scoped `<style>` block since inline styles can't express the pseudo-class. Pattern at [RadioCard.tsx](../src/app/components/RadioCard.tsx) — focus-ring color is driven by a scoped CSS variable `--rc-focus-ring` so multiple groups with different themes can coexist on the same page.

@@ -21,6 +21,13 @@ Root cause: Every page-local helper in this codebase uses `dark: boolean` as its
 Fix: When the theming agent reports complete, grep each touched file for `<Sidebar ` / `<Navbar ` and confirm the prop name is `darkMode`, not `dark`.
 Rule: Shared shell components (`Sidebar`, `Navbar`) take `darkMode={darkMode}`. Every other component in the codebase takes `dark={dark}`. When reviewing a page's theming work, audit the shell props first.
 
+## 2026-04-16 — Mobile reference ≠ mobile-responsive route
+
+Mistake: When first asked to build "a mobile-first design system at 390×844", it's tempting to (a) make the whole app mobile-responsive via viewport media queries, or (b) create standalone mobile routes with no desktop chrome. Neither matches the project's intent.
+Root cause: The project targets desktop 1920×1080. Mobile work in this codebase is a **design reference catalogue** for designers and mobile-app engineers — it documents what mobile *should* look like, but the live SPA stays desktop. The existing sidebar/navbar shell is already wired for every page, so wrapping mobile mockups in it lets devs navigate between `/design-system` and `/mobile-design-system` without a separate shell.
+Fix: Built [src/app/components/mds/frame.tsx](../src/app/components/mds/frame.tsx) with a `PhoneFrame` primitive — 390 px fixed width, rounded bezel, dark outer surround — plus a `<Pair>` helper that renders pinned light+dark side-by-side regardless of the global theme (same pattern as other showcases). Every section in `/mobile-design-system` and `/mobile-tab-bar` renders inside `PhoneFrame` on the desktop canvas. Mobile-specific tokens (safe areas, tab-bar backdrop, iOS touch highlight, Android ripple) live in the `MDS` const in `frame.tsx`, separate from `ds/tokens.ts`.
+Rule: For any new mobile deliverable — master reference, per-component drill-down, or new §-section — reuse `PhoneFrame` / `Pair` / `SectionBlock` from `mds/frame.tsx`. Keep the desktop sidebar+navbar shell. Treat interactions as static visual mocks unless explicitly asked to wire a real mobile route. When adding a new §-section, either extend one of the existing `M_*.tsx` files or add a new file following the same export shape (`export const M_Foo = { SectionA: ({ t }) => <Pair …>{(dark) => <Col dark={dark} />}</Pair> }`). Mobile tokens don't belong in `ds/tokens.ts`.
+
 ## 2026-04-16 — DS showcase rows: theme the chrome, keep the specimens literal
 
 Mistake: First instinct when "theming" `Row1_ColorTypo` was to replace every hardcoded hex — including the `background: hex` on `Swatch` tiles and the `color` on `typeScale` samples — with `t.*` tokens. That would turn the palette demo into a demo of the *current theme only*, erasing the entire purpose of a swatch catalogue.
