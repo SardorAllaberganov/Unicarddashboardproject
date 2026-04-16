@@ -1339,21 +1339,28 @@ function ThemeThumbnail({ variant }: { variant: ThemePref }) {
   return (
     <svg width="48" height="32" viewBox="0 0 48 32" style={{ display: 'block' }}>
       <defs>
-        <clipPath id="systemSplit">
+        <clipPath id="systemSplitLight">
           <polygon points="0,0 48,0 0,32" />
+        </clipPath>
+        <clipPath id="systemSplitDark">
+          <polygon points="48,0 48,32 0,32" />
         </clipPath>
       </defs>
       <rect width="48" height="32" rx="3" fill="#0B1220" stroke="#1F2937" />
-      <g clipPath="url(#systemSplit)">
+      {/* Light half — upper-left triangle */}
+      <g clipPath="url(#systemSplitLight)">
         <rect width="48" height="32" fill="#FFFFFF" />
         <rect x="0" y="0" width="14" height="32" fill="#F9FAFB" />
-      </g>
-      <g clipPath="url(#systemSplit)">
         <rect x="2" y="4"  width="10" height="2" rx="1" fill="#D1D5DB" />
         <rect x="2" y="8"  width="10" height="2" rx="1" fill="#E5E7EB" />
         <rect x="18" y="4" width="26" height="3" rx="1" fill="#D1D5DB" />
       </g>
-      <rect x="0" y="0" width="14" height="32" fill="#111827" mask="url(#dark)" />
+      {/* Dark half — lower-right triangle */}
+      <g clipPath="url(#systemSplitDark)">
+        <rect x="0" y="0" width="14" height="32" fill="#111827" />
+        <rect x="2" y="12" width="10" height="2" rx="1" fill="#1F2937" />
+        <rect x="18" y="10" width="26" height="18" rx="2" fill="#1F2937" />
+      </g>
       <line x1="0" y1="32" x2="48" y2="0" stroke="#E5E7EB" strokeWidth="0.5" />
     </svg>
   );
