@@ -9,11 +9,16 @@ import { Row7Forms } from '../components/ds/Row7_Forms';
 import { Row8DrawerModalToast } from '../components/ds/Row8_DrawerModalToast';
 import { Row9Misc } from '../components/ds/Row9_Misc';
 import { Row10DateDark } from '../components/ds/Row10_DateDark';
+import { theme } from '../components/ds/tokens';
+import { useDarkMode } from '../components/useDarkMode';
+
+type T = ReturnType<typeof theme>;
 
 const inter = "'Inter', sans-serif";
 const dm = "'DM Sans', sans-serif";
 
-function SectionLabel({ row, title }: { row: string; title: string }) {
+function SectionLabel({ row, title, t, dark }: { row: string; title: string; t: T; dark: boolean }) {
+  const chipBg = dark ? t.tableHeaderBg : '#F3F4F6';
   return (
     <div style={{ marginBottom: '24px', marginTop: '48px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginBottom: '10px' }}>
@@ -21,11 +26,11 @@ function SectionLabel({ row, title }: { row: string; title: string }) {
           fontFamily: inter,
           fontSize: '11px',
           fontWeight: 600,
-          color: '#9CA3AF',
+          color: t.text4,
           textTransform: 'uppercase' as const,
           letterSpacing: '0.06em',
-          background: '#F3F4F6',
-          border: '1px solid #E5E7EB',
+          background: chipBg,
+          border: `1px solid ${t.border}`,
           borderRadius: '4px',
           padding: '2px 8px',
         }}>
@@ -35,24 +40,31 @@ function SectionLabel({ row, title }: { row: string; title: string }) {
           fontFamily: inter,
           fontSize: '16px',
           fontWeight: 600,
-          color: '#111827',
+          color: t.text1,
           margin: 0,
         }}>
           {title}
         </h2>
       </div>
-      <div style={{ height: '1px', background: '#E5E7EB' }} />
+      <div style={{ height: '1px', background: t.border }} />
     </div>
   );
 }
 
 export default function DesignSystemPage() {
+  const [darkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
+
+  const canvasBg = dark ? '#0F1117' : '#F3F4F6';
+
   return (
     <div style={{
-      background: '#F3F4F6',
+      background: canvasBg,
       minHeight: '100vh',
       padding: '48px 40px',
       fontFamily: inter,
+      transition: 'background 0.2s',
     }}>
       <div style={{ maxWidth: '1840px', margin: '0 auto' }}>
 
@@ -61,19 +73,19 @@ export default function DesignSystemPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
             <div style={{
               width: '40px', height: '40px', borderRadius: '10px',
-              background: '#2563EB',
+              background: t.blue,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <span style={{ fontFamily: dm, fontSize: '18px', fontWeight: 700, color: '#FFFFFF' }}>M</span>
             </div>
             <div>
               <h1 style={{
-                fontFamily: dm, fontSize: '28px', fontWeight: 700, color: '#111827',
+                fontFamily: dm, fontSize: '28px', fontWeight: 700, color: t.text1,
                 margin: 0, lineHeight: 1.2,
               }}>
                 Moment Card KPI Platform
               </h1>
-              <p style={{ fontFamily: inter, fontSize: '14px', color: '#6B7280', margin: '2px 0 0' }}>
+              <p style={{ fontFamily: inter, fontSize: '14px', color: t.text3, margin: '2px 0 0' }}>
                 Design System & UI Component Library — v1.0.0 · 1920×1080
               </p>
             </div>
@@ -90,57 +102,57 @@ export default function DesignSystemPage() {
               { label: 'Components', value: '22' },
             ].map(item => (
               <div key={item.label} style={{
-                background: '#FFFFFF',
-                border: '1px solid #E5E7EB',
+                background: t.surface,
+                border: `1px solid ${t.border}`,
                 borderRadius: '8px',
                 padding: '6px 14px',
                 display: 'flex',
                 gap: '8px',
                 alignItems: 'center',
               }}>
-                <span style={{ fontFamily: inter, fontSize: '12px', color: '#9CA3AF' }}>{item.label}:</span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 500, color: '#2563EB' }}>{item.value}</span>
+                <span style={{ fontFamily: inter, fontSize: '12px', color: t.text4 }}>{item.label}:</span>
+                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', fontWeight: 500, color: t.blue }}>{item.value}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <SectionLabel row="Row 1" title="Color Tokens & Typography Scale" />
+        <SectionLabel row="Row 1" title="Color Tokens & Typography Scale" t={t} dark={dark} />
         <Row1ColorTypo />
 
-        <SectionLabel row="Row 2" title="Sidebar Navigation · Button Variants · Badge Variants · Stat Pills" />
+        <SectionLabel row="Row 2" title="Sidebar Navigation · Button Variants · Badge Variants · Stat Pills" t={t} dark={dark} />
         <Row2SidebarBtnBadge />
 
-        <SectionLabel row="Row 3" title="Stat Cards (6 variants) · Breadcrumb Navigation" />
+        <SectionLabel row="Row 3" title="Stat Cards (6 variants) · Breadcrumb Navigation" t={t} dark={dark} />
         <Row3StatCards />
 
-        <SectionLabel row="Row 4" title="Data Table — All cell types · Filter Bar · Pagination" />
+        <SectionLabel row="Row 4" title="Data Table — All cell types · Filter Bar · Pagination" t={t} dark={dark} />
         <Row4Table />
 
-        <SectionLabel row="Row 5" title="KPI Stepper — Variant A (Config Builder) · Variant B (Progress Tracker)" />
+        <SectionLabel row="Row 5" title="KPI Stepper — Variant A (Config Builder) · Variant B (Progress Tracker)" t={t} dark={dark} />
         <Row5KPIStepper />
 
-        <SectionLabel row="Row 6" title="Funnel Bar Chart · Donut Chart · Horizontal Bar Chart" />
+        <SectionLabel row="Row 6" title="Funnel Bar Chart · Donut Chart · Horizontal Bar Chart" t={t} dark={dark} />
         <Row6Charts />
 
-        <SectionLabel row="Row 7" title="Form Components — All Variants" />
+        <SectionLabel row="Row 7" title="Form Components — All Variants" t={t} dark={dark} />
         <Row7Forms />
 
-        <SectionLabel row="Row 8" title="Detail Drawer · Modal Dialogs (2 variants) · Toast Notifications (4 variants)" />
+        <SectionLabel row="Row 8" title="Detail Drawer · Modal Dialogs (2 variants) · Toast Notifications (4 variants)" t={t} dark={dark} />
         <Row8DrawerModalToast />
 
-        <SectionLabel row="Row 9" title="File Upload · Empty State · Card Status Flow · Activity Timeline" />
+        <SectionLabel row="Row 9" title="File Upload · Empty State · Card Status Flow · Activity Timeline" t={t} dark={dark} />
         <Row9Misc />
 
-        <SectionLabel row="Row 10" title="Date Range Picker · Dark Theme Token Overrides" />
+        <SectionLabel row="Row 10" title="Date Range Picker · Dark Theme Token Overrides" t={t} dark={dark} />
         <Row10DateDark />
 
         {/* Footer */}
-        <div style={{ marginTop: '64px', paddingTop: '24px', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontFamily: inter, fontSize: '13px', color: '#9CA3AF' }}>
+        <div style={{ marginTop: '64px', paddingTop: '24px', borderTop: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: inter, fontSize: '13px', color: t.text4 }}>
             Moment Card KPI Platform · Design System v1.0.0 · 22 components
           </span>
-          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: '#D1D5DB' }}>
+          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', color: t.textDisabled }}>
             © 2026 Moment Finance
           </span>
         </div>

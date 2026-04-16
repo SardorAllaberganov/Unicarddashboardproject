@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import {
   ChevronDown, ChevronRight, Settings, MoreVertical,
   CheckCircle2, CreditCard, ArrowDown, Upload, AlertTriangle,
-  CheckCheck, Trash2, Check,
+  CheckCheck, Trash2, Check, Bell,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { DateRangePicker } from '../components/DateRangePicker';
+import { EmptyState } from '../components/EmptyState';
 import { useNavigate, useSearchParams } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DATA
@@ -58,12 +61,22 @@ const SEED: Notif[] = [
   { id: 20, icon: Upload,        color: 'blue',  type: 'Импорт',   title: 'Импорт завершён: 200 карт в «Партия Тест»',                                   time: '08:10', group: '10 апреля', unread: false },
 ];
 
-const ICON_COLORS: Record<NotifIconColor, { color: string; bg: string; border: string }> = {
-  green: { color: C.success, bg: C.successBg, border: '#BBF7D0' },
-  blue:  { color: C.blue,    bg: C.blueLt,    border: C.blueTint },
-  amber: { color: C.warning, bg: '#FFFBEB',   border: '#FDE68A' },
-  red:   { color: C.error,   bg: C.errorBg,   border: '#FECACA' },
-};
+function iconColorsFor(dark: boolean): Record<NotifIconColor, { color: string; bg: string; border: string }> {
+  if (dark) {
+    return {
+      green: { color: D.success, bg: 'rgba(52,211,153,0.15)',  border: 'rgba(52,211,153,0.30)' },
+      blue:  { color: D.blue,    bg: 'rgba(59,130,246,0.15)',  border: 'rgba(59,130,246,0.30)' },
+      amber: { color: D.warning, bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.30)' },
+      red:   { color: D.error,   bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.30)' },
+    };
+  }
+  return {
+    green: { color: C.success, bg: 'rgba(16,185,129,0.10)', border: '#BBF7D0' },
+    blue:  { color: C.blue,    bg: C.blueLt,                border: C.blueTint },
+    amber: { color: C.warning, bg: '#FFFBEB',               border: '#FDE68A' },
+    red:   { color: C.error,   bg: C.errorBg,               border: '#FECACA' },
+  };
+}
 
 const TYPE_OPTIONS: NotifType[] = ['KPI', 'Продажи', 'Финансы', 'Импорт', 'Система'];
 const STATUS_OPTIONS = ['Непрочитанные', 'Прочитанные'];
@@ -72,8 +85,8 @@ const STATUS_OPTIONS = ['Непрочитанные', 'Прочитанные'];
    FILTER SELECT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function FilterSelect({ label, options, value, onChange, minWidth }: {
-  label: string; options: string[]; value: string; onChange: (v: string) => void; minWidth?: string;
+function FilterSelect({ label, options, value, onChange, minWidth, t, dark }: {
+  label: string; options: string[]; value: string; onChange: (v: string) => void; minWidth?: string; t: T; dark: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   return (
@@ -83,12 +96,12 @@ function FilterSelect({ label, options, value, onChange, minWidth }: {
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         style={{
           height: '40px', padding: '0 36px 0 12px',
-          border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-          borderRadius: '8px', background: C.surface,
+          border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: '8px', background: t.surface,
           fontFamily: F.inter, fontSize: '13px',
-          color: value ? C.text1 : C.text3,
+          color: value ? t.text1 : t.text3,
           outline: 'none', appearance: 'none', cursor: 'pointer',
-          boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused ? `0 0 0 3px ${dark ? D.focusRing : C.blueTint}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
           minWidth: minWidth ?? '170px',
         }}
@@ -96,7 +109,7 @@ function FilterSelect({ label, options, value, onChange, minWidth }: {
         <option value="">{label}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
-      <ChevronDown size={13} color={C.text3} style={{
+      <ChevronDown size={13} color={t.text3} style={{
         position: 'absolute', right: '12px', top: '50%',
         transform: 'translateY(-50%)', pointerEvents: 'none',
       }} />
@@ -108,8 +121,8 @@ function FilterSelect({ label, options, value, onChange, minWidth }: {
    NOTIFICATION ROW + ACTION MENU
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function NotifActionMenu({ onRead, onDelete, canRead }: {
-  onRead: () => void; onDelete: () => void; canRead: boolean;
+function NotifActionMenu({ onRead, onDelete, canRead, t, dark }: {
+  onRead: () => void; onDelete: () => void; canRead: boolean; t: T; dark: boolean;
 }) {
   const pop = usePopoverPosition();
   const [hov, setHov] = useState(false);
@@ -124,22 +137,22 @@ function NotifActionMenu({ onRead, onDelete, canRead }: {
         aria-label="Действия"
         style={{
           width: '28px', height: '28px',
-          border: `1px solid ${pop.open ? C.blue : hov ? '#D1D5DB' : 'transparent'}`,
+          border: `1px solid ${pop.open ? t.blue : hov ? t.inputBorder : 'transparent'}`,
           borderRadius: '6px',
-          background: pop.open ? C.blueLt : hov ? '#F3F4F6' : 'transparent',
+          background: pop.open ? t.blueLt : hov ? t.tableHover : 'transparent',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', transition: 'all 0.12s', flexShrink: 0,
         }}
       >
-        <MoreVertical size={14} color={pop.open ? C.blue : C.text3} strokeWidth={1.75} />
+        <MoreVertical size={14} color={pop.open ? t.blue : t.text3} strokeWidth={1.75} />
       </button>
 
       {pop.open && (
         <div ref={pop.menuRef} style={{
           ...pop.menuStyle,
-          background: C.surface, border: `1px solid ${C.border}`,
+          background: t.surface, border: `1px solid ${t.border}`,
           borderRadius: '10px', padding: '6px',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.10)',
+          boxShadow: dark ? '0 8px 24px rgba(0,0,0,0.35)' : '0 8px 24px rgba(0,0,0,0.10)',
           minWidth: '160px',
         }}>
           <MenuItem
@@ -147,13 +160,17 @@ function NotifActionMenu({ onRead, onDelete, canRead }: {
             label="Прочитать"
             disabled={!canRead}
             onClick={() => { onRead(); pop.close(); }}
+            t={t}
+            dark={dark}
           />
-          <div style={{ height: '1px', background: C.border, margin: '4px 0' }} />
+          <div style={{ height: '1px', background: t.border, margin: '4px 0' }} />
           <MenuItem
             icon={Trash2}
             label="Удалить"
             danger
             onClick={() => { onDelete(); pop.close(); }}
+            t={t}
+            dark={dark}
           />
         </div>
       )}
@@ -161,10 +178,12 @@ function NotifActionMenu({ onRead, onDelete, canRead }: {
   );
 }
 
-function MenuItem({ icon: Icon, label, danger, disabled, onClick }: {
-  icon: React.ElementType; label: string; danger?: boolean; disabled?: boolean; onClick: () => void;
+function MenuItem({ icon: Icon, label, danger, disabled, onClick, t, dark }: {
+  icon: React.ElementType; label: string; danger?: boolean; disabled?: boolean; onClick: () => void; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
+  const dangerHoverBg = dark ? 'rgba(248,113,113,0.12)' : '#FEF2F2';
+  const dangerHoverFg = dark ? D.error : '#DC2626';
   return (
     <button
       onMouseEnter={() => !disabled && setHov(true)}
@@ -175,10 +194,10 @@ function MenuItem({ icon: Icon, label, danger, disabled, onClick }: {
         width: '100%', textAlign: 'left',
         display: 'flex', alignItems: 'center', gap: '8px',
         padding: '8px 10px', borderRadius: '7px', border: 'none',
-        background: !disabled && hov ? (danger ? '#FEF2F2' : '#F9FAFB') : 'none',
+        background: !disabled && hov ? (danger ? dangerHoverBg : t.tableHover) : 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: F.inter, fontSize: '13px',
-        color: disabled ? C.text4 : hov && danger ? '#DC2626' : C.text2,
+        color: disabled ? t.text4 : hov && danger ? dangerHoverFg : t.text2,
         opacity: disabled ? 0.6 : 1,
         transition: 'all 0.1s',
       }}
@@ -189,12 +208,15 @@ function MenuItem({ icon: Icon, label, danger, disabled, onClick }: {
   );
 }
 
-function NotifRow({ notif, onRead, onDelete }: {
-  notif: Notif; onRead: () => void; onDelete: () => void;
+function NotifRow({ notif, onRead, onDelete, t, dark }: {
+  notif: Notif; onRead: () => void; onDelete: () => void; t: T; dark: boolean;
 }) {
   const [hov, setHov] = useState(false);
-  const cfg = ICON_COLORS[notif.color];
+  const cfg = iconColorsFor(dark)[notif.color];
   const Icon = notif.icon;
+
+  const readBg = t.tableHeaderBg;
+  const defaultBg = notif.unread ? t.surface : readBg;
 
   return (
     <div
@@ -203,9 +225,9 @@ function NotifRow({ notif, onRead, onDelete }: {
       style={{
         display: 'flex', alignItems: 'flex-start', gap: '14px',
         padding: '16px 20px',
-        background: hov ? '#F9FAFB' : C.surface,
-        borderLeft: notif.unread ? `3px solid ${C.blue}` : '3px solid transparent',
-        borderBottom: `1px solid ${C.border}`,
+        background: hov ? t.tableHover : defaultBg,
+        borderLeft: notif.unread ? `3px solid ${t.blue}` : '3px solid transparent',
+        borderBottom: `1px solid ${t.border}`,
         transition: 'background 0.12s',
       }}
     >
@@ -224,7 +246,7 @@ function NotifRow({ notif, onRead, onDelete }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{
             fontFamily: F.inter, fontSize: '13px',
-            color: notif.unread ? C.text1 : C.text2,
+            color: notif.unread ? t.text1 : t.text2,
             fontWeight: notif.unread ? 500 : 400,
             lineHeight: 1.4,
           }}>
@@ -234,8 +256,8 @@ function NotifRow({ notif, onRead, onDelete }: {
             display: 'inline-flex', alignItems: 'center',
             fontFamily: F.inter, fontSize: '10px', fontWeight: 500,
             padding: '2px 7px', borderRadius: '6px',
-            background: '#F3F4F6', color: C.text3,
-            border: `1px solid ${C.border}`,
+            background: dark ? D.tableAlt : '#F3F4F6', color: t.text3,
+            border: `1px solid ${t.border}`,
             textTransform: 'uppercase', letterSpacing: '0.04em',
           }}>
             {notif.type}
@@ -244,7 +266,7 @@ function NotifRow({ notif, onRead, onDelete }: {
         {notif.sub && (
           <div style={{
             fontFamily: F.inter, fontSize: '12px',
-            color: C.success, fontWeight: 500,
+            color: t.success, fontWeight: 500,
             marginTop: '3px',
           }}>
             {notif.sub}
@@ -254,7 +276,7 @@ function NotifRow({ notif, onRead, onDelete }: {
 
       {/* Timestamp */}
       <span style={{
-        fontFamily: F.mono, fontSize: '12px', color: C.text4,
+        fontFamily: F.mono, fontSize: '12px', color: t.text4,
         marginTop: '3px', flexShrink: 0, minWidth: '48px', textAlign: 'right',
       }}>
         {notif.time}
@@ -265,6 +287,8 @@ function NotifRow({ notif, onRead, onDelete }: {
         canRead={notif.unread}
         onRead={onRead}
         onDelete={onDelete}
+        t={t}
+        dark={dark}
       />
     </div>
   );
@@ -277,6 +301,8 @@ function NotifRow({ notif, onRead, onDelete }: {
 export default function NotificationsHistoryPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateRange, setDateRange] = useState({ from: '2026-04-10', to: '2026-04-14' });
@@ -305,7 +331,7 @@ export default function NotificationsHistoryPage() {
     .filter(g => g.items.length > 0);
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role={role}
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -319,9 +345,9 @@ export default function NotificationsHistoryPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <span onClick={() => navigate(fromOrg ? '/org-dashboard' : '/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Уведомления</span>
+            <span onClick={() => navigate(fromOrg ? '/org-dashboard' : '/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Уведомления</span>
           </div>
 
           {/* Top bar */}
@@ -330,10 +356,10 @@ export default function NotificationsHistoryPage() {
             gap: '16px', marginBottom: '22px', flexWrap: 'wrap',
           }}>
             <div>
-              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+              <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
                 Уведомления
               </h1>
-              <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+              <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
                 Все уведомления
               </p>
             </div>
@@ -347,11 +373,11 @@ export default function NotificationsHistoryPage() {
                 aria-label="Прочитать все"
                 style={{
                   height: '40px', padding: '0 16px',
-                  border: `1px solid ${unreadCount === 0 ? C.border : readAllHov ? C.blue : C.border}`,
+                  border: `1px solid ${unreadCount === 0 ? t.border : readAllHov ? t.blue : t.border}`,
                   borderRadius: '8px',
-                  background: unreadCount === 0 ? C.surface : readAllHov ? C.blueLt : C.surface,
+                  background: unreadCount === 0 ? 'transparent' : readAllHov ? t.tableHover : 'transparent',
                   fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                  color: unreadCount === 0 ? C.text4 : readAllHov ? C.blue : C.text1,
+                  color: unreadCount === 0 ? t.text4 : readAllHov ? t.blue : t.text2,
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   cursor: unreadCount === 0 ? 'not-allowed' : 'pointer',
                   opacity: unreadCount === 0 ? 0.7 : 1,
@@ -369,9 +395,9 @@ export default function NotificationsHistoryPage() {
                 style={{
                   height: '40px', padding: '0 14px',
                   border: 'none', borderRadius: '8px',
-                  background: settingsHov ? C.blueLt : 'transparent',
+                  background: settingsHov ? t.blueLt : 'transparent',
                   fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                  color: C.blue,
+                  color: t.blue,
                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                   cursor: 'pointer', transition: 'background 0.12s',
                 }}
@@ -384,37 +410,36 @@ export default function NotificationsHistoryPage() {
 
           {/* Filter bar */}
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '18px' }}>
-            <FilterSelect label="Тип: Все"    options={TYPE_OPTIONS}    value={typeFilter}   onChange={setTypeFilter} />
-            <FilterSelect label="Статус: Все" options={STATUS_OPTIONS}  value={statusFilter} onChange={setStatusFilter} />
+            <FilterSelect label="Тип: Все"    options={TYPE_OPTIONS}    value={typeFilter}   onChange={setTypeFilter}   t={t} dark={dark} />
+            <FilterSelect label="Статус: Все" options={STATUS_OPTIONS}  value={statusFilter} onChange={setStatusFilter} t={t} dark={dark} />
             <DateRangePicker value={dateRange} onChange={setDateRange} />
 
-            <span style={{ marginLeft: 'auto', fontFamily: F.inter, fontSize: '13px', color: C.text4 }}>
-              <span style={{ fontFamily: F.mono, color: C.text2 }}>{filtered.length}</span> из <span style={{ fontFamily: F.mono, color: C.text2 }}>156</span>
+            <span style={{ marginLeft: 'auto', fontFamily: F.inter, fontSize: '13px', color: t.text4 }}>
+              <span style={{ fontFamily: F.mono, color: t.text2 }}>{filtered.length}</span> из <span style={{ fontFamily: F.mono, color: t.text2 }}>156</span>
             </span>
           </div>
 
           {/* List card */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '12px', overflow: 'hidden',
           }}>
             {groupedRows.length === 0 ? (
-              <div style={{
-                padding: '60px 20px', textAlign: 'center',
-                fontFamily: F.inter, fontSize: '14px', color: C.text4,
-              }}>
-                Нет уведомлений, соответствующих фильтрам
-              </div>
+              <EmptyState
+                icon={Bell}
+                title="Нет уведомлений"
+                subtitle="Нет уведомлений, соответствующих фильтрам"
+              />
             ) : (
               groupedRows.map(g => (
                 <div key={g.group}>
                   <div style={{
                     position: 'sticky', top: 0, zIndex: 1,
                     padding: '10px 20px',
-                    background: '#F9FAFB',
-                    borderBottom: `1px solid ${C.border}`,
+                    background: t.tableHeaderBg,
+                    borderBottom: `1px solid ${t.border}`,
                     fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-                    color: C.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
+                    color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
                   }}>
                     {g.group}
                   </div>
@@ -424,6 +449,8 @@ export default function NotificationsHistoryPage() {
                       notif={n}
                       onRead={() => markRead(n.id)}
                       onDelete={() => removeNotif(n.id)}
+                      t={t}
+                      dark={dark}
                     />
                   ))}
                 </div>
@@ -436,13 +463,13 @@ export default function NotificationsHistoryPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             marginTop: '14px', flexWrap: 'wrap', gap: '10px',
           }}>
-            <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>
-              Показано <span style={{ fontFamily: F.mono, color: C.text1 }}>1–{filtered.length}</span> из{' '}
-              <span style={{ fontFamily: F.mono, color: C.text1 }}>156</span>
+            <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>
+              Показано <span style={{ fontFamily: F.mono, color: t.text1 }}>1–{filtered.length}</span> из{' '}
+              <span style={{ fontFamily: F.mono, color: t.text1 }}>156</span>
             </span>
             <div style={{ display: 'flex', gap: '6px' }}>
               {[1, 2, 3, '...', 8].map((p, i) => (
-                <PageBtn key={i} active={p === 1}>{p}</PageBtn>
+                <PageBtn key={i} active={p === 1} t={t}>{p}</PageBtn>
               ))}
             </div>
           </div>
@@ -454,7 +481,7 @@ export default function NotificationsHistoryPage() {
   );
 }
 
-function PageBtn({ children, active }: { children: React.ReactNode; active?: boolean }) {
+function PageBtn({ children, active, t }: { children: React.ReactNode; active?: boolean; t: T }) {
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -462,9 +489,9 @@ function PageBtn({ children, active }: { children: React.ReactNode; active?: boo
       onMouseLeave={() => setHov(false)}
       style={{
         minWidth: '32px', height: '32px', padding: '0 8px',
-        border: `1px solid ${active ? C.blue : C.border}`,
-        background: active ? C.blue : hov ? '#F9FAFB' : C.surface,
-        color: active ? '#fff' : C.text2,
+        border: `1px solid ${active ? t.blue : t.border}`,
+        background: active ? t.blue : hov ? t.tableHover : t.surface,
+        color: active ? '#fff' : t.text2,
         fontFamily: F.inter, fontSize: '12px', fontWeight: active ? 600 : 500,
         borderRadius: '7px', cursor: 'pointer',
         transition: 'all 0.12s',
