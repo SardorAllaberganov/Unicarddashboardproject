@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X, CreditCard, ShoppingBag, CheckCircle2, Wallet,
-  Check, Minus, Search, Plus, User,
+  Check, Minus, Search, Plus,
 } from 'lucide-react';
-import { F, C } from './ds/tokens';
+import { F, C, D, theme } from './ds/tokens';
+import { useDarkMode } from './useDarkMode';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -27,17 +30,23 @@ interface Props {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   SMALL REUSABLE ATOMS
+   STATUS STYLES (dark-aware)
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const STATUS_STYLE = {
+const ORG_STATUS_LIGHT = {
   'Активна':   { bg: '#F0FDF4', color: '#15803D', dot: '#16A34A' },
   'На паузе':  { bg: '#FFFBEB', color: '#B45309', dot: '#D97706' },
   'Неактивна': { bg: '#FEF2F2', color: '#DC2626', dot: '#EF4444' },
 } as const;
 
-function StatusBadge({ status }: { status: OrgDetail['status'] }) {
-  const s = STATUS_STYLE[status];
+const ORG_STATUS_DARK = {
+  'Активна':   { bg: 'rgba(52,211,153,0.12)',  color: '#34D399', dot: '#34D399' },
+  'На паузе':  { bg: 'rgba(251,191,36,0.12)',  color: '#FBBF24', dot: '#FBBF24' },
+  'Неактивна': { bg: 'rgba(248,113,113,0.12)', color: '#F87171', dot: '#F87171' },
+} as const;
+
+function StatusBadge({ status, dark }: { status: OrgDetail['status']; dark: boolean }) {
+  const s = (dark ? ORG_STATUS_DARK : ORG_STATUS_LIGHT)[status];
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -51,30 +60,59 @@ function StatusBadge({ status }: { status: OrgDetail['status'] }) {
   );
 }
 
-function KpiCheck({ status, progress }: { status: 'done' | 'progress' | 'none'; progress?: number }) {
+/* Card-row status pill (inside Карты tab) */
+type CardStatus = 'Активна' | 'Зарег.' | 'На складе';
+const CARD_STATUS_LIGHT: Record<CardStatus, { bg: string; color: string }> = {
+  'Активна':   { bg: '#F0FDF4', color: '#15803D' },
+  'Зарег.':    { bg: '#ECFEFF', color: '#0E7490' },
+  'На складе': { bg: '#F9FAFB', color: '#6B7280' },
+};
+const CARD_STATUS_DARK: Record<CardStatus, { bg: string; color: string }> = {
+  'Активна':   { bg: 'rgba(52,211,153,0.12)', color: '#34D399' },
+  'Зарег.':    { bg: 'rgba(34,211,238,0.12)', color: '#22D3EE' },
+  'На складе': { bg: 'rgba(156,163,175,0.12)', color: '#9CA3AF' },
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ATOMS
+═══════════════════════════════════════════════════════════════════════════ */
+
+function KpiCheck({ status, progress, t, dark }: {
+  status: 'done' | 'progress' | 'none'; progress?: number; t: T; dark: boolean;
+}) {
+  const trackBg = dark ? D.progressTrack : '#E5E7EB';
+  const doneBg  = dark ? '#34D399' : '#10B981';
+  const noneCol = dark ? D.text4 : '#D1D5DB';
+
   if (status === 'done') return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-      <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: '#10B981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{
+        width: '18px', height: '18px', borderRadius: '50%', background: doneBg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
         <Check size={10} color="#fff" strokeWidth={3} />
       </div>
     </div>
   );
   if (status === 'progress') return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: '#E5E7EB', overflow: 'hidden' }}>
-        <div style={{ width: `${progress}%`, height: '100%', background: C.blue, borderRadius: '2px' }} />
+      <div style={{
+        width: '40px', height: '4px', borderRadius: '2px',
+        background: trackBg, overflow: 'hidden',
+      }}>
+        <div style={{ width: `${progress}%`, height: '100%', background: t.blue, borderRadius: '2px' }} />
       </div>
-      <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.text3 }}>{progress}%</span>
+      <span style={{ fontFamily: F.mono, fontSize: '11px', color: t.text3 }}>{progress}%</span>
     </div>
   );
-  return <Minus size={13} color="#D1D5DB" />;
+  return <Minus size={13} color={noneCol} />;
 }
 
-function SectionLabel({ text }: { text: string }) {
+function SectionLabel({ text, t }: { text: string; t: T }) {
   return (
     <div style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-      color: C.text4, textTransform: 'uppercase', letterSpacing: '0.07em',
+      color: t.text4, textTransform: 'uppercase', letterSpacing: '0.07em',
       marginBottom: '12px',
     }}>
       {text}
@@ -82,31 +120,40 @@ function SectionLabel({ text }: { text: string }) {
   );
 }
 
-function Divider() {
-  return <div style={{ height: '1px', background: C.border, margin: '24px 0' }} />;
+function Divider({ t }: { t: T }) {
+  return <div style={{ height: '1px', background: t.border, margin: '24px 0' }} />;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPACT STAT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const VARIANT_COLORS = {
-  blue:   { icon: C.blue,    iconBg: C.blueLt,    border: C.blueTint  },
-  green:  { icon: '#16A34A', iconBg: '#F0FDF4',   border: '#BBF7D0'   },
-  violet: { icon: '#7C3AED', iconBg: '#F5F3FF',   border: '#DDD6FE'   },
-  amber:  { icon: '#D97706', iconBg: '#FFFBEB',   border: '#FDE68A'   },
+const VARIANT_LIGHT = {
+  blue:   { icon: '#2563EB', iconBg: '#EFF6FF',  border: '#DBEAFE' },
+  green:  { icon: '#16A34A', iconBg: '#F0FDF4',  border: '#BBF7D0' },
+  violet: { icon: '#7C3AED', iconBg: '#F5F3FF',  border: '#DDD6FE' },
+  amber:  { icon: '#D97706', iconBg: '#FFFBEB',  border: '#FDE68A' },
 } as const;
 
-function CompactStatCard({ icon: Icon, variant, label, value }: {
+const VARIANT_DARK = {
+  blue:   { icon: '#3B82F6', iconBg: 'rgba(59,130,246,0.15)',  border: 'rgba(59,130,246,0.25)'  },
+  green:  { icon: '#34D399', iconBg: 'rgba(52,211,153,0.15)',  border: 'rgba(52,211,153,0.25)'  },
+  violet: { icon: '#A78BFA', iconBg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.25)' },
+  amber:  { icon: '#FBBF24', iconBg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.25)'  },
+} as const;
+
+function CompactStatCard({ icon: Icon, variant, label, value, t, dark }: {
   icon: React.ElementType;
-  variant: keyof typeof VARIANT_COLORS;
+  variant: keyof typeof VARIANT_LIGHT;
   label: string;
   value: string;
+  t: T;
+  dark: boolean;
 }) {
-  const v = VARIANT_COLORS[variant];
+  const v = (dark ? VARIANT_DARK : VARIANT_LIGHT)[variant];
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '10px', padding: '14px 16px',
       display: 'flex', flexDirection: 'column', gap: '10px',
     }}>
@@ -118,10 +165,10 @@ function CompactStatCard({ icon: Icon, variant, label, value }: {
         <Icon size={16} color={v.icon} strokeWidth={1.75} />
       </div>
       <div>
-        <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text3, marginBottom: '4px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text3, marginBottom: '4px' }}>
           {label}
         </div>
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 700, color: C.text1, lineHeight: 1.2 }}>
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 700, color: t.text1, lineHeight: 1.2 }}>
           {value}
         </div>
       </div>
@@ -133,20 +180,23 @@ function CompactStatCard({ icon: Icon, variant, label, value }: {
    KPI PROGRESS BAR ROW
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function KpiBar({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
+function KpiBar({ label, value, total, color, t, dark }: {
+  label: string; value: number; total: number; color: string; t: T; dark: boolean;
+}) {
   const pct = Math.round((value / total) * 100);
+  const trackBg = dark ? D.progressTrack : '#F3F4F6';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{label}</span>
+        <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>{value} из {total}</span>
+          <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>{value} из {total}</span>
           <span style={{ fontFamily: F.mono, fontSize: '12px', fontWeight: 600, color, minWidth: '42px', textAlign: 'right' }}>
             {pct}%
           </span>
         </div>
       </div>
-      <div style={{ height: '6px', borderRadius: '3px', background: '#F3F4F6', overflow: 'hidden' }}>
+      <div style={{ height: '6px', borderRadius: '3px', background: trackBg, overflow: 'hidden' }}>
         <div style={{
           width: `${pct}%`, height: '100%', borderRadius: '3px',
           background: color, transition: 'width 0.4s ease',
@@ -160,24 +210,22 @@ function KpiBar({ label, value, total, color }: { label: string; value: number; 
    ACTIVITY TIMELINE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Timeline({ items }: { items: { dot: string; text: string; time: string }[] }) {
+function Timeline({ items, t }: { items: { dot: string; text: string; time: string }[]; t: T }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
       {items.map((item, i) => (
         <div key={i} style={{ display: 'flex', gap: '14px', position: 'relative' }}>
-          {/* Line */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.dot, marginTop: '4px', flexShrink: 0 }} />
             {i < items.length - 1 && (
-              <div style={{ width: '1px', flex: 1, background: C.border, minHeight: '24px', margin: '4px 0' }} />
+              <div style={{ width: '1px', flex: 1, background: t.border, minHeight: '24px', margin: '4px 0' }} />
             )}
           </div>
-          {/* Content */}
           <div style={{ paddingBottom: i < items.length - 1 ? '16px' : '0', minWidth: 0 }}>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, lineHeight: 1.4 }}>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, lineHeight: 1.4 }}>
               {item.text}
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '2px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4, marginTop: '2px' }}>
               {item.time}
             </div>
           </div>
@@ -191,36 +239,33 @@ function Timeline({ items }: { items: { dot: string; text: string; time: string 
    TAB: СВОДКА
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function TabSvodka({ org }: { org: OrgDetail }) {
+function TabSvodka({ org, t, dark }: { org: OrgDetail; t: T; dark: boolean }) {
   return (
     <div style={{ padding: '24px' }}>
-      {/* 2×2 Stat grid */}
-      <SectionLabel text="Ключевые показатели" />
+      <SectionLabel text="Ключевые показатели" t={t} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '0' }}>
-        <CompactStatCard icon={CreditCard}   variant="blue"   label="Карт выдано"          value={String(org.issued)} />
-        <CompactStatCard icon={ShoppingBag}  variant="green"  label="Продано"               value={`${org.sold} (${Math.round(org.sold/org.issued*100)}%)`} />
-        <CompactStatCard icon={CheckCircle2} variant="violet" label="KPI выполнено (все 3)" value={`${org.kpiDone} (${((org.kpiDone/org.issued)*100).toFixed(1)}%)`} />
-        <CompactStatCard icon={Wallet}       variant="amber"  label="Начислено"             value={`${org.rewarded} UZS`} />
+        <CompactStatCard icon={CreditCard}   variant="blue"   label="Карт выдано"          value={String(org.issued)} t={t} dark={dark} />
+        <CompactStatCard icon={ShoppingBag}  variant="green"  label="Продано"              value={`${org.sold} (${Math.round(org.sold/org.issued*100)}%)`} t={t} dark={dark} />
+        <CompactStatCard icon={CheckCircle2} variant="violet" label="KPI выполнено (все 3)" value={`${org.kpiDone} (${((org.kpiDone/org.issued)*100).toFixed(1)}%)`} t={t} dark={dark} />
+        <CompactStatCard icon={Wallet}       variant="amber"  label="Начислено"             value={`${org.rewarded} UZS`} t={t} dark={dark} />
       </div>
 
-      <Divider />
+      <Divider t={t} />
 
-      {/* KPI Progress */}
-      <SectionLabel text="KPI прогресс" />
+      <SectionLabel text="KPI прогресс" t={t} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <KpiBar label="Регистрация"  value={185} total={org.sold} color="#2563EB" />
-        <KpiBar label="Пополнение"   value={120} total={org.sold} color="#7C3AED" />
-        <KpiBar label="Оплата 500K"  value={org.kpiDone} total={org.sold} color="#10B981" />
+        <KpiBar label="Регистрация" value={185} total={org.sold} color={dark ? '#3B82F6' : '#2563EB'} t={t} dark={dark} />
+        <KpiBar label="Пополнение"  value={120} total={org.sold} color={dark ? '#A78BFA' : '#7C3AED'} t={t} dark={dark} />
+        <KpiBar label="Оплата 500K" value={org.kpiDone} total={org.sold} color={dark ? '#34D399' : '#10B981'} t={t} dark={dark} />
       </div>
 
-      <Divider />
+      <Divider t={t} />
 
-      {/* Activity Timeline */}
-      <SectionLabel text="Последняя активность" />
-      <Timeline items={[
-        { dot: '#16A34A', text: 'Карта ...4521 — KPI 3 выполнен (512 000 UZS)', time: '2 часа назад' },
-        { dot: C.blue,    text: 'Карта ...3892 — KPI 2 выполнен', time: '5 часов назад' },
-        { dot: C.text4,   text: 'Новый продавец добавлен: Камола Р.', time: 'вчера' },
+      <SectionLabel text="Последняя активность" t={t} />
+      <Timeline t={t} items={[
+        { dot: dark ? '#34D399' : '#16A34A', text: 'Карта ...4521 — KPI 3 выполнен (512 000 UZS)', time: '2 часа назад' },
+        { dot: t.blue,   text: 'Карта ...3892 — KPI 2 выполнен', time: '5 часов назад' },
+        { dot: t.text4,  text: 'Новый продавец добавлен: Камола Р.', time: 'вчера' },
       ]} />
     </div>
   );
@@ -239,20 +284,24 @@ const SELLERS = [
   { name: 'Дарья Н.',    cards: 70,  sold: 30, k1: 15, k2: 10, k3: 5,  earned: '210 000' },
 ];
 
-function TabSellers() {
+function TabSellers({ t, dark }: { t: T; dark: boolean }) {
   const [search, setSearch] = useState('');
   const [focused, setFocused] = useState(false);
   const [hovRow, setHovRow] = useState<number | null>(null);
   const [addHov, setAddHov] = useState(false);
 
+  const rowHoverBg  = dark ? D.tableHover : '#F9FAFB';
+  const headerBg    = dark ? D.tableHeaderBg : C.pageBg;
+
   const filtered = SELLERS.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* Controls */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={15} color={focused ? C.blue : C.text4} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <Search size={15} color={focused ? t.blue : t.text4} style={{
+            position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none',
+          }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -261,11 +310,11 @@ function TabSellers() {
             placeholder="Поиск продавца..."
             style={{
               width: '100%', height: '36px', paddingLeft: '34px', paddingRight: '10px',
-              border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-              borderRadius: '8px', background: C.surface,
-              fontFamily: F.inter, fontSize: '13px', color: C.text1,
+              border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+              borderRadius: '8px', background: t.surface,
+              fontFamily: F.inter, fontSize: '13px', color: t.text1,
               outline: 'none', boxSizing: 'border-box',
-              boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+              boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
               transition: 'all 0.12s',
             }}
           />
@@ -275,7 +324,7 @@ function TabSellers() {
           onMouseLeave={() => setAddHov(false)}
           style={{
             height: '36px', padding: '0 14px', flexShrink: 0,
-            background: addHov ? C.blueHover : C.blue,
+            background: addHov ? t.blueHover : t.blue,
             border: 'none', borderRadius: '8px',
             fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: '#fff',
             display: 'flex', alignItems: 'center', gap: '6px',
@@ -288,15 +337,14 @@ function TabSellers() {
         </button>
       </div>
 
-      {/* Table */}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+      <div style={{ border: `1px solid ${t.border}`, borderRadius: '10px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: C.pageBg, borderBottom: `1px solid ${C.border}` }}>
+            <tr style={{ background: headerBg, borderBottom: `1px solid ${t.border}` }}>
               {['Продавец', 'Карт', 'Продано', 'KPI 1', 'KPI 2', 'KPI 3', 'Заработано'].map(h => (
                 <th key={h} style={{
                   padding: '10px 12px', textAlign: h === 'Заработано' ? 'right' : 'left',
-                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: C.text4,
+                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: t.text4,
                   textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
                 }}>
                   {h}
@@ -312,38 +360,32 @@ function TabSellers() {
                   onMouseEnter={() => setHovRow(i)}
                   onMouseLeave={() => setHovRow(null)}
                   style={{
-                    borderBottom: i < filtered.length - 1 ? `1px solid ${C.border}` : 'none',
-                    background: hov ? '#F9FAFB' : C.surface, transition: 'background 0.1s',
+                    borderBottom: i < filtered.length - 1 ? `1px solid ${t.border}` : 'none',
+                    background: hov ? rowHoverBg : t.surface, transition: 'background 0.1s',
                   }}
                 >
                   <td style={{ padding: '11px 12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: C.blueLt, border: `1px solid ${C.blueTint}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ fontFamily: F.inter, fontSize: '9px', fontWeight: 700, color: C.blue }}>
+                      <div style={{
+                        width: '26px', height: '26px', borderRadius: '50%',
+                        background: t.blueLt, border: `1px solid ${t.blueTint}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <span style={{ fontFamily: F.inter, fontSize: '9px', fontWeight: 700, color: t.blue }}>
                           {s.name.slice(0, 2).toUpperCase()}
                         </span>
                       </div>
-                      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, fontWeight: 500 }}>{s.name}</span>
+                      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, fontWeight: 500 }}>{s.name}</span>
                     </div>
                   </td>
-                  <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.cards}</span>
-                  </td>
-                  <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.sold}</span>
-                  </td>
-                  <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.k1}</span>
-                  </td>
-                  <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.k2}</span>
-                  </td>
-                  <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.k3}</span>
-                  </td>
+                  <td style={{ padding: '11px 12px' }}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.cards}</span></td>
+                  <td style={{ padding: '11px 12px' }}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.sold}</span></td>
+                  <td style={{ padding: '11px 12px' }}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.k1}</span></td>
+                  <td style={{ padding: '11px 12px' }}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.k2}</span></td>
+                  <td style={{ padding: '11px 12px' }}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.k3}</span></td>
                   <td style={{ padding: '11px 12px', textAlign: 'right' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: C.text1 }}>{s.earned}</span>
-                    <span style={{ fontFamily: F.inter, fontSize: '10px', color: C.text4, marginLeft: '3px' }}>UZS</span>
+                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: t.text1 }}>{s.earned}</span>
+                    <span style={{ fontFamily: F.inter, fontSize: '10px', color: t.text4, marginLeft: '3px' }}>UZS</span>
                   </td>
                 </tr>
               );
@@ -359,32 +401,44 @@ function TabSellers() {
    TAB: КАРТЫ
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const CARDS_DATA = [
-  { num: '...1001', seller: 'Абдуллох', client: 'Алишер Н.',  statusLabel: 'Активна',   statusBg: '#F0FDF4', statusColor: '#15803D', k1: 'done' as const,     k2: 'done' as const,     k3: { p: 100, label: '510K' } },
-  { num: '...1002', seller: 'Абдуллох', client: 'Дилшод К.',  statusLabel: 'Зарег.',    statusBg: '#ECFEFF', statusColor: '#0E7490', k1: 'done' as const,     k2: 'done' as const,     k3: { p: 64,  label: '64%'  } },
-  { num: '...1003', seller: '—',        client: '—',           statusLabel: 'На складе', statusBg: '#F9FAFB', statusColor: '#6B7280', k1: 'none' as const,     k2: 'none' as const,     k3: { p: 0,   label: '—'   } },
+interface CardDataRow {
+  num: string;
+  seller: string;
+  client: string;
+  statusLabel: CardStatus;
+  k1: 'done' | 'progress' | 'none';
+  k2: 'done' | 'progress' | 'none';
+  k3: { p: number; label: string };
+}
+
+const CARDS_DATA: CardDataRow[] = [
+  { num: '...1001', seller: 'Абдуллох', client: 'Алишер Н.', statusLabel: 'Активна',   k1: 'done', k2: 'done', k3: { p: 100, label: '510K' } },
+  { num: '...1002', seller: 'Абдуллох', client: 'Дилшод К.', statusLabel: 'Зарег.',    k1: 'done', k2: 'done', k3: { p: 64,  label: '64%'  } },
+  { num: '...1003', seller: '—',        client: '—',          statusLabel: 'На складе', k1: 'none', k2: 'none', k3: { p: 0,   label: '—'   } },
 ];
 
-function TabCards() {
+function TabCards({ t, dark }: { t: T; dark: boolean }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [focused, setFocused] = useState(false);
   const [hovRow, setHovRow] = useState<number | null>(null);
 
+  const rowHoverBg = dark ? D.tableHover : '#F9FAFB';
+  const headerBg   = dark ? D.tableHeaderBg : C.pageBg;
+  const statusMap  = dark ? CARD_STATUS_DARK : CARD_STATUS_LIGHT;
+
   return (
     <div style={{ padding: '24px' }}>
-      {/* Controls */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
-        {/* Filter select */}
         <div style={{ position: 'relative' }}>
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
             style={{
               height: '36px', padding: '0 32px 0 10px',
-              border: `1px solid ${C.inputBorder}`, borderRadius: '8px',
-              background: C.surface, fontFamily: F.inter, fontSize: '13px',
-              color: C.text2, outline: 'none', appearance: 'none', cursor: 'pointer',
+              border: `1px solid ${t.inputBorder}`, borderRadius: '8px',
+              background: t.surface, fontFamily: F.inter, fontSize: '13px',
+              color: t.text2, outline: 'none', appearance: 'none', cursor: 'pointer',
               minWidth: '140px',
             }}
           >
@@ -393,12 +447,16 @@ function TabCards() {
               <option key={o} value={o}>{o}</option>
             ))}
           </select>
-          <span style={{ position: 'absolute', right: '9px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', fontSize: '10px', color: C.text4 }}>▾</span>
+          <span style={{
+            position: 'absolute', right: '9px', top: '50%', transform: 'translateY(-50%)',
+            pointerEvents: 'none', fontSize: '10px', color: t.text4,
+          }}>▾</span>
         </div>
 
-        {/* Search */}
         <div style={{ position: 'relative', flex: 1, minWidth: '120px' }}>
-          <Search size={14} color={focused ? C.blue : C.text4} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <Search size={14} color={focused ? t.blue : t.text4} style={{
+            position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none',
+          }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -407,26 +465,25 @@ function TabCards() {
             placeholder="Поиск по карте..."
             style={{
               width: '100%', height: '36px', paddingLeft: '32px', paddingRight: '10px',
-              border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-              borderRadius: '8px', background: C.surface,
-              fontFamily: F.inter, fontSize: '13px', color: C.text1,
+              border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+              borderRadius: '8px', background: t.surface,
+              fontFamily: F.inter, fontSize: '13px', color: t.text1,
               outline: 'none', boxSizing: 'border-box',
-              boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+              boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
               transition: 'all 0.12s',
             }}
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+      <div style={{ border: `1px solid ${t.border}`, borderRadius: '10px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: C.pageBg, borderBottom: `1px solid ${C.border}` }}>
+            <tr style={{ background: headerBg, borderBottom: `1px solid ${t.border}` }}>
               {['Карта', 'Продавец', 'Клиент', 'Статус', 'KPI 1', 'KPI 2', 'KPI 3'].map(h => (
                 <th key={h} style={{
                   padding: '10px 12px', textAlign: 'left',
-                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: C.text4,
+                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: t.text4,
                   textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
                 }}>
                   {h}
@@ -437,39 +494,40 @@ function TabCards() {
           <tbody>
             {CARDS_DATA.map((card, i) => {
               const hov = hovRow === i;
+              const cs = statusMap[card.statusLabel];
               return (
                 <tr key={card.num}
                   onMouseEnter={() => setHovRow(i)}
                   onMouseLeave={() => setHovRow(null)}
                   style={{
-                    borderBottom: i < CARDS_DATA.length - 1 ? `1px solid ${C.border}` : 'none',
-                    background: hov ? '#F9FAFB' : C.surface, transition: 'background 0.1s',
+                    borderBottom: i < CARDS_DATA.length - 1 ? `1px solid ${t.border}` : 'none',
+                    background: hov ? rowHoverBg : t.surface, transition: 'background 0.1s',
                   }}
                 >
                   <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: C.text1 }}>{card.num}</span>
+                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: t.text1 }}>{card.num}</span>
                   </td>
                   <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{card.seller}</span>
+                    <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{card.seller}</span>
                   </td>
                   <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{card.client}</span>
+                    <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{card.client}</span>
                   </td>
                   <td style={{ padding: '11px 12px' }}>
                     <span style={{
                       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                       padding: '2px 8px', borderRadius: '8px',
-                      background: card.statusBg, color: card.statusColor, whiteSpace: 'nowrap',
+                      background: cs.bg, color: cs.color, whiteSpace: 'nowrap',
                     }}>
                       {card.statusLabel}
                     </span>
                   </td>
-                  <td style={{ padding: '11px 12px' }}><KpiCheck status={card.k1} /></td>
-                  <td style={{ padding: '11px 12px' }}><KpiCheck status={card.k2} /></td>
+                  <td style={{ padding: '11px 12px' }}><KpiCheck status={card.k1} t={t} dark={dark} /></td>
+                  <td style={{ padding: '11px 12px' }}><KpiCheck status={card.k2} t={t} dark={dark} /></td>
                   <td style={{ padding: '11px 12px' }}>
-                    {card.k3.p === 100 ? <KpiCheck status="done" /> :
-                     card.k3.p > 0 ? <KpiCheck status="progress" progress={card.k3.p} /> :
-                     <KpiCheck status="none" />}
+                    {card.k3.p === 100 ? <KpiCheck status="done" t={t} dark={dark} /> :
+                     card.k3.p > 0 ? <KpiCheck status="progress" progress={card.k3.p} t={t} dark={dark} /> :
+                     <KpiCheck status="none" t={t} dark={dark} />}
                   </td>
                 </tr>
               );
@@ -491,26 +549,31 @@ const FIN_ROWS = [
   { date: '11.04', seller: 'Абдуллох', card: '...1002', kpi: 'KPI 1', amount: '5 000',  status: 'Начислено' },
 ];
 
-function TabFinance({ org }: { org: OrgDetail }) {
+function TabFinance({ org, t, dark }: { org: OrgDetail; t: T; dark: boolean }) {
   const [hovRow, setHovRow] = useState<number | null>(null);
+
+  const rowHoverBg   = dark ? D.tableHover : '#F9FAFB';
+  const headerBg     = dark ? D.tableHeaderBg : C.pageBg;
+  const balanceColor = dark ? '#34D399' : '#15803D';
+  const successBg    = dark ? 'rgba(52,211,153,0.12)' : '#F0FDF4';
+  const successText  = dark ? '#34D399' : '#15803D';
 
   return (
     <div style={{ padding: '24px' }}>
-      {/* Summary row */}
       <div style={{
         display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
         gap: '12px', marginBottom: '24px',
       }}>
         {[
-          { label: 'Всего начислено', value: `${org.rewarded} UZS`, color: C.text1 },
-          { label: 'Выведено',        value: '1 200 000 UZS',       color: C.text1 },
-          { label: 'Баланс',          value: '625 000 UZS',         color: '#15803D' },
+          { label: 'Всего начислено', value: `${org.rewarded} UZS`, color: t.text1 },
+          { label: 'Выведено',        value: '1 200 000 UZS',       color: t.text1 },
+          { label: 'Баланс',          value: '625 000 UZS',         color: balanceColor },
         ].map(stat => (
           <div key={stat.label} style={{
-            background: C.surface, border: `1px solid ${C.border}`,
+            background: t.surface, border: `1px solid ${t.border}`,
             borderRadius: '10px', padding: '14px 16px',
           }}>
-            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text3, marginBottom: '6px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text3, marginBottom: '6px' }}>
               {stat.label}
             </div>
             <div style={{ fontFamily: F.mono, fontSize: '15px', fontWeight: 700, color: stat.color, lineHeight: 1.2 }}>
@@ -520,12 +583,11 @@ function TabFinance({ org }: { org: OrgDetail }) {
         ))}
       </div>
 
-      {/* Table */}
-      <SectionLabel text="История выплат" />
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+      <SectionLabel text="История выплат" t={t} />
+      <div style={{ border: `1px solid ${t.border}`, borderRadius: '10px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: C.pageBg, borderBottom: `1px solid ${C.border}` }}>
+            <tr style={{ background: headerBg, borderBottom: `1px solid ${t.border}` }}>
               {[
                 { label: 'Дата',    align: 'left'  },
                 { label: 'Продавец',align: 'left'  },
@@ -536,7 +598,7 @@ function TabFinance({ org }: { org: OrgDetail }) {
               ].map(h => (
                 <th key={h.label} style={{
                   padding: '10px 12px', textAlign: h.align as any,
-                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: C.text4,
+                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: t.text4,
                   textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
                 }}>
                   {h.label}
@@ -552,30 +614,30 @@ function TabFinance({ org }: { org: OrgDetail }) {
                   onMouseEnter={() => setHovRow(i)}
                   onMouseLeave={() => setHovRow(null)}
                   style={{
-                    borderBottom: i < FIN_ROWS.length - 1 ? `1px solid ${C.border}` : 'none',
-                    background: hov ? '#F9FAFB' : C.surface, transition: 'background 0.1s',
+                    borderBottom: i < FIN_ROWS.length - 1 ? `1px solid ${t.border}` : 'none',
+                    background: hov ? rowHoverBg : t.surface, transition: 'background 0.1s',
                   }}
                 >
                   <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text3 }}>{row.date}</span>
+                    <span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text3 }}>{row.date}</span>
                   </td>
                   <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{row.seller}</span>
+                    <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{row.seller}</span>
                   </td>
                   <td style={{ padding: '11px 12px' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: C.text1 }}>{row.card}</span>
+                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: t.text1 }}>{row.card}</span>
                   </td>
                   <td style={{ padding: '11px 12px' }}>
                     <span style={{
                       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                       padding: '2px 8px', borderRadius: '8px',
-                      background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+                      background: t.blueLt, color: t.blue, whiteSpace: 'nowrap',
                     }}>
                       {row.kpi}
                     </span>
                   </td>
                   <td style={{ padding: '11px 12px', textAlign: 'right' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: C.text1 }}>
+                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: t.text1 }}>
                       {row.amount}
                     </span>
                   </td>
@@ -583,7 +645,7 @@ function TabFinance({ org }: { org: OrgDetail }) {
                     <span style={{
                       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                       padding: '2px 8px', borderRadius: '8px',
-                      background: '#F0FDF4', color: '#15803D', whiteSpace: 'nowrap',
+                      background: successBg, color: successText, whiteSpace: 'nowrap',
                     }}>
                       {row.status}
                     </span>
@@ -606,10 +668,13 @@ const TABS = ['Сводка', 'Продавцы', 'Карты', 'Финансы'
 type TabKey = typeof TABS[number];
 
 export function OrgDetailDrawer({ org, onClose }: Props) {
+  const [darkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
+
   const [activeTab, setActiveTab] = useState<TabKey>('Сводка');
   const [visible, setVisible] = useState(false);
 
-  /* Animate in */
   useEffect(() => {
     if (org) {
       setActiveTab('Сводка');
@@ -619,7 +684,6 @@ export function OrgDetailDrawer({ org, onClose }: Props) {
     }
   }, [org]);
 
-  /* Escape key */
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', h);
@@ -628,79 +692,79 @@ export function OrgDetailDrawer({ org, onClose }: Props) {
 
   if (!org) return null;
 
+  const backdropBg = dark ? 'rgba(0,0,0,0.55)' : 'rgba(17,24,39,0.35)';
+  const drawerShadow = dark ? '-8px 0 32px rgba(0,0,0,0.55)' : '-8px 0 32px rgba(0,0,0,0.10)';
+  const closeHoverBg     = dark ? D.tableHover : '#F3F4F6';
+  const closeHoverBorder = dark ? '#4A4F63'    : '#9CA3AF';
+
   return (
     <>
-      {/* ── Backdrop ── */}
       <div
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0, zIndex: 80,
-          background: 'rgba(17, 24, 39, 0.35)',
+          background: backdropBg,
           opacity: visible ? 1 : 0,
           transition: 'opacity 0.22s ease',
           backdropFilter: 'blur(1px)',
         }}
       />
 
-      {/* ── Drawer panel ── */}
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0,
         width: '640px', zIndex: 90,
-        background: C.surface,
-        borderLeft: `1px solid ${C.border}`,
+        background: t.surface,
+        borderLeft: `1px solid ${t.border}`,
         display: 'flex', flexDirection: 'column',
         transform: visible ? 'translateX(0)' : 'translateX(100%)',
         transition: 'transform 0.26s cubic-bezier(0.32, 0, 0.16, 1)',
-        boxShadow: '-8px 0 32px rgba(0,0,0,0.10)',
+        boxShadow: drawerShadow,
       }}>
 
         {/* ── Drawer Header ───────────────────────────── */}
         <div style={{
           padding: '20px 24px 0',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${t.border}`,
           flexShrink: 0,
         }}>
-          {/* Top row: avatar + name + status + close */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-              {/* Org avatar */}
               <div style={{
                 width: '40px', height: '40px', borderRadius: '10px',
-                background: C.blueLt, border: `1.5px solid ${C.blueTint}`,
+                background: t.blueLt, border: `1.5px solid ${t.blueTint}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                <span style={{ fontFamily: F.dm, fontSize: '14px', fontWeight: 700, color: C.blue }}>
+                <span style={{ fontFamily: F.dm, fontSize: '14px', fontWeight: 700, color: t.blue }}>
                   {org.name.slice(0, 2).toUpperCase()}
                 </span>
               </div>
 
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 700, color: C.text1 }}>
+                  <span style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 700, color: t.text1 }}>
                     {org.name}
                   </span>
-                  <StatusBadge status={org.status} />
+                  <StatusBadge status={org.status} dark={dark} />
                 </div>
-                <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3, marginTop: '4px' }}>
+                <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3, marginTop: '4px' }}>
                   Контакт: {org.contact}, {org.phone}
                 </div>
               </div>
             </div>
 
-            {/* Close button */}
             <button
               onClick={onClose}
               style={{
                 width: '32px', height: '32px', borderRadius: '8px',
-                border: `1px solid ${C.border}`, background: 'transparent',
+                border: `1px solid ${t.border}`, background: 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', flexShrink: 0, marginLeft: '12px',
                 transition: 'background 0.12s, border-color 0.12s',
               }}
-              onMouseEnter={e => { (e.currentTarget.style.background = '#F3F4F6'); (e.currentTarget.style.borderColor = '#9CA3AF'); }}
-              onMouseLeave={e => { (e.currentTarget.style.background = 'transparent'); (e.currentTarget.style.borderColor = C.border); }}
+              onMouseEnter={e => { (e.currentTarget.style.background = closeHoverBg); (e.currentTarget.style.borderColor = closeHoverBorder); }}
+              onMouseLeave={e => { (e.currentTarget.style.background = 'transparent'); (e.currentTarget.style.borderColor = t.border); }}
             >
-              <X size={15} color={C.text3} strokeWidth={1.75} />
+              <X size={15} color={t.text3} strokeWidth={1.75} />
             </button>
           </div>
 
@@ -716,14 +780,14 @@ export function OrgDetailDrawer({ org, onClose }: Props) {
                     padding: '10px 18px',
                     border: 'none', background: 'none',
                     fontFamily: F.inter, fontSize: '13px', fontWeight: isActive ? 600 : 400,
-                    color: isActive ? C.blue : C.text3,
+                    color: isActive ? t.blue : t.text3,
                     cursor: 'pointer',
-                    borderBottom: isActive ? `2px solid ${C.blue}` : '2px solid transparent',
+                    borderBottom: isActive ? `2px solid ${t.blue}` : '2px solid transparent',
                     marginBottom: '-1px',
                     transition: 'color 0.12s, border-color 0.12s',
                   }}
-                  onMouseEnter={e => { if (!isActive) (e.currentTarget.style.color = C.text1); }}
-                  onMouseLeave={e => { if (!isActive) (e.currentTarget.style.color = C.text3); }}
+                  onMouseEnter={e => { if (!isActive) (e.currentTarget.style.color = t.text1); }}
+                  onMouseLeave={e => { if (!isActive) (e.currentTarget.style.color = t.text3); }}
                 >
                   {tab}
                 </button>
@@ -735,12 +799,12 @@ export function OrgDetailDrawer({ org, onClose }: Props) {
         {/* ── Scrollable content ───────────────────────── */}
         <div style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden',
-          scrollbarWidth: 'thin', scrollbarColor: `${C.border} transparent`,
+          scrollbarWidth: 'thin', scrollbarColor: `${t.border} transparent`,
         }}>
-          {activeTab === 'Сводка'   && <TabSvodka  org={org} />}
-          {activeTab === 'Продавцы' && <TabSellers />}
-          {activeTab === 'Карты'    && <TabCards   />}
-          {activeTab === 'Финансы'  && <TabFinance org={org} />}
+          {activeTab === 'Сводка'   && <TabSvodka   org={org} t={t} dark={dark} />}
+          {activeTab === 'Продавцы' && <TabSellers  t={t} dark={dark} />}
+          {activeTab === 'Карты'    && <TabCards    t={t} dark={dark} />}
+          {activeTab === 'Финансы'  && <TabFinance  org={org} t={t} dark={dark} />}
         </div>
       </div>
     </>

@@ -1,14 +1,18 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, XCircle, Loader2, X, Download } from 'lucide-react';
-import { F, C } from './ds/tokens';
+import { F, C, D, theme } from './ds/tokens';
+import { useDarkMode } from './useDarkMode';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    useExportToast — shared processing → success/error toast for export flows
+
+   Theming: reads global useDarkMode(). Pass `dark` prop on <ExportToast />
+   to force a variant (used by the showcase).
 ═══════════════════════════════════════════════════════════════════════════ */
 
 type Phase = 'idle' | 'processing' | 'success' | 'error';
 
-interface StartParams {
+export interface ExportToastParams {
   /** Optional title override; defaults differ per phase. */
   title?: string;
   /** Caption shown while processing, e.g. "Отчёт по организациям за 01.04–13.04.2026". */
@@ -25,7 +29,7 @@ interface StartParams {
 
 export function useExportToast() {
   const [phase, setPhase] = useState<Phase>('idle');
-  const [params, setParams] = useState<StartParams | null>(null);
+  const [params, setParams] = useState<ExportToastParams | null>(null);
   const timerRef = useRef<number | null>(null);
   const autoDismissRef = useRef<number | null>(null);
 
@@ -39,7 +43,7 @@ export function useExportToast() {
     setPhase('idle');
   }, []);
 
-  const start = useCallback((p: StartParams) => {
+  const start = useCallback((p: ExportToastParams) => {
     clearTimers();
     setParams(p);
     setPhase('processing');
@@ -72,63 +76,81 @@ export function useExportToast() {
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TOAST VIEW
+
+   Exported so showcase pages can render static previews. Default positioning
+   is fixed top-right; pass `inline` to render in document flow instead.
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ExportToast({ phase, params, onClose, onRetry }: {
-  phase: Phase;
-  params: StartParams;
+export interface ExportToastProps {
+  phase: Exclude<Phase, 'idle'>;
+  params: ExportToastParams;
   onClose: () => void;
-  onRetry: () => void;
-}) {
-  if (phase === 'idle') return null;
+  onRetry?: () => void;
+  /** Render statically instead of fixed top-right (for showcases). */
+  inline?: boolean;
+  /** Force theme variant. Omit to follow the global useDarkMode() store. */
+  dark?: boolean;
+}
+
+export function ExportToast({ phase, params, onClose, onRetry, inline, dark: darkProp }: ExportToastProps) {
+  const [globalDark] = useDarkMode();
+  const dark = darkProp ?? globalDark;
+  const t = theme(dark);
 
   const cfg = {
     processing: {
-      border: C.blue,
-      bg: C.blueLt,
-      ring: C.blueTint,
-      iconColor: C.blue,
-      title: params.title ?? 'Формирование отчёта...',
-      sub: params.subtitle,
+      border:    t.blue,
+      bg:        t.blueLt,
+      ring:      dark ? D.blueTint : C.blueTint,
+      iconColor: t.blue,
+      title:     params.title ?? 'Формирование отчёта...',
+      sub:       params.subtitle,
     },
     success: {
-      border: C.success,
-      bg: C.successBg,
-      ring: '#BBF7D0',
-      iconColor: C.success,
-      title: params.title ?? 'Отчёт готов',
-      sub: params.fileName && params.fileSize
+      border:    t.success,
+      bg:        t.successBg,
+      ring:      dark ? 'rgba(52,211,153,0.28)' : '#BBF7D0',
+      iconColor: t.success,
+      title:     params.title ?? 'Отчёт готов',
+      sub:       params.fileName && params.fileSize
         ? `${params.fileName} (${params.fileSize})`
         : params.fileName ?? params.subtitle,
     },
     error: {
-      border: C.error,
-      bg: C.errorBg,
-      ring: '#FECACA',
-      iconColor: C.error,
-      title: params.title ?? 'Ошибка экспорта',
-      sub: params.subtitle ?? 'Не удалось сформировать отчёт. Попробуйте снова.',
+      border:    t.error,
+      bg:        t.errorBg,
+      ring:      dark ? 'rgba(248,113,113,0.28)' : '#FECACA',
+      iconColor: t.error,
+      title:     params.title ?? 'Ошибка экспорта',
+      sub:       params.subtitle ?? 'Не удалось сформировать отчёт. Попробуйте снова.',
     },
   }[phase];
+
+  const shadow = dark
+    ? '0 2px 8px rgba(0,0,0,0.3)'
+    : '0 12px 32px rgba(0,0,0,0.12)';
+
+  const positionStyle: React.CSSProperties = inline
+    ? { position: 'relative' }
+    : { position: 'fixed', top: '24px', right: '24px', zIndex: 300 };
 
   return (
     <div
       role={phase === 'error' ? 'alert' : 'status'}
       aria-live={phase === 'error' ? 'assertive' : 'polite'}
       style={{
-        position: 'fixed', top: '24px', right: '24px',
+        ...positionStyle,
         width: '360px', maxWidth: 'calc(100vw - 48px)',
-        background: C.surface,
-        borderTop: `1px solid ${C.border}`,
-        borderRight: `1px solid ${C.border}`,
-        borderBottom: `1px solid ${C.border}`,
-        borderLeft: `3px solid ${cfg.border}`,
-        borderRadius: '10px',
+        background: t.surface,
+        borderTop:    `1px solid ${t.border}`,
+        borderRight:  `1px solid ${t.border}`,
+        borderBottom: `1px solid ${t.border}`,
+        borderLeft:   `3px solid ${cfg.border}`,
+        borderRadius: '8px',
         padding: '12px 14px',
         display: 'flex', alignItems: 'flex-start', gap: '10px',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.12)',
-        zIndex: 300,
-        animation: 'exportToastIn 0.2s ease-out',
+        boxShadow: shadow,
+        animation: inline ? undefined : 'exportToastIn 0.2s ease-out',
       }}
     >
       <style>{`
@@ -162,14 +184,15 @@ function ExportToast({ phase, params, onClose, onRetry }: {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
-          color: C.text1, lineHeight: 1.4,
+          color: t.text1, lineHeight: 1.4,
         }}>
           {cfg.title}
         </div>
         {cfg.sub && (
           <div style={{
             fontFamily: phase === 'success' && params.fileName ? F.mono : F.inter,
-            fontSize: '12px', color: C.text3,
+            fontSize: '12px',
+            color: dark ? D.text2 : C.text3,
             marginTop: '3px', lineHeight: 1.45,
             wordBreak: 'break-all',
           }}>
@@ -183,28 +206,37 @@ function ExportToast({ phase, params, onClose, onRetry }: {
             label="Скачать"
             icon={Download}
             onClick={onClose}
+            dark={dark}
+            t={t}
           />
         )}
         {phase === 'error' && (
           <ToastGhostAction
             label="Повторить"
-            onClick={onRetry}
+            onClick={onRetry ?? onClose}
+            dark={dark}
+            t={t}
           />
         )}
       </div>
 
       {/* Close X — hidden during processing */}
       {phase !== 'processing' && (
-        <CloseBtn onClick={onClose} />
+        <CloseBtn onClick={onClose} dark={dark} t={t} />
       )}
     </div>
   );
 }
 
-function ToastGhostAction({ label, icon: Icon, onClick }: {
-  label: string; icon?: React.ElementType; onClick: () => void;
+function ToastGhostAction({ label, icon: Icon, onClick, dark, t }: {
+  label: string;
+  icon?: React.ElementType;
+  onClick: () => void;
+  dark: boolean;
+  t: ReturnType<typeof theme>;
 }) {
   const [hov, setHov] = useState(false);
+  const hoverBg = dark ? D.blueLt : C.blueLt;
   return (
     <button
       onMouseEnter={() => setHov(true)}
@@ -214,9 +246,9 @@ function ToastGhostAction({ label, icon: Icon, onClick }: {
         marginTop: '8px',
         height: '28px', padding: '0 8px',
         border: 'none', borderRadius: '6px',
-        background: hov ? C.blueLt : 'transparent',
+        background: hov ? hoverBg : 'transparent',
         fontFamily: F.inter, fontSize: '12px', fontWeight: 600,
-        color: C.blue,
+        color: t.blue,
         display: 'inline-flex', alignItems: 'center', gap: '5px',
         cursor: 'pointer', transition: 'background 0.12s',
       }}
@@ -227,8 +259,15 @@ function ToastGhostAction({ label, icon: Icon, onClick }: {
   );
 }
 
-function CloseBtn({ onClick }: { onClick: () => void }) {
+function CloseBtn({ onClick, dark, t }: {
+  onClick: () => void;
+  dark: boolean;
+  t: ReturnType<typeof theme>;
+}) {
   const [hov, setHov] = useState(false);
+  const idleColor  = dark ? '#6B7280' : C.text4;
+  const hoverColor = dark ? D.text2   : C.text2;
+  const hoverBg    = dark ? D.tableHover : '#F3F4F6';
   return (
     <button
       onMouseEnter={() => setHov(true)}
@@ -238,13 +277,13 @@ function CloseBtn({ onClick }: { onClick: () => void }) {
       style={{
         width: '22px', height: '22px',
         border: 'none', borderRadius: '5px',
-        background: hov ? '#F3F4F6' : 'transparent',
+        background: hov ? hoverBg : 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', flexShrink: 0,
-        transition: 'background 0.12s',
+        transition: 'background 0.12s, color 0.12s',
       }}
     >
-      <X size={13} color={C.text4} strokeWidth={1.75} />
+      <X size={13} color={hov ? hoverColor : idleColor} strokeWidth={1.75} />
     </button>
   );
 }
