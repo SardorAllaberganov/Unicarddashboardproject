@@ -4,10 +4,12 @@ import {
   Upload, FileSpreadsheet, Plus, X, Trash2,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STEP INDICATOR
@@ -15,7 +17,9 @@ import { useNavigate } from 'react-router';
 
 const STEPS = ['Основные данные', 'KPI настройки', 'Импорт карт'];
 
-function StepIndicator({ current }: { current: number }) {
+function StepIndicator({ current, t, dark }: { current: number; t: T; dark: boolean }) {
+  const activeCircleText = '#FFFFFF';
+  const upcomingCircleBg = t.surface;
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -30,7 +34,7 @@ function StepIndicator({ current }: { current: number }) {
             {i > 0 && (
               <div style={{
                 width: '80px', height: '2px',
-                background: completed ? C.blue : C.border,
+                background: completed ? t.blue : t.border,
                 borderStyle: completed ? 'solid' : 'dashed',
                 margin: '0 4px',
               }} />
@@ -38,17 +42,17 @@ function StepIndicator({ current }: { current: number }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
               <div style={{
                 width: '32px', height: '32px', borderRadius: '50%',
-                background: completed ? C.success : active ? C.blue : C.surface,
-                border: upcoming ? `2px solid ${C.border}` : 'none',
+                background: completed ? (dark ? '#34D399' : C.success) : active ? t.blue : upcomingCircleBg,
+                border: upcoming ? `2px solid ${t.border}` : 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>
                 {completed ? (
-                  <Check size={14} color="#fff" strokeWidth={3} />
+                  <Check size={14} color="#FFFFFF" strokeWidth={3} />
                 ) : (
                   <span style={{
                     fontFamily: F.inter, fontSize: '13px', fontWeight: 600,
-                    color: active ? '#fff' : C.text4,
+                    color: active ? activeCircleText : t.text4,
                   }}>
                     {i + 1}
                   </span>
@@ -56,7 +60,7 @@ function StepIndicator({ current }: { current: number }) {
               </div>
               <span style={{
                 fontFamily: F.inter, fontSize: '13px', fontWeight: active ? 500 : 400,
-                color: active ? C.blue : completed ? C.text1 : C.text4,
+                color: active ? t.blue : completed ? t.text1 : t.text4,
                 whiteSpace: 'nowrap',
               }}>
                 {label}
@@ -73,17 +77,21 @@ function StepIndicator({ current }: { current: number }) {
    FORM HELPERS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-  color: C.text2, marginBottom: '8px',
-};
+function labelStyle(t: T): React.CSSProperties {
+  return {
+    display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+    color: t.text2, marginBottom: '8px',
+  };
+}
 
-const inputStyle: React.CSSProperties = {
-  width: '100%', height: '40px', padding: '0 12px',
-  border: `1px solid ${C.inputBorder}`, borderRadius: '8px',
-  background: C.surface, fontFamily: F.inter, fontSize: '14px',
-  color: C.text1, outline: 'none', boxSizing: 'border-box',
-};
+function inputStyle(t: T): React.CSSProperties {
+  return {
+    width: '100%', height: '40px', padding: '0 12px',
+    border: `1px solid ${t.inputBorder}`, borderRadius: '8px',
+    background: t.surface, fontFamily: F.inter, fontSize: '14px',
+    color: t.text1, outline: 'none', boxSizing: 'border-box',
+  };
+}
 
 const ORGS = ['Mysafar OOO', 'Unired Marketing', 'Express Finance', 'Digital Pay', 'SmartCard Group'];
 const CARD_TYPES = ['VISA SUM', 'VISA USD', 'Смешанная'];
@@ -92,82 +100,87 @@ const CARD_TYPES = ['VISA SUM', 'VISA USD', 'Смешанная'];
    STEP 1 — ОСНОВНЫЕ ДАННЫЕ
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Step1({ data, onChange }: {
+function Step1({ data, onChange, t, dark }: {
   data: { name: string; org: string; cardType: string; count: number; kpiDays: number; kpiDate: string };
   onChange: (d: any) => void;
+  t: T; dark: boolean;
 }) {
+  const errorColor = dark ? D.error : C.error;
+  const successBg  = dark ? 'rgba(52,211,153,0.12)' : C.successBg;
+  const successText = dark ? '#34D399' : '#15803D';
+  const successDot  = dark ? '#34D399' : C.success;
+
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', padding: '24px',
     }}>
-      <h3 style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1, margin: '0 0 20px' }}>
+      <h3 style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1, margin: '0 0 20px' }}>
         Информация о партии
       </h3>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px 24px' }}>
         <div>
-          <label style={labelStyle}>Название партии <span style={{ color: C.error }}>*</span></label>
-          <input value={data.name} onChange={e => onChange({ ...data, name: e.target.value })} placeholder="Партия Апрель 2026" style={inputStyle} />
+          <label style={labelStyle(t)}>Название партии <span style={{ color: errorColor }}>*</span></label>
+          <input value={data.name} onChange={e => onChange({ ...data, name: e.target.value })} placeholder="Партия Апрель 2026" style={inputStyle(t)} />
         </div>
         <div>
-          <label style={labelStyle}>Организация <span style={{ color: C.error }}>*</span></label>
+          <label style={labelStyle(t)}>Организация <span style={{ color: errorColor }}>*</span></label>
           <div style={{ position: 'relative' }}>
-            <select value={data.org} onChange={e => onChange({ ...data, org: e.target.value })} style={{ ...inputStyle, appearance: 'none', cursor: 'pointer', paddingRight: '36px' }}>
+            <select value={data.org} onChange={e => onChange({ ...data, org: e.target.value })} style={{ ...inputStyle(t), appearance: 'none', cursor: 'pointer', paddingRight: '36px' }}>
               <option value="">Выберите организацию</option>
               {ORGS.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
-            <ChevronDown size={14} color={C.text3} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <ChevronDown size={14} color={t.text3} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           </div>
         </div>
         <div>
-          <label style={labelStyle}>Тип карт</label>
+          <label style={labelStyle(t)}>Тип карт</label>
           <div style={{ position: 'relative' }}>
-            <select value={data.cardType} onChange={e => onChange({ ...data, cardType: e.target.value })} style={{ ...inputStyle, appearance: 'none', cursor: 'pointer', paddingRight: '36px' }}>
-              {CARD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            <select value={data.cardType} onChange={e => onChange({ ...data, cardType: e.target.value })} style={{ ...inputStyle(t), appearance: 'none', cursor: 'pointer', paddingRight: '36px' }}>
+              {CARD_TYPES.map(ct => <option key={ct} value={ct}>{ct}</option>)}
             </select>
-            <ChevronDown size={14} color={C.text3} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+            <ChevronDown size={14} color={t.text3} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           </div>
         </div>
         <div>
-          <label style={labelStyle}>Ожидаемое количество карт</label>
-          <input type="number" value={data.count || ''} onChange={e => onChange({ ...data, count: parseInt(e.target.value) || 0 })} placeholder="500" style={{ ...inputStyle, fontFamily: F.mono }} />
+          <label style={labelStyle(t)}>Ожидаемое количество карт</label>
+          <input type="number" value={data.count || ''} onChange={e => onChange({ ...data, count: parseInt(e.target.value) || 0 })} placeholder="500" style={{ ...inputStyle(t), fontFamily: F.mono }} />
         </div>
         <div>
-          <label style={labelStyle}>Срок выполнения KPI (дней)</label>
-          <input type="number" value={data.kpiDays} onChange={e => onChange({ ...data, kpiDays: parseInt(e.target.value) || 30 })} style={{ ...inputStyle, fontFamily: F.mono }} />
-          <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4, marginTop: '6px', display: 'block' }}>По умолчанию: 30 дней</span>
+          <label style={labelStyle(t)}>Срок выполнения KPI (дней)</label>
+          <input type="number" value={data.kpiDays} onChange={e => onChange({ ...data, kpiDays: parseInt(e.target.value) || 30 })} style={{ ...inputStyle(t), fontFamily: F.mono }} />
+          <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: '6px', display: 'block' }}>По умолчанию: 30 дней</span>
         </div>
         <div>
-          <label style={labelStyle}>Дата начала KPI</label>
-          <input type="date" value={data.kpiDate} onChange={e => onChange({ ...data, kpiDate: e.target.value })} placeholder="ДД.ММ.ГГГГ" style={inputStyle} />
-          <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4, marginTop: '6px', display: 'block' }}>Если не указано, KPI начинается с момента продажи каждой карты</span>
+          <label style={labelStyle(t)}>Дата начала KPI</label>
+          <input type="date" value={data.kpiDate} onChange={e => onChange({ ...data, kpiDate: e.target.value })} placeholder="ДД.ММ.ГГГГ" style={inputStyle(t)} />
+          <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: '6px', display: 'block' }}>Если не указано, KPI начинается с момента продажи каждой карты</span>
         </div>
       </div>
 
-      {/* Selected org info */}
       {data.org && (
         <div style={{
           marginTop: '20px', padding: '14px 16px',
-          background: C.blueLt, border: `1px solid ${C.blueTint}`,
+          background: t.blueLt, border: `1px solid ${t.blueTint}`,
           borderRadius: '10px',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>{data.org}</span>
+            <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>{data.org}</span>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
               padding: '3px 10px', borderRadius: '10px',
-              background: C.successBg, color: '#15803D',
+              background: successBg, color: successText,
             }}>
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.success }} />
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: successDot }} />
               Активна
             </span>
           </div>
-          <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginBottom: '4px' }}>
+          <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginBottom: '4px' }}>
             Текущий лимит: 500 карт, использовано: 360
           </div>
-          <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.blue }}>
+          <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.blue }}>
             Доступно: 140 карт
           </div>
         </div>
@@ -196,11 +209,13 @@ const DEFAULT_KPI: KpiStep[] = [
 
 const KPI_ACTIONS = ['Регистрация в Unired Mobile', 'P2P пополнение карты', 'Оплата в рознице', 'Оплата онлайн', 'Снятие наличных'];
 
-function Step2({ batchName, org, cardType, kpiDays, count, kpiSteps, setKpiSteps }: {
+function Step2({ batchName, org, cardType, kpiDays, count, kpiSteps, setKpiSteps, t, dark }: {
   batchName: string; org: string; cardType: string; kpiDays: number; count: number;
   kpiSteps: KpiStep[]; setKpiSteps: (s: KpiStep[]) => void;
+  t: T; dark: boolean;
 }) {
   const [templateHov, setTemplateHov] = useState(false);
+  const summaryStripBg = dark ? D.tableHeaderBg : '#F9FAFB';
 
   const addStep = () => {
     const nextId = kpiSteps.length > 0 ? Math.max(...kpiSteps.map(s => s.id)) + 1 : 1;
@@ -218,28 +233,28 @@ function Step2({ batchName, org, cardType, kpiDays, count, kpiSteps, setKpiSteps
   const perCard = kpiSteps.reduce((sum, s) => sum + (parseInt(s.reward) || 0), 0);
   const total = perCard * (count || 0);
 
+  const stepCardShadow = dark ? '0 1px 4px rgba(0,0,0,0.24)' : '0 1px 4px rgba(37,99,235,0.08)';
+
   return (
     <div>
-      {/* Summary strip */}
       <div style={{
-        background: '#F9FAFB', border: `1px solid ${C.border}`,
+        background: summaryStripBg, border: `1px solid ${t.border}`,
         borderRadius: '10px', padding: '12px 16px', marginBottom: '20px',
-        fontFamily: F.inter, fontSize: '13px', color: C.text3,
+        fontFamily: F.inter, fontSize: '13px', color: t.text3,
         display: 'flex', gap: '16px', flexWrap: 'wrap',
       }}>
-        <span>Партия: <span style={{ color: C.text1, fontWeight: 500 }}>{batchName || '—'}</span></span>
-        <span>Организация: <span style={{ color: C.text1, fontWeight: 500 }}>{org || '—'}</span></span>
-        <span>Тип: <span style={{ color: C.text1, fontWeight: 500 }}>{cardType}</span></span>
-        <span>Срок KPI: <span style={{ color: C.text1, fontWeight: 500 }}>{kpiDays} дней</span></span>
+        <span>Партия: <span style={{ color: t.text1, fontWeight: 500 }}>{batchName || '—'}</span></span>
+        <span>Организация: <span style={{ color: t.text1, fontWeight: 500 }}>{org || '—'}</span></span>
+        <span>Тип: <span style={{ color: t.text1, fontWeight: 500 }}>{cardType}</span></span>
+        <span>Срок KPI: <span style={{ color: t.text1, fontWeight: 500 }}>{kpiDays} дней</span></span>
       </div>
 
-      {/* KPI Stepper */}
       <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
+        background: t.surface, border: `1px solid ${t.border}`,
         borderRadius: '12px', padding: '24px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <h3 style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1, margin: 0 }}>
+          <h3 style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1, margin: 0 }}>
             KPI этапы
           </h3>
           <button
@@ -249,95 +264,90 @@ function Step2({ batchName, org, cardType, kpiDays, count, kpiSteps, setKpiSteps
             style={{
               border: 'none', background: 'none',
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: templateHov ? C.blue : C.text3,
+              color: templateHov ? t.blue : t.text3,
               cursor: 'pointer', padding: '6px 10px', borderRadius: '8px',
               transition: 'color 0.12s, background 0.12s',
-              ...(templateHov ? { background: C.blueLt } : {}),
+              ...(templateHov ? { background: t.blueLt } : {}),
             }}
           >
             Заполнить из шаблона по умолчанию
           </button>
         </div>
 
-        {/* Steps */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
-          {/* Vertical line */}
           {kpiSteps.length > 1 && (
             <div style={{
               position: 'absolute', left: '15px', top: '16px',
               bottom: '16px', width: '2px',
-              borderLeft: `2px dashed ${C.border}`,
+              borderLeft: `2px dashed ${t.border}`,
             }} />
           )}
 
           {kpiSteps.map((step, i) => (
             <div key={step.id} style={{ display: 'flex', gap: '16px' }}>
-              {/* Circle */}
               <div style={{
                 width: '32px', height: '32px', borderRadius: '50%',
-                background: C.blue, flexShrink: 0, marginTop: '20px',
+                background: t.blue, flexShrink: 0, marginTop: '20px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 zIndex: 1,
               }}>
-                <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: '#fff' }}>{i + 1}</span>
+                <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>{i + 1}</span>
               </div>
-              {/* Card */}
               <div style={{
-                flex: 1, background: C.surface,
-                border: `1px solid ${C.blue}`,
+                flex: 1, background: t.surface,
+                border: `1px solid ${t.blue}`,
                 borderRadius: '12px', padding: '20px',
-                boxShadow: '0 1px 4px rgba(37,99,235,0.08)',
+                boxShadow: stepCardShadow,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <span style={{ fontFamily: F.dm, fontSize: '15px', fontWeight: 600, color: C.text1 }}>Этап {i + 1}</span>
+                  <span style={{ fontFamily: F.dm, fontSize: '15px', fontWeight: 600, color: t.text1 }}>Этап {i + 1}</span>
                   <button onClick={() => removeStep(step.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px' }}>
-                    <Trash2 size={14} color={C.text4} strokeWidth={1.75} />
+                    <Trash2 size={14} color={t.text4} strokeWidth={1.75} />
                   </button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px 20px' }}>
                   <div>
-                    <label style={labelStyle}>Действие клиента</label>
+                    <label style={labelStyle(t)}>Действие клиента</label>
                     <div style={{ position: 'relative' }}>
-                      <select value={step.action} onChange={e => updateStep(step.id, 'action', e.target.value)} style={{ ...inputStyle, appearance: 'none', cursor: 'pointer', paddingRight: '36px' }}>
+                      <select value={step.action} onChange={e => updateStep(step.id, 'action', e.target.value)} style={{ ...inputStyle(t), appearance: 'none', cursor: 'pointer', paddingRight: '36px' }}>
                         <option value="">Выберите действие</option>
                         {KPI_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
                       </select>
-                      <ChevronDown size={14} color={C.text3} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                      <ChevronDown size={14} color={t.text3} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Порог (UZS)</label>
-                    <input value={step.threshold} onChange={e => updateStep(step.id, 'threshold', e.target.value)} placeholder="Если применимо" style={{ ...inputStyle, fontFamily: F.mono }} />
+                    <label style={labelStyle(t)}>Порог (UZS)</label>
+                    <input value={step.threshold} onChange={e => updateStep(step.id, 'threshold', e.target.value)} placeholder="Если применимо" style={{ ...inputStyle(t), fontFamily: F.mono }} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Вознаграждение (UZS)</label>
-                    <input value={step.reward} onChange={e => updateStep(step.id, 'reward', e.target.value)} placeholder="5 000" style={{ ...inputStyle, fontFamily: F.mono }} />
+                    <label style={labelStyle(t)}>Вознаграждение (UZS)</label>
+                    <input value={step.reward} onChange={e => updateStep(step.id, 'reward', e.target.value)} placeholder="5 000" style={{ ...inputStyle(t), fontFamily: F.mono }} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Описание</label>
-                    <input value={step.description} onChange={e => updateStep(step.id, 'description', e.target.value)} placeholder="Описание этапа" style={inputStyle} />
+                    <label style={labelStyle(t)}>Описание</label>
+                    <input value={step.description} onChange={e => updateStep(step.id, 'description', e.target.value)} placeholder="Описание этапа" style={inputStyle(t)} />
                   </div>
                 </div>
               </div>
             </div>
           ))}
 
-          {/* Add step */}
           <div style={{ display: 'flex', gap: '16px' }}>
             <div style={{ width: '32px', flexShrink: 0 }} />
             <button
               onClick={addStep}
               style={{
                 flex: 1, height: '48px',
-                border: `2px dashed ${C.border}`, borderRadius: '12px',
+                border: `2px dashed ${t.border}`, borderRadius: '12px',
                 background: 'transparent',
                 fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                color: C.text3, cursor: 'pointer',
+                color: t.text3, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                 transition: 'border-color 0.12s, color 0.12s',
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = C.blue; e.currentTarget.style.color = C.blue; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text3; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = t.blue; e.currentTarget.style.color = t.blue; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.color = t.text3; }}
             >
               <Plus size={16} strokeWidth={2} />
               Добавить этап
@@ -346,26 +356,25 @@ function Step2({ batchName, org, cardType, kpiDays, count, kpiSteps, setKpiSteps
         </div>
       </div>
 
-      {/* Budget preview */}
       <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
+        background: t.surface, border: `1px solid ${t.border}`,
         borderRadius: '12px', padding: '20px 24px', marginTop: '16px',
       }}>
-        <div style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1, marginBottom: '12px' }}>
+        <div style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1, marginBottom: '12px' }}>
           Бюджет партии
         </div>
         <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
           <div>
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Этапов: </span>
-            <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: C.text1 }}>{kpiSteps.length}</span>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Этапов: </span>
+            <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: t.text1 }}>{kpiSteps.length}</span>
           </div>
           <div>
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>За карту: </span>
-            <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: C.text1 }}>{perCard.toLocaleString('ru-RU')} UZS</span>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>За карту: </span>
+            <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 600, color: t.text1 }}>{perCard.toLocaleString('ru-RU')} UZS</span>
           </div>
           <div>
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Всего (× {count || 0} карт): </span>
-            <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 700, color: C.blue }}>{total.toLocaleString('ru-RU')} UZS</span>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Всего (× {count || 0} карт): </span>
+            <span style={{ fontFamily: F.mono, fontSize: '14px', fontWeight: 700, color: t.blue }}>{total.toLocaleString('ru-RU')} UZS</span>
           </div>
         </div>
       </div>
@@ -377,24 +386,24 @@ function Step2({ batchName, org, cardType, kpiDays, count, kpiSteps, setKpiSteps
    STEP 3 — ИМПОРТ КАРТ
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Step3({ importMode, setImportMode }: {
+function Step3({ importMode, setImportMode, t, dark }: {
   importMode: 'excel' | 'later'; setImportMode: (m: 'excel' | 'later') => void;
+  t: T; dark: boolean;
 }) {
   const [dragOver, setDragOver] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: string } | null>(null);
+  const successColor = dark ? '#34D399' : C.success;
 
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '12px', padding: '24px',
     }}>
-      <h3 style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text1, margin: '0 0 20px' }}>
+      <h3 style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text1, margin: '0 0 20px' }}>
         Импорт карт
       </h3>
 
-      {/* Radio group */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Excel option */}
         <div>
           <label
             onClick={() => setImportMode('excel')}
@@ -402,16 +411,16 @@ function Step3({ importMode, setImportMode }: {
           >
             <div style={{
               width: '16px', height: '16px', borderRadius: '50%',
-              border: `2px solid ${importMode === 'excel' ? C.blue : C.inputBorder}`,
-              background: importMode === 'excel' ? C.blue : 'transparent',
+              border: `2px solid ${importMode === 'excel' ? t.blue : t.inputBorder}`,
+              background: importMode === 'excel' ? t.blue : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              {importMode === 'excel' && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#fff' }} />}
+              {importMode === 'excel' && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#FFFFFF' }} />}
             </div>
             <span style={{
               fontFamily: F.inter, fontSize: '14px',
               fontWeight: importMode === 'excel' ? 500 : 400,
-              color: importMode === 'excel' ? C.text1 : C.text2,
+              color: importMode === 'excel' ? t.text1 : t.text2,
             }}>
               Импортировать из Excel
             </span>
@@ -428,42 +437,42 @@ function Step3({ importMode, setImportMode }: {
                     setUploadedFile({ name: 'batch_april_2026.xlsx', size: '245 KB' });
                   }}
                   style={{
-                    border: `2px dashed ${dragOver ? C.blue : C.border}`,
+                    border: `2px dashed ${dragOver ? t.blue : t.border}`,
                     borderRadius: '12px', padding: '40px 24px',
-                    background: dragOver ? C.blueLt : C.pageBg,
+                    background: dragOver ? t.blueLt : t.pageBg,
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
                     transition: 'all 0.15s', cursor: 'pointer',
                   }}
                   onClick={() => setUploadedFile({ name: 'batch_april_2026.xlsx', size: '245 KB' })}
                 >
-                  <Upload size={40} color={dragOver ? C.blue : C.text4} strokeWidth={1.5} />
-                  <div style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: C.text2 }}>
+                  <Upload size={40} color={dragOver ? t.blue : t.text4} strokeWidth={1.5} />
+                  <div style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 600, color: t.text2 }}>
                     Перетащите файл сюда
                   </div>
-                  <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text4 }}>или</span>
+                  <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text4 }}>или</span>
                   <div style={{
-                    padding: '8px 18px', border: `1px solid ${C.border}`, borderRadius: '8px',
-                    fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text2,
-                    background: C.surface,
+                    padding: '8px 18px', border: `1px solid ${t.border}`, borderRadius: '8px',
+                    fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text2,
+                    background: t.surface,
                   }}>
                     Выбрать файл
                   </div>
-                  <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>Форматы: .xlsx, .xls, .csv</span>
+                  <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4 }}>Форматы: .xlsx, .xls, .csv</span>
                 </div>
               ) : (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '12px 16px', border: `1px solid ${C.border}`,
-                  borderRadius: '10px', background: C.pageBg,
+                  padding: '12px 16px', border: `1px solid ${t.border}`,
+                  borderRadius: '10px', background: t.pageBg,
                 }}>
-                  <FileSpreadsheet size={20} color={C.success} strokeWidth={1.75} />
+                  <FileSpreadsheet size={20} color={successColor} strokeWidth={1.75} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>{uploadedFile.name}</div>
-                    <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4 }}>{uploadedFile.size}</div>
+                    <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>{uploadedFile.name}</div>
+                    <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4 }}>{uploadedFile.size}</div>
                   </div>
-                  <Check size={16} color={C.success} strokeWidth={2.5} />
+                  <Check size={16} color={successColor} strokeWidth={2.5} />
                   <button onClick={() => setUploadedFile(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '4px' }}>
-                    <X size={14} color={C.text4} strokeWidth={1.75} />
+                    <X size={14} color={t.text4} strokeWidth={1.75} />
                   </button>
                 </div>
               )}
@@ -471,7 +480,6 @@ function Step3({ importMode, setImportMode }: {
           )}
         </div>
 
-        {/* Later option */}
         <div>
           <label
             onClick={() => setImportMode('later')}
@@ -479,16 +487,16 @@ function Step3({ importMode, setImportMode }: {
           >
             <div style={{
               width: '16px', height: '16px', borderRadius: '50%',
-              border: `2px solid ${importMode === 'later' ? C.blue : C.inputBorder}`,
-              background: importMode === 'later' ? C.blue : 'transparent',
+              border: `2px solid ${importMode === 'later' ? t.blue : t.inputBorder}`,
+              background: importMode === 'later' ? t.blue : 'transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              {importMode === 'later' && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#fff' }} />}
+              {importMode === 'later' && <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#FFFFFF' }} />}
             </div>
             <span style={{
               fontFamily: F.inter, fontSize: '14px',
               fontWeight: importMode === 'later' ? 500 : 400,
-              color: importMode === 'later' ? C.text1 : C.text2,
+              color: importMode === 'later' ? t.text1 : t.text2,
             }}>
               Импортировать позже
             </span>
@@ -496,10 +504,10 @@ function Step3({ importMode, setImportMode }: {
           {importMode === 'later' && (
             <div style={{
               marginLeft: '26px', marginTop: '12px',
-              padding: '12px 16px', background: C.pageBg,
-              border: `1px solid ${C.border}`, borderRadius: '8px',
+              padding: '12px 16px', background: t.pageBg,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
             }}>
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>
                 Вы сможете импортировать карты позже на странице партии
               </span>
             </div>
@@ -514,8 +522,9 @@ function Step3({ importMode, setImportMode }: {
    SUCCESS STATE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SuccessState({ batchName, org, cardType, kpiCount, navigate }: {
+function SuccessState({ batchName, org, cardType, kpiCount, navigate, t, dark }: {
   batchName: string; org: string; cardType: string; kpiCount: number; navigate: (p: string) => void;
+  t: T; dark: boolean;
 }) {
   const [primaryHov, setPrimaryHov] = useState(false);
   const [outlineHov, setOutlineHov] = useState(false);
@@ -529,44 +538,45 @@ function SuccessState({ batchName, org, cardType, kpiCount, navigate }: {
     { label: 'Карт импортировано', value: '498 из 500' },
   ];
 
+  const successColor = dark ? '#34D399' : C.success;
+  const ghostHoverBg = dark ? D.tableHover : '#F3F4F6';
+
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 32px' }}>
       <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
+        background: t.surface, border: `1px solid ${t.border}`,
         borderRadius: '12px', padding: '40px', width: '560px', maxWidth: '100%',
         textAlign: 'center',
       }}>
-        <CheckCircle size={64} color={C.success} strokeWidth={1.5} style={{ marginBottom: '20px' }} />
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: C.text1, marginBottom: '24px' }}>
+        <CheckCircle size={64} color={successColor} strokeWidth={1.5} style={{ marginBottom: '20px' }} />
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 600, color: t.text1, marginBottom: '24px' }}>
           Партия успешно создана
         </div>
 
-        {/* Key-value grid */}
         <div style={{
-          border: `1px solid ${C.border}`, borderRadius: '10px',
+          border: `1px solid ${t.border}`, borderRadius: '10px',
           overflow: 'hidden', marginBottom: '28px', textAlign: 'left',
         }}>
           {rows.map((r, i) => (
             <div key={r.label} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '12px 16px',
-              borderBottom: i < rows.length - 1 ? `1px solid ${C.border}` : 'none',
+              borderBottom: i < rows.length - 1 ? `1px solid ${t.border}` : 'none',
             }}>
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>{r.label}</span>
-              <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>{r.value}</span>
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>{r.label}</span>
+              <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>{r.value}</span>
             </div>
           ))}
         </div>
 
-        {/* Buttons */}
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button
             onMouseEnter={() => setPrimaryHov(true)} onMouseLeave={() => setPrimaryHov(false)}
             onClick={() => navigate('/card-batches')}
             style={{
               height: '40px', padding: '0 20px', border: 'none', borderRadius: '8px',
-              background: primaryHov ? C.blueHover : C.blue,
-              fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#fff',
+              background: primaryHov ? t.blueHover : t.blue,
+              fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#FFFFFF',
               cursor: 'pointer', transition: 'all 0.12s',
             }}
           >
@@ -577,10 +587,10 @@ function SuccessState({ batchName, org, cardType, kpiCount, navigate }: {
             onClick={() => window.location.reload()}
             style={{
               height: '40px', padding: '0 20px',
-              border: `1px solid ${outlineHov ? C.blue : C.border}`, borderRadius: '8px',
-              background: outlineHov ? C.blueLt : C.surface,
+              border: `1px solid ${outlineHov ? t.blue : t.border}`, borderRadius: '8px',
+              background: outlineHov ? t.blueLt : t.surface,
               fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-              color: outlineHov ? C.blue : C.text2,
+              color: outlineHov ? t.blue : t.text2,
               cursor: 'pointer', transition: 'all 0.12s',
             }}
           >
@@ -591,9 +601,9 @@ function SuccessState({ batchName, org, cardType, kpiCount, navigate }: {
             onClick={() => navigate('/card-batches')}
             style={{
               height: '40px', padding: '0 16px', border: 'none',
-              background: ghostHov ? '#F3F4F6' : 'none', borderRadius: '8px',
+              background: ghostHov ? ghostHoverBg : 'none', borderRadius: '8px',
               fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-              color: ghostHov ? C.text1 : C.text3,
+              color: ghostHov ? t.text1 : t.text3,
               cursor: 'pointer', transition: 'all 0.12s',
             }}
           >
@@ -613,19 +623,18 @@ export default function NewBatchWizardPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
 
   const [step, setStep] = useState(0);
   const [success, setSuccess] = useState(false);
 
-  // Step 1 data
   const [step1, setStep1] = useState({
     name: '', org: '', cardType: 'VISA SUM', count: 500, kpiDays: 30, kpiDate: '',
   });
 
-  // Step 2 data
   const [kpiSteps, setKpiSteps] = useState<KpiStep[]>([]);
 
-  // Step 3 data
   const [importMode, setImportMode] = useState<'excel' | 'later'>('excel');
 
   const [cancelHov, setCancelHov] = useState(false);
@@ -633,20 +642,22 @@ export default function NewBatchWizardPage() {
   const [backHov, setBackHov] = useState(false);
   const [skipHov, setSkipHov] = useState(false);
 
+  const backHoverBg = dark ? D.tableHover : '#F3F4F6';
+
   if (success) {
     return (
-      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
         <Sidebar role="bank" collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)} darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
-          <SuccessState batchName={step1.name} org={step1.org} cardType={step1.cardType} kpiCount={kpiSteps.length} navigate={navigate} />
+          <SuccessState batchName={step1.name} org={step1.org} cardType={step1.cardType} kpiCount={kpiSteps.length} navigate={navigate} t={t} dark={dark} />
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(c => !c)}
         darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)}
@@ -657,49 +668,46 @@ export default function NewBatchWizardPage() {
 
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
-            {/* Breadcrumbs */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-              <span onClick={() => navigate('/card-batches')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Партии карт</span>
-              <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Новая партия</span>
+              <span onClick={() => navigate('/card-batches')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Партии карт</span>
+              <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+              <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Новая партия</span>
             </div>
 
-            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: '0 0 24px', lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: '0 0 24px', lineHeight: 1.2 }}>
               Создание партии карт
             </h1>
 
-            <StepIndicator current={step} />
+            <StepIndicator current={step} t={t} dark={dark} />
 
-            {/* Step content */}
-            {step === 0 && <Step1 data={step1} onChange={setStep1} />}
+            {step === 0 && <Step1 data={step1} onChange={setStep1} t={t} dark={dark} />}
             {step === 1 && (
               <Step2
                 batchName={step1.name} org={step1.org} cardType={step1.cardType}
                 kpiDays={step1.kpiDays} count={step1.count}
                 kpiSteps={kpiSteps} setKpiSteps={setKpiSteps}
+                t={t} dark={dark}
               />
             )}
-            {step === 2 && <Step3 importMode={importMode} setImportMode={setImportMode} />}
+            {step === 2 && <Step3 importMode={importMode} setImportMode={setImportMode} t={t} dark={dark} />}
 
             <div style={{ height: '80px' }} />
           </div>
         </div>
 
-        {/* Sticky Footer */}
         <div style={{
-          flexShrink: 0, background: C.surface, borderTop: `1px solid ${C.border}`,
+          flexShrink: 0, background: t.surface, borderTop: `1px solid ${t.border}`,
           padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          {/* Left */}
           <div>
             {step > 0 && (
               <button
                 onMouseEnter={() => setBackHov(true)} onMouseLeave={() => setBackHov(false)}
                 onClick={() => setStep(s => s - 1)}
                 style={{
-                  border: 'none', background: backHov ? '#F3F4F6' : 'none',
+                  border: 'none', background: backHov ? backHoverBg : 'none',
                   fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                  color: backHov ? C.text1 : C.text3,
+                  color: backHov ? t.text1 : t.text3,
                   cursor: 'pointer', padding: '8px 12px', borderRadius: '8px',
                   transition: 'all 0.12s',
                 }}
@@ -709,7 +717,6 @@ export default function NewBatchWizardPage() {
             )}
           </div>
 
-          {/* Right */}
           <div style={{ display: 'flex', gap: '12px' }}>
             {step === 0 && (
               <button
@@ -717,10 +724,10 @@ export default function NewBatchWizardPage() {
                 onClick={() => navigate('/card-batches')}
                 style={{
                   height: '40px', padding: '0 20px',
-                  border: `1px solid ${cancelHov ? C.blue : C.border}`, borderRadius: '8px',
-                  background: cancelHov ? C.blueLt : C.surface,
+                  border: `1px solid ${cancelHov ? t.blue : t.border}`, borderRadius: '8px',
+                  background: cancelHov ? t.blueLt : t.surface,
                   fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                  color: cancelHov ? C.blue : C.text2,
+                  color: cancelHov ? t.blue : t.text2,
                   cursor: 'pointer', transition: 'all 0.12s',
                 }}
               >
@@ -733,10 +740,10 @@ export default function NewBatchWizardPage() {
                 onClick={() => setStep(2)}
                 style={{
                   height: '40px', padding: '0 20px',
-                  border: `1px solid ${skipHov ? C.blue : C.border}`, borderRadius: '8px',
-                  background: skipHov ? C.blueLt : C.surface,
+                  border: `1px solid ${skipHov ? t.blue : t.border}`, borderRadius: '8px',
+                  background: skipHov ? t.blueLt : t.surface,
                   fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-                  color: skipHov ? C.blue : C.text2,
+                  color: skipHov ? t.blue : t.text2,
                   cursor: 'pointer', transition: 'all 0.12s',
                 }}
               >
@@ -751,8 +758,8 @@ export default function NewBatchWizardPage() {
               }}
               style={{
                 height: '40px', padding: '0 20px', border: 'none', borderRadius: '8px',
-                background: nextHov ? C.blueHover : C.blue,
-                fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#fff',
+                background: nextHov ? t.blueHover : t.blue,
+                fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: '#FFFFFF',
                 cursor: 'pointer', transition: 'all 0.12s',
               }}
             >

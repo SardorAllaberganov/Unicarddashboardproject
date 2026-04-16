@@ -3,10 +3,12 @@ import {
   ChevronRight, ChevronLeft, Check, Plus, Trash2, ChevronDown, AlertCircle, Calendar, Building2,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -41,7 +43,8 @@ const STEPS = [
   { num: 4, label: 'Предпросмотр' },
 ];
 
-function StepperHeader({ currentStep }: { currentStep: number }) {
+function StepperHeader({ currentStep, t, dark }: { currentStep: number; t: T; dark: boolean }) {
+  const completedRing = dark ? 'rgba(52,211,153,0.20)' : '#D1FAE5';
   return (
     <div style={{
       display: 'flex',
@@ -72,12 +75,12 @@ function StepperHeader({ currentStep }: { currentStep: number }) {
                 width: '44px',
                 height: '44px',
                 borderRadius: '50%',
-                background: isCompleted ? C.success : isCurrent ? C.blue : C.surface,
-                border: isCompleted || isCurrent ? 'none' : `2px solid ${C.inputBorder}`,
+                background: isCompleted ? t.success : isCurrent ? t.blue : t.surface,
+                border: isCompleted || isCurrent ? 'none' : `2px solid ${t.inputBorder}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: isCurrent ? `0 0 0 4px ${C.blueTint}` : isCompleted ? `0 0 0 4px #D1FAE5` : 'none',
+                boxShadow: isCurrent ? `0 0 0 4px ${t.blueTint}` : isCompleted ? `0 0 0 4px ${completedRing}` : 'none',
                 transition: 'all 0.2s',
               }}>
                 {isCompleted ? (
@@ -87,7 +90,7 @@ function StepperHeader({ currentStep }: { currentStep: number }) {
                     fontFamily: F.inter,
                     fontSize: '16px',
                     fontWeight: 600,
-                    color: isCurrent ? '#FFFFFF' : C.text4,
+                    color: isCurrent ? '#FFFFFF' : t.text4,
                   }}>
                     {step.num}
                   </span>
@@ -99,7 +102,7 @@ function StepperHeader({ currentStep }: { currentStep: number }) {
                 fontFamily: F.inter,
                 fontSize: '13px',
                 fontWeight: isCurrent ? 600 : 500,
-                color: isCurrent ? C.text1 : isCompleted ? C.text2 : C.text3,
+                color: isCurrent ? t.text1 : isCompleted ? t.text2 : t.text3,
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
               }}>
@@ -112,7 +115,7 @@ function StepperHeader({ currentStep }: { currentStep: number }) {
               <div style={{
                 flex: 1,
                 height: '2px',
-                background: isCompleted ? C.success : C.border,
+                background: isCompleted ? t.success : t.border,
                 marginBottom: '32px',
                 maxWidth: '120px',
                 minWidth: '60px',
@@ -136,12 +139,14 @@ function FormField({
   error,
   helper,
   children,
+  t,
 }: {
   label: string;
   required?: boolean;
   error?: string;
   helper?: string;
   children: React.ReactNode;
+  t: T;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -149,13 +154,13 @@ function FormField({
         fontFamily: F.inter,
         fontSize: '14px',
         fontWeight: 500,
-        color: C.text1,
+        color: t.text1,
         display: 'flex',
         alignItems: 'center',
         gap: '4px',
       }}>
         {label}
-        {required && <span style={{ color: C.error }}>*</span>}
+        {required && <span style={{ color: t.error }}>*</span>}
       </label>
       {children}
       {error && (
@@ -165,7 +170,7 @@ function FormField({
           gap: '4px',
           fontFamily: F.inter,
           fontSize: '13px',
-          color: C.error,
+          color: t.error,
         }}>
           <AlertCircle size={12} />
           {error}
@@ -175,7 +180,7 @@ function FormField({
         <div style={{
           fontFamily: F.inter,
           fontSize: '13px',
-          color: C.text3,
+          color: t.text3,
         }}>
           {helper}
         </div>
@@ -191,6 +196,7 @@ function TextInput({
   error,
   icon,
   suffix,
+  t,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -198,6 +204,7 @@ function TextInput({
   error?: boolean;
   icon?: React.ReactNode;
   suffix?: string;
+  t: T;
 }) {
   const [focused, setFocused] = useState(false);
 
@@ -224,16 +231,16 @@ function TextInput({
         style={{
           width: '100%',
           height: '44px',
-          border: error ? `1px solid ${C.error}` : focused ? `1px solid ${C.blue}` : `1px solid ${C.inputBorder}`,
+          border: error ? `1px solid ${t.error}` : focused ? `1px solid ${t.blue}` : `1px solid ${t.inputBorder}`,
           borderRadius: '8px',
           padding: icon ? '0 12px 0 40px' : suffix ? '0 60px 0 12px' : '0 12px',
           fontFamily: F.inter,
           fontSize: '14px',
-          color: C.text1,
-          background: C.surface,
+          color: t.text1,
+          background: t.surface,
           outline: 'none',
           boxSizing: 'border-box',
-          boxShadow: focused && !error ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused && !error ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
         }}
       />
@@ -245,7 +252,7 @@ function TextInput({
           transform: 'translateY(-50%)',
           fontFamily: F.inter,
           fontSize: '13px',
-          color: C.text3,
+          color: t.text3,
         }}>
           {suffix}
         </span>
@@ -260,12 +267,14 @@ function SelectInput({
   options,
   placeholder,
   error,
+  t,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
   placeholder?: string;
   error?: boolean;
+  t: T;
 }) {
   const [focused, setFocused] = useState(false);
 
@@ -279,18 +288,18 @@ function SelectInput({
         style={{
           width: '100%',
           height: '44px',
-          border: error ? `1px solid ${C.error}` : focused ? `1px solid ${C.blue}` : `1px solid ${C.inputBorder}`,
+          border: error ? `1px solid ${t.error}` : focused ? `1px solid ${t.blue}` : `1px solid ${t.inputBorder}`,
           borderRadius: '8px',
           padding: '0 36px 0 12px',
           fontFamily: F.inter,
           fontSize: '14px',
-          color: value ? C.text1 : C.text3,
-          background: C.surface,
+          color: value ? t.text1 : t.text3,
+          background: t.surface,
           outline: 'none',
           appearance: 'none',
           cursor: 'pointer',
           boxSizing: 'border-box',
-          boxShadow: focused && !error ? `0 0 0 3px ${C.blueTint}` : 'none',
+          boxShadow: focused && !error ? `0 0 0 3px ${t.focusRing}` : 'none',
           transition: 'border-color 0.12s, box-shadow 0.12s',
         }}
       >
@@ -301,7 +310,7 @@ function SelectInput({
       </select>
       <ChevronDown
         size={16}
-        color={C.text3}
+        color={t.text3}
         style={{
           position: 'absolute',
           right: '12px',
@@ -318,10 +327,12 @@ function Toggle({
   checked,
   onChange,
   label,
+  t,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
+  t: T;
 }) {
   return (
     <label style={{
@@ -336,7 +347,7 @@ function Toggle({
           width: '44px',
           height: '24px',
           borderRadius: '12px',
-          background: checked ? C.blue : C.inputBorder,
+          background: checked ? t.blue : t.inputBorder,
           position: 'relative',
           cursor: 'pointer',
           flexShrink: 0,
@@ -358,7 +369,7 @@ function Toggle({
       <span style={{
         fontFamily: F.inter,
         fontSize: '14px',
-        color: C.text2,
+        color: t.text2,
       }}>
         {label}
       </span>
@@ -375,11 +386,15 @@ function KPIStepCard({
   index,
   onUpdate,
   onDelete,
+  t,
+  dark,
 }: {
   step: KPIStep;
   index: number;
   onUpdate: (id: string, field: keyof KPIStep, value: string) => void;
   onDelete: (id: string) => void;
+  t: T;
+  dark: boolean;
 }) {
   const [deleteHover, setDeleteHover] = useState(false);
 
@@ -390,10 +405,12 @@ function KPIStepCard({
     'Регистрация карты',
   ];
 
+  const deleteHoverBg = dark ? 'rgba(248,113,113,0.12)' : t.errorBg;
+
   return (
     <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       padding: '20px',
       display: 'flex',
@@ -415,8 +432,8 @@ function KPIStepCard({
             width: '32px',
             height: '32px',
             borderRadius: '50%',
-            background: C.blueLt,
-            border: `2px solid ${C.blue}`,
+            background: t.blueLt,
+            border: `2px solid ${t.blue}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -426,7 +443,7 @@ function KPIStepCard({
               fontFamily: F.inter,
               fontSize: '14px',
               fontWeight: 600,
-              color: C.blue,
+              color: t.blue,
             }}>
               {index + 1}
             </span>
@@ -435,7 +452,7 @@ function KPIStepCard({
             fontFamily: F.dm,
             fontSize: '16px',
             fontWeight: 600,
-            color: C.text1,
+            color: t.text1,
           }}>
             Шаг KPI {index + 1}
           </span>
@@ -448,9 +465,9 @@ function KPIStepCard({
           style={{
             width: '32px',
             height: '32px',
-            border: `1px solid ${deleteHover ? C.error : C.border}`,
+            border: `1px solid ${deleteHover ? t.error : t.border}`,
             borderRadius: '7px',
-            background: deleteHover ? C.errorBg : 'transparent',
+            background: deleteHover ? deleteHoverBg : 'transparent',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -458,7 +475,7 @@ function KPIStepCard({
             transition: 'all 0.12s',
           }}
         >
-          <Trash2 size={14} color={deleteHover ? C.error : C.text3} />
+          <Trash2 size={14} color={deleteHover ? t.error : t.text3} />
         </button>
       </div>
 
@@ -468,37 +485,41 @@ function KPIStepCard({
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: '16px',
       }}>
-        <FormField label="Тип действия" required>
+        <FormField label="Тип действия" required t={t}>
           <SelectInput
             value={step.type}
             onChange={v => onUpdate(step.id, 'type', v)}
             options={KPI_TYPES}
             placeholder="Выберите тип"
+            t={t}
           />
         </FormField>
 
-        <FormField label="Порог выполнения" required>
+        <FormField label="Порог выполнения" required t={t}>
           <TextInput
             value={step.threshold}
             onChange={v => onUpdate(step.id, 'threshold', v)}
             placeholder="Например: 1 транзакция"
+            t={t}
           />
         </FormField>
 
-        <FormField label="Вознаграждение" required>
+        <FormField label="Вознаграждение" required t={t}>
           <TextInput
             value={step.reward}
             onChange={v => onUpdate(step.id, 'reward', v)}
             placeholder="Например: 5000"
             suffix="UZS"
+            t={t}
           />
         </FormField>
 
-        <FormField label="Описание">
+        <FormField label="Описание" t={t}>
           <TextInput
             value={step.description}
             onChange={v => onUpdate(step.id, 'description', v)}
             placeholder="Краткое описание"
+            t={t}
           />
         </FormField>
       </div>
@@ -510,9 +531,11 @@ function KPIStepCard({
    STEP CONTENT PANELS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Step1GeneralInfo({ data, onChange }: {
+function Step1GeneralInfo({ data, onChange, t, dark }: {
   data: FormData;
   onChange: (field: keyof FormData, value: any) => void;
+  t: T;
+  dark: boolean;
 }) {
   const ORGANIZATIONS = [
     'Mysafar OOO',
@@ -524,8 +547,8 @@ function Step1GeneralInfo({ data, onChange }: {
 
   return (
     <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       padding: '32px',
       maxWidth: '600px',
@@ -535,7 +558,7 @@ function Step1GeneralInfo({ data, onChange }: {
         fontFamily: F.dm,
         fontSize: '18px',
         fontWeight: 600,
-        color: C.text1,
+        color: t.text1,
         marginBottom: '6px',
       }}>
         Основная информация
@@ -543,7 +566,7 @@ function Step1GeneralInfo({ data, onChange }: {
       <div style={{
         fontFamily: F.inter,
         fontSize: '14px',
-        color: C.text3,
+        color: t.text3,
         marginBottom: '28px',
       }}>
         Укажите базовые параметры KPI кампании
@@ -554,20 +577,23 @@ function Step1GeneralInfo({ data, onChange }: {
           label="Название кампании"
           required
           helper="Используется для внутренней идентификации"
+          t={t}
         >
           <TextInput
             value={data.campaignName}
             onChange={v => onChange('campaignName', v)}
             placeholder="Например: Апрель 2026 - Базовый KPI"
+            t={t}
           />
         </FormField>
 
-        <FormField label="Организация" required>
+        <FormField label="Организация" required t={t}>
           <SelectInput
             value={data.organization}
             onChange={v => onChange('organization', v)}
             options={ORGANIZATIONS}
             placeholder="Выберите организацию"
+            t={t}
           />
         </FormField>
 
@@ -576,21 +602,23 @@ function Step1GeneralInfo({ data, onChange }: {
           gridTemplateColumns: '1fr 1fr',
           gap: '16px',
         }}>
-          <FormField label="Дата старта" required>
+          <FormField label="Дата старта" required t={t}>
             <TextInput
               value={data.startDate}
               onChange={v => onChange('startDate', v)}
               placeholder="ДД.ММ.ГГГГ"
-              icon={<Calendar size={16} color={C.text3} />}
+              icon={<Calendar size={16} color={t.text3} />}
+              t={t}
             />
           </FormField>
 
-          <FormField label="Длительность" required>
+          <FormField label="Длительность" required t={t}>
             <TextInput
               value={data.duration}
               onChange={v => onChange('duration', v)}
               placeholder="30"
               suffix="дней"
+              t={t}
             />
           </FormField>
         </div>
@@ -599,9 +627,11 @@ function Step1GeneralInfo({ data, onChange }: {
   );
 }
 
-function Step2KPISteps({ data, onChange }: {
+function Step2KPISteps({ data, onChange, t, dark }: {
   data: FormData;
   onChange: (field: keyof FormData, value: any) => void;
+  t: T;
+  dark: boolean;
 }) {
   const [addHover, setAddHover] = useState(false);
 
@@ -636,7 +666,7 @@ function Step2KPISteps({ data, onChange }: {
           fontFamily: F.dm,
           fontSize: '18px',
           fontWeight: 600,
-          color: C.text1,
+          color: t.text1,
           marginBottom: '6px',
         }}>
           Настройка KPI шагов
@@ -644,7 +674,7 @@ function Step2KPISteps({ data, onChange }: {
         <div style={{
           fontFamily: F.inter,
           fontSize: '14px',
-          color: C.text3,
+          color: t.text3,
         }}>
           Определите этапы выполнения и вознаграждения
         </div>
@@ -658,6 +688,8 @@ function Step2KPISteps({ data, onChange }: {
             index={idx}
             onUpdate={updateStep}
             onDelete={deleteStep}
+            t={t}
+            dark={dark}
           />
         ))}
 
@@ -668,9 +700,9 @@ function Step2KPISteps({ data, onChange }: {
           onClick={addStep}
           style={{
             height: '56px',
-            border: addHover ? `2px dashed ${C.blue}` : `2px dashed ${C.inputBorder}`,
+            border: addHover ? `2px dashed ${t.blue}` : `2px dashed ${t.inputBorder}`,
             borderRadius: '10px',
-            background: addHover ? C.blueLt : 'transparent',
+            background: addHover ? t.blueLt : 'transparent',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -679,7 +711,7 @@ function Step2KPISteps({ data, onChange }: {
             fontFamily: F.inter,
             fontSize: '14px',
             fontWeight: 500,
-            color: addHover ? C.blue : C.text3,
+            color: addHover ? t.blue : t.text3,
             transition: 'all 0.15s',
           }}
         >
@@ -691,14 +723,14 @@ function Step2KPISteps({ data, onChange }: {
           <div style={{
             padding: '48px 24px',
             textAlign: 'center',
-            background: '#FAFBFC',
-            border: `1px solid ${C.border}`,
+            background: t.tableAlt,
+            border: `1px solid ${t.border}`,
             borderRadius: '12px',
           }}>
             <div style={{
               fontFamily: F.inter,
               fontSize: '14px',
-              color: C.text3,
+              color: t.text3,
               marginBottom: '12px',
             }}>
               Нет настроенных шагов KPI
@@ -706,7 +738,7 @@ function Step2KPISteps({ data, onChange }: {
             <div style={{
               fontFamily: F.inter,
               fontSize: '13px',
-              color: C.text4,
+              color: t.text4,
             }}>
               Нажмите кнопку выше чтобы добавить первый шаг
             </div>
@@ -717,14 +749,16 @@ function Step2KPISteps({ data, onChange }: {
   );
 }
 
-function Step3PaymentConditions({ data, onChange }: {
+function Step3PaymentConditions({ data, onChange, t, dark }: {
   data: FormData;
   onChange: (field: keyof FormData, value: any) => void;
+  t: T;
+  dark: boolean;
 }) {
   return (
     <div style={{
-      background: C.surface,
-      border: `1px solid ${C.border}`,
+      background: t.surface,
+      border: `1px solid ${t.border}`,
       borderRadius: '12px',
       padding: '32px',
       maxWidth: '600px',
@@ -734,7 +768,7 @@ function Step3PaymentConditions({ data, onChange }: {
         fontFamily: F.dm,
         fontSize: '18px',
         fontWeight: 600,
-        color: C.text1,
+        color: t.text1,
         marginBottom: '6px',
       }}>
         Условия выплат
@@ -742,7 +776,7 @@ function Step3PaymentConditions({ data, onChange }: {
       <div style={{
         fontFamily: F.inter,
         fontSize: '14px',
-        color: C.text3,
+        color: t.text3,
         marginBottom: '28px',
       }}>
         Настройте параметры автоматизации выплат
@@ -750,8 +784,8 @@ function Step3PaymentConditions({ data, onChange }: {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{
-          background: '#FAFBFC',
-          border: `1px solid ${C.border}`,
+          background: t.tableAlt,
+          border: `1px solid ${t.border}`,
           borderRadius: '10px',
           padding: '20px',
         }}>
@@ -759,11 +793,12 @@ function Step3PaymentConditions({ data, onChange }: {
             checked={data.autoPayment}
             onChange={v => onChange('autoPayment', v)}
             label="Автоматические начисления вознаграждений"
+            t={t}
           />
           <div style={{
             fontFamily: F.inter,
             fontSize: '13px',
-            color: C.text3,
+            color: t.text3,
             marginTop: '8px',
             paddingLeft: '54px',
           }}>
@@ -772,8 +807,8 @@ function Step3PaymentConditions({ data, onChange }: {
         </div>
 
         <div style={{
-          background: '#FAFBFC',
-          border: `1px solid ${C.border}`,
+          background: t.tableAlt,
+          border: `1px solid ${t.border}`,
           borderRadius: '10px',
           padding: '20px',
         }}>
@@ -781,11 +816,12 @@ function Step3PaymentConditions({ data, onChange }: {
             checked={data.notifications}
             onChange={v => onChange('notifications', v)}
             label="Уведомления о выполнении KPI"
+            t={t}
           />
           <div style={{
             fontFamily: F.inter,
             fontSize: '13px',
-            color: C.text3,
+            color: t.text3,
             marginTop: '8px',
             paddingLeft: '54px',
           }}>
@@ -794,8 +830,8 @@ function Step3PaymentConditions({ data, onChange }: {
         </div>
 
         <div style={{
-          background: C.blueLt,
-          border: `1px solid ${C.blueTint}`,
+          background: t.blueLt,
+          border: `1px solid ${t.blueTint}`,
           borderRadius: '10px',
           padding: '16px',
           display: 'flex',
@@ -805,7 +841,7 @@ function Step3PaymentConditions({ data, onChange }: {
             width: '20px',
             height: '20px',
             borderRadius: '50%',
-            background: C.blue,
+            background: t.blue,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -825,7 +861,7 @@ function Step3PaymentConditions({ data, onChange }: {
               fontFamily: F.inter,
               fontSize: '13px',
               fontWeight: 500,
-              color: C.text1,
+              color: t.text1,
               marginBottom: '4px',
             }}>
               Интеграция с UCOIN
@@ -833,7 +869,7 @@ function Step3PaymentConditions({ data, onChange }: {
             <div style={{
               fontFamily: F.inter,
               fontSize: '13px',
-              color: C.text2,
+              color: t.text2,
               lineHeight: 1.5,
             }}>
               Выплаты осуществляются через систему UCOIN-кошельков. Убедитесь, что у продавцов указаны корректные данные кошельков.
@@ -845,11 +881,13 @@ function Step3PaymentConditions({ data, onChange }: {
   );
 }
 
-function Step4Preview({ data }: { data: FormData }) {
+function Step4Preview({ data, t, dark }: { data: FormData; t: T; dark: boolean }) {
   const totalReward = data.kpiSteps.reduce((sum, step) => {
     const amount = parseInt(step.reward.replace(/\s/g, '')) || 0;
     return sum + amount;
   }, 0);
+
+  const summaryBorder = dark ? 'rgba(52,211,153,0.35)' : '#86EFAC';
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto' }}>
@@ -861,7 +899,7 @@ function Step4Preview({ data }: { data: FormData }) {
           fontFamily: F.dm,
           fontSize: '18px',
           fontWeight: 600,
-          color: C.text1,
+          color: t.text1,
           marginBottom: '6px',
         }}>
           Предпросмотр конфигурации
@@ -869,7 +907,7 @@ function Step4Preview({ data }: { data: FormData }) {
         <div style={{
           fontFamily: F.inter,
           fontSize: '14px',
-          color: C.text3,
+          color: t.text3,
         }}>
           Проверьте все параметры перед сохранением
         </div>
@@ -878,8 +916,8 @@ function Step4Preview({ data }: { data: FormData }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* General Info */}
         <div style={{
-          background: C.surface,
-          border: `1px solid ${C.border}`,
+          background: t.surface,
+          border: `1px solid ${t.border}`,
           borderRadius: '12px',
           padding: '24px',
         }}>
@@ -887,7 +925,7 @@ function Step4Preview({ data }: { data: FormData }) {
             fontFamily: F.dm,
             fontSize: '16px',
             fontWeight: 600,
-            color: C.text1,
+            color: t.text1,
             marginBottom: '16px',
           }}>
             Общая информация
@@ -897,17 +935,17 @@ function Step4Preview({ data }: { data: FormData }) {
             gridTemplateColumns: 'repeat(2, 1fr)',
             gap: '16px',
           }}>
-            <PreviewItem label="Название кампании" value={data.campaignName || '—'} />
-            <PreviewItem label="Организация" value={data.organization || '—'} />
-            <PreviewItem label="Дата старта" value={data.startDate || '—'} />
-            <PreviewItem label="Длительность" value={data.duration ? `${data.duration} дней` : '—'} />
+            <PreviewItem label="Название кампании" value={data.campaignName || '—'} t={t} />
+            <PreviewItem label="Организация" value={data.organization || '—'} t={t} />
+            <PreviewItem label="Дата старта" value={data.startDate || '—'} t={t} />
+            <PreviewItem label="Длительность" value={data.duration ? `${data.duration} дней` : '—'} t={t} />
           </div>
         </div>
 
         {/* KPI Steps */}
         <div style={{
-          background: C.surface,
-          border: `1px solid ${C.border}`,
+          background: t.surface,
+          border: `1px solid ${t.border}`,
           borderRadius: '12px',
           padding: '24px',
         }}>
@@ -921,14 +959,14 @@ function Step4Preview({ data }: { data: FormData }) {
               fontFamily: F.dm,
               fontSize: '16px',
               fontWeight: 600,
-              color: C.text1,
+              color: t.text1,
             }}>
               KPI шаги
             </div>
             <div style={{
               fontFamily: F.inter,
               fontSize: '13px',
-              color: C.text3,
+              color: t.text3,
             }}>
               Всего: {data.kpiSteps.length} шагов
             </div>
@@ -940,8 +978,8 @@ function Step4Preview({ data }: { data: FormData }) {
                 <div
                   key={step.id}
                   style={{
-                    background: '#FAFBFC',
-                    border: `1px solid ${C.border}`,
+                    background: t.tableAlt,
+                    border: `1px solid ${t.border}`,
                     borderRadius: '8px',
                     padding: '14px',
                   }}
@@ -950,7 +988,7 @@ function Step4Preview({ data }: { data: FormData }) {
                     fontFamily: F.inter,
                     fontSize: '13px',
                     fontWeight: 600,
-                    color: C.text2,
+                    color: t.text2,
                     marginBottom: '8px',
                   }}>
                     Шаг {idx + 1}: {step.type || 'Не указан'}
@@ -961,10 +999,10 @@ function Step4Preview({ data }: { data: FormData }) {
                     gap: '8px',
                     fontFamily: F.inter,
                     fontSize: '13px',
-                    color: C.text3,
+                    color: t.text3,
                   }}>
-                    <div>Порог: <span style={{ color: C.text2 }}>{step.threshold || '—'}</span></div>
-                    <div>Вознаграждение: <span style={{ fontFamily: F.mono, color: C.text2 }}>{step.reward || '—'} UZS</span></div>
+                    <div>Порог: <span style={{ color: t.text2 }}>{step.threshold || '—'}</span></div>
+                    <div>Вознаграждение: <span style={{ fontFamily: F.mono, color: t.text2 }}>{step.reward || '—'} UZS</span></div>
                   </div>
                 </div>
               ))}
@@ -975,7 +1013,7 @@ function Step4Preview({ data }: { data: FormData }) {
               textAlign: 'center',
               fontFamily: F.inter,
               fontSize: '13px',
-              color: C.text4,
+              color: t.text4,
             }}>
               Нет настроенных шагов
             </div>
@@ -984,8 +1022,8 @@ function Step4Preview({ data }: { data: FormData }) {
 
         {/* Payment Conditions */}
         <div style={{
-          background: C.surface,
-          border: `1px solid ${C.border}`,
+          background: t.surface,
+          border: `1px solid ${t.border}`,
           borderRadius: '12px',
           padding: '24px',
         }}>
@@ -993,7 +1031,7 @@ function Step4Preview({ data }: { data: FormData }) {
             fontFamily: F.dm,
             fontSize: '16px',
             fontWeight: 600,
-            color: C.text1,
+            color: t.text1,
             marginBottom: '16px',
           }}>
             Условия выплат
@@ -1002,18 +1040,20 @@ function Step4Preview({ data }: { data: FormData }) {
             <PreviewCheckItem
               label="Автоматические начисления"
               checked={data.autoPayment}
+              t={t}
             />
             <PreviewCheckItem
               label="Уведомления о выполнении"
               checked={data.notifications}
+              t={t}
             />
           </div>
         </div>
 
         {/* Summary */}
         <div style={{
-          background: C.successBg,
-          border: `1px solid #86EFAC`,
+          background: t.successBg,
+          border: `1px solid ${summaryBorder}`,
           borderRadius: '12px',
           padding: '20px',
           display: 'flex',
@@ -1024,7 +1064,7 @@ function Step4Preview({ data }: { data: FormData }) {
             fontFamily: F.inter,
             fontSize: '14px',
             fontWeight: 500,
-            color: C.text1,
+            color: t.text1,
           }}>
             Максимальное вознаграждение за все KPI
           </div>
@@ -1032,7 +1072,7 @@ function Step4Preview({ data }: { data: FormData }) {
             fontFamily: F.mono,
             fontSize: '20px',
             fontWeight: 700,
-            color: C.success,
+            color: t.success,
           }}>
             {totalReward.toLocaleString('ru-RU')} UZS
           </div>
@@ -1042,13 +1082,13 @@ function Step4Preview({ data }: { data: FormData }) {
   );
 }
 
-function PreviewItem({ label, value }: { label: string; value: string }) {
+function PreviewItem({ label, value, t }: { label: string; value: string; t: T }) {
   return (
     <div>
       <div style={{
         fontFamily: F.inter,
         fontSize: '12px',
-        color: C.text4,
+        color: t.text4,
         textTransform: 'uppercase',
         letterSpacing: '0.04em',
         marginBottom: '4px',
@@ -1059,7 +1099,7 @@ function PreviewItem({ label, value }: { label: string; value: string }) {
         fontFamily: F.inter,
         fontSize: '14px',
         fontWeight: 500,
-        color: C.text1,
+        color: t.text1,
       }}>
         {value}
       </div>
@@ -1067,7 +1107,7 @@ function PreviewItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PreviewCheckItem({ label, checked }: { label: string; checked: boolean }) {
+function PreviewCheckItem({ label, checked, t }: { label: string; checked: boolean; t: T }) {
   return (
     <div style={{
       display: 'flex',
@@ -1078,7 +1118,7 @@ function PreviewCheckItem({ label, checked }: { label: string; checked: boolean 
         width: '18px',
         height: '18px',
         borderRadius: '4px',
-        background: checked ? C.success : '#E5E7EB',
+        background: checked ? t.success : t.border,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1089,7 +1129,7 @@ function PreviewCheckItem({ label, checked }: { label: string; checked: boolean 
       <span style={{
         fontFamily: F.inter,
         fontSize: '14px',
-        color: C.text2,
+        color: t.text2,
       }}>
         {label}
       </span>
@@ -1104,6 +1144,8 @@ function PreviewCheckItem({ label, checked }: { label: string; checked: boolean 
 export default function KPIConfigurationPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -1157,8 +1199,11 @@ export default function KPIConfigurationPage() {
     alert('Конфигурация KPI успешно сохранена!');
   };
 
+  const backHoverBg = dark ? D.tableHover : '#F9FAFB';
+  const saveHoverBg = dark ? 'rgba(52,211,153,0.12)' : t.successBg;
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       {/* Sidebar */}
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
@@ -1175,36 +1220,36 @@ export default function KPIConfigurationPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>KPI конфигурация</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>KPI конфигурация</span>
           </div>
 
           {/* Title */}
           <div style={{ marginBottom: '32px' }}>
-            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0, lineHeight: 1.2 }}>
+            <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
               Создание KPI конфигурации
             </h1>
-            <p style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, margin: '4px 0 0' }}>
+            <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '4px 0 0' }}>
               Настройте параметры KPI кампании для организации
             </p>
           </div>
 
           {/* Stepper */}
           <div style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
+            background: t.surface,
+            border: `1px solid ${t.border}`,
             borderRadius: '12px',
             padding: '40px 24px 32px',
             marginBottom: '24px',
           }}>
-            <StepperHeader currentStep={currentStep} />
+            <StepperHeader currentStep={currentStep} t={t} dark={dark} />
 
             {/* Step content */}
-            {currentStep === 1 && <Step1GeneralInfo data={formData} onChange={updateFormData} />}
-            {currentStep === 2 && <Step2KPISteps data={formData} onChange={updateFormData} />}
-            {currentStep === 3 && <Step3PaymentConditions data={formData} onChange={updateFormData} />}
-            {currentStep === 4 && <Step4Preview data={formData} />}
+            {currentStep === 1 && <Step1GeneralInfo data={formData} onChange={updateFormData} t={t} dark={dark} />}
+            {currentStep === 2 && <Step2KPISteps data={formData} onChange={updateFormData} t={t} dark={dark} />}
+            {currentStep === 3 && <Step3PaymentConditions data={formData} onChange={updateFormData} t={t} dark={dark} />}
+            {currentStep === 4 && <Step4Preview data={formData} t={t} dark={dark} />}
 
             {/* Navigation buttons */}
             <div style={{
@@ -1222,13 +1267,13 @@ export default function KPIConfigurationPage() {
                 style={{
                   height: '44px',
                   padding: '0 24px',
-                  border: `1px solid ${C.border}`,
+                  border: `1px solid ${t.border}`,
                   borderRadius: '8px',
-                  background: backHover && currentStep > 1 ? '#F9FAFB' : C.surface,
+                  background: backHover && currentStep > 1 ? backHoverBg : t.surface,
                   fontFamily: F.inter,
                   fontSize: '14px',
                   fontWeight: 500,
-                  color: currentStep === 1 ? C.textDisabled : C.text2,
+                  color: currentStep === 1 ? t.textDisabled : t.text2,
                   cursor: currentStep === 1 ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -1251,7 +1296,7 @@ export default function KPIConfigurationPage() {
                     padding: '0 24px',
                     border: 'none',
                     borderRadius: '8px',
-                    background: !canProceed() ? C.inputBorder : nextHover ? C.blueHover : C.blue,
+                    background: !canProceed() ? t.inputBorder : nextHover ? t.blueHover : t.blue,
                     fontFamily: F.inter,
                     fontSize: '14px',
                     fontWeight: 500,
@@ -1260,7 +1305,7 @@ export default function KPIConfigurationPage() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    boxShadow: canProceed() && nextHover ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
+                    boxShadow: dark ? 'none' : canProceed() && nextHover ? '0 2px 8px rgba(37,99,235,0.28)' : '0 1px 3px rgba(37,99,235,0.16)',
                     transition: 'all 0.12s',
                   }}
                 >
@@ -1276,17 +1321,17 @@ export default function KPIConfigurationPage() {
                     height: '44px',
                     padding: '0 28px',
                     borderRadius: '8px',
-                    background: saveHover ? C.successBg : C.success,
+                    background: saveHover ? saveHoverBg : t.success,
                     fontFamily: F.inter,
                     fontSize: '14px',
                     fontWeight: 600,
-                    color: saveHover ? C.success : '#FFFFFF',
+                    color: saveHover ? t.success : '#FFFFFF',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
                     border: 'none',
-                    boxShadow: saveHover ? '0 2px 12px rgba(16,185,129,0.3)' : '0 1px 3px rgba(16,185,129,0.2)',
+                    boxShadow: dark ? 'none' : saveHover ? '0 2px 12px rgba(16,185,129,0.3)' : '0 1px 3px rgba(16,185,129,0.2)',
                     transition: 'all 0.12s',
                   }}
                 >

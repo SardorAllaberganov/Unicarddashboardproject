@@ -6,35 +6,40 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
-import { F, C } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 import { useNavigate } from 'react-router';
+
+type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    BADGES
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function BadgeSuccess({ children }: { children: React.ReactNode }) {
+function BadgeSuccess({ children, dark }: { children: React.ReactNode; dark: boolean }) {
+  const bg   = dark ? 'rgba(52,211,153,0.12)' : C.successBg;
+  const text = dark ? '#34D399' : '#15803D';
+  const dot  = dark ? '#34D399' : C.success;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
       fontFamily: F.inter, fontSize: '12px', fontWeight: 500,
       padding: '3px 10px', borderRadius: '10px',
-      background: C.successBg, color: '#15803D', whiteSpace: 'nowrap',
+      background: bg, color: text, whiteSpace: 'nowrap',
     }}>
-      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.success, flexShrink: 0 }} />
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: dot, flexShrink: 0 }} />
       {children}
     </span>
   );
 }
 
-function BadgeBlue({ children }: { children: React.ReactNode }) {
+function BadgeBlue({ children, t }: { children: React.ReactNode; t: T }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
       padding: '2px 8px', borderRadius: '8px',
-      background: C.blueLt, color: C.blue, whiteSpace: 'nowrap',
+      background: t.blueLt, color: t.blue, whiteSpace: 'nowrap',
     }}>
       {children}
     </span>
@@ -45,11 +50,11 @@ function BadgeBlue({ children }: { children: React.ReactNode }) {
    SMALL ATOMS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function SectionLabel({ text }: { text: string }) {
+function SectionLabel({ text, t }: { text: string; t: T }) {
   return (
     <div style={{
       fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
-      color: C.text4, textTransform: 'uppercase', letterSpacing: '0.07em',
+      color: t.text4, textTransform: 'uppercase', letterSpacing: '0.07em',
       marginBottom: '12px',
     }}>
       {text}
@@ -57,50 +62,64 @@ function SectionLabel({ text }: { text: string }) {
   );
 }
 
-function Divider() {
-  return <div style={{ height: '1px', background: C.border, margin: '24px 0' }} />;
+function Divider({ t }: { t: T }) {
+  return <div style={{ height: '1px', background: t.border, margin: '24px 0' }} />;
 }
 
-function KpiCheck({ status, progress }: { status: 'done' | 'progress' | 'none'; progress?: number }) {
+function KpiCheck({ status, progress, t, dark }: {
+  status: 'done' | 'progress' | 'none'; progress?: number; t: T; dark: boolean;
+}) {
+  const successBg = dark ? '#34D399' : C.success;
+  const trackBg = dark ? D.progressTrack : '#E5E7EB';
+  const emptyIconColor = dark ? D.text4 : '#D1D5DB';
+
   if (status === 'done') return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-      <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: C.success, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Check size={10} color="#fff" strokeWidth={3} />
+      <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: successBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Check size={10} color="#FFFFFF" strokeWidth={3} />
       </div>
     </div>
   );
   if (status === 'progress') return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-      <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: '#E5E7EB', overflow: 'hidden' }}>
-        <div style={{ width: `${progress}%`, height: '100%', background: C.blue, borderRadius: '2px' }} />
+      <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: trackBg, overflow: 'hidden' }}>
+        <div style={{ width: `${progress}%`, height: '100%', background: t.blue, borderRadius: '2px' }} />
       </div>
-      <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.text3 }}>{progress}%</span>
+      <span style={{ fontFamily: F.mono, fontSize: '11px', color: t.text3 }}>{progress}%</span>
     </div>
   );
-  return <Minus size={13} color="#D1D5DB" />;
+  return <Minus size={13} color={emptyIconColor} />;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    COMPACT STAT CARD
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const VARIANT_COLORS = {
-  blue:   { icon: C.blue,    iconBg: C.blueLt,  border: C.blueTint },
+const VARIANT_COLORS_LIGHT = {
+  blue:   { icon: C.blue,    iconBg: C.blueLt,   border: C.blueTint },
   green:  { icon: '#16A34A', iconBg: '#F0FDF4',  border: '#BBF7D0' },
   violet: { icon: '#7C3AED', iconBg: '#F5F3FF',  border: '#DDD6FE' },
   amber:  { icon: '#D97706', iconBg: '#FFFBEB',  border: '#FDE68A' },
 } as const;
 
-function CompactStatCard({ icon: Icon, variant, label, value }: {
+const VARIANT_COLORS_DARK = {
+  blue:   { icon: '#3B82F6', iconBg: 'rgba(59,130,246,0.14)',  border: 'rgba(59,130,246,0.32)' },
+  green:  { icon: '#34D399', iconBg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.32)' },
+  violet: { icon: '#A78BFA', iconBg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.32)' },
+  amber:  { icon: '#FBBF24', iconBg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.32)' },
+} as const;
+
+function CompactStatCard({ icon: Icon, variant, label, value, t, dark }: {
   icon: React.ElementType;
-  variant: keyof typeof VARIANT_COLORS;
+  variant: keyof typeof VARIANT_COLORS_LIGHT;
   label: string;
   value: string;
+  t: T; dark: boolean;
 }) {
-  const v = VARIANT_COLORS[variant];
+  const v = (dark ? VARIANT_COLORS_DARK : VARIANT_COLORS_LIGHT)[variant];
   return (
     <div style={{
-      background: C.surface, border: `1px solid ${C.border}`,
+      background: t.surface, border: `1px solid ${t.border}`,
       borderRadius: '10px', padding: '14px 16px',
       display: 'flex', flexDirection: 'column', gap: '10px',
     }}>
@@ -112,10 +131,10 @@ function CompactStatCard({ icon: Icon, variant, label, value }: {
         <Icon size={16} color={v.icon} strokeWidth={1.75} />
       </div>
       <div>
-        <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text3, marginBottom: '4px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text3, marginBottom: '4px' }}>
           {label}
         </div>
-        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 700, color: C.text1, lineHeight: 1.2 }}>
+        <div style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 700, color: t.text1, lineHeight: 1.2 }}>
           {value}
         </div>
       </div>
@@ -127,22 +146,24 @@ function CompactStatCard({ icon: Icon, variant, label, value }: {
    KPI BAR
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function KpiBar({ label, value, total, color }: {
+function KpiBar({ label, value, total, color, t, dark }: {
   label: string; value: number; total: number; color: string;
+  t: T; dark: boolean;
 }) {
   const pct = Math.round((value / total) * 100);
+  const trackBg = dark ? D.progressTrack : '#F3F4F6';
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{label}</span>
+        <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{label}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontFamily: F.inter, fontSize: '12px', color: C.text3 }}>{value} из {total}</span>
+          <span style={{ fontFamily: F.inter, fontSize: '12px', color: t.text3 }}>{value} из {total}</span>
           <span style={{ fontFamily: F.mono, fontSize: '12px', fontWeight: 600, color, minWidth: '42px', textAlign: 'right' }}>
             {pct}%
           </span>
         </div>
       </div>
-      <div style={{ height: '6px', borderRadius: '3px', background: '#F3F4F6', overflow: 'hidden' }}>
+      <div style={{ height: '6px', borderRadius: '3px', background: trackBg, overflow: 'hidden' }}>
         <div style={{
           width: `${pct}%`, height: '100%', borderRadius: '3px',
           background: color, transition: 'width 0.4s ease',
@@ -156,7 +177,7 @@ function KpiBar({ label, value, total, color }: {
    TIMELINE
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function Timeline({ items }: { items: { dot: string; text: string; time: string }[] }) {
+function Timeline({ items, t }: { items: { dot: string; text: string; time: string }[]; t: T }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
       {items.map((item, i) => (
@@ -164,14 +185,14 @@ function Timeline({ items }: { items: { dot: string; text: string; time: string 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: item.dot, marginTop: '4px', flexShrink: 0 }} />
             {i < items.length - 1 && (
-              <div style={{ width: '1px', flex: 1, background: C.border, minHeight: '24px', margin: '4px 0' }} />
+              <div style={{ width: '1px', flex: 1, background: t.border, minHeight: '24px', margin: '4px 0' }} />
             )}
           </div>
           <div style={{ paddingBottom: i < items.length - 1 ? '16px' : '0', minWidth: 0 }}>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, lineHeight: 1.4 }}>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, lineHeight: 1.4 }}>
               {item.text}
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '11px', color: C.text4, marginTop: '2px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4, marginTop: '2px' }}>
               {item.time}
             </div>
           </div>
@@ -185,33 +206,36 @@ function Timeline({ items }: { items: { dot: string; text: string; time: string 
    TAB: СВОДКА
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function TabSvodka() {
+function TabSvodka({ t, dark }: { t: T; dark: boolean }) {
+  const greenBar  = dark ? '#34D399' : '#16A34A';
+  const violetBar = dark ? '#A78BFA' : '#7C3AED';
+
   return (
     <div>
-      <SectionLabel text="Ключевые показатели" />
+      <SectionLabel text="Ключевые показатели" t={t} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        <CompactStatCard icon={CreditCard}   variant="blue"   label="Карт выдано"          value="500" />
-        <CompactStatCard icon={ShoppingBag}  variant="green"  label="Продано"               value="230 (46%)" />
-        <CompactStatCard icon={CheckCircle2} variant="violet" label="KPI выполнено (все 3)" value="45 (19.6%)" />
-        <CompactStatCard icon={Wallet}       variant="amber"  label="Начислено"             value="1 825 000 UZS" />
+        <CompactStatCard icon={CreditCard}   variant="blue"   label="Карт выдано"          value="500" t={t} dark={dark} />
+        <CompactStatCard icon={ShoppingBag}  variant="green"  label="Продано"               value="230 (46%)" t={t} dark={dark} />
+        <CompactStatCard icon={CheckCircle2} variant="violet" label="KPI выполнено (все 3)" value="45 (19.6%)" t={t} dark={dark} />
+        <CompactStatCard icon={Wallet}       variant="amber"  label="Начислено"             value="1 825 000 UZS" t={t} dark={dark} />
       </div>
 
-      <Divider />
+      <Divider t={t} />
 
-      <SectionLabel text="KPI прогресс" />
+      <SectionLabel text="KPI прогресс" t={t} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <KpiBar label="Регистрация"  value={185} total={230} color="#2563EB" />
-        <KpiBar label="Пополнение"   value={120} total={230} color="#7C3AED" />
-        <KpiBar label="Оплата 500K"  value={45}  total={230} color="#10B981" />
+        <KpiBar label="Регистрация"  value={185} total={230} color={t.blue}    t={t} dark={dark} />
+        <KpiBar label="Пополнение"   value={120} total={230} color={violetBar} t={t} dark={dark} />
+        <KpiBar label="Оплата 500K"  value={45}  total={230} color={greenBar}  t={t} dark={dark} />
       </div>
 
-      <Divider />
+      <Divider t={t} />
 
-      <SectionLabel text="Последняя активность" />
-      <Timeline items={[
-        { dot: '#16A34A', text: 'Карта ...4521 — KPI 3 выполнен (512 000 UZS)', time: '2 часа назад' },
-        { dot: C.blue,    text: 'Карта ...3892 — KPI 2 выполнен', time: '5 часов назад' },
-        { dot: C.text4,   text: 'Новый продавец добавлен: Камола Р.', time: 'вчера' },
+      <SectionLabel text="Последняя активность" t={t} />
+      <Timeline t={t} items={[
+        { dot: greenBar, text: 'Карта ...4521 — KPI 3 выполнен (512 000 UZS)', time: '2 часа назад' },
+        { dot: t.blue,   text: 'Карта ...3892 — KPI 2 выполнен', time: '5 часов назад' },
+        { dot: t.text4,  text: 'Новый продавец добавлен: Камола Р.', time: 'вчера' },
       ]} />
     </div>
   );
@@ -230,20 +254,21 @@ const SELLERS = [
   { name: 'Дарья Н.',    cards: 70,  sold: 30, k1: 15, k2: 10, k3: 5,  earned: '210 000' },
 ];
 
-function TabSellers() {
+function TabSellers({ t, dark }: { t: T; dark: boolean }) {
   const [search, setSearch] = useState('');
   const [focused, setFocused] = useState(false);
   const [hovRow, setHovRow] = useState<number | null>(null);
   const [addHov, setAddHov] = useState(false);
 
   const filtered = SELLERS.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+  const headerBg = dark ? D.tableHeaderBg : '#FAFBFC';
+  const rowHoverBg = dark ? D.tableHover : '#FAFBFC';
 
   return (
     <div>
-      {/* Controls */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{ position: 'relative', flex: 1 }}>
-          <Search size={15} color={focused ? C.blue : C.text4} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <Search size={15} color={focused ? t.blue : t.text4} style={{ position: 'absolute', left: '11px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -252,11 +277,11 @@ function TabSellers() {
             placeholder="Поиск продавца..."
             style={{
               width: '100%', height: '36px', paddingLeft: '34px', paddingRight: '10px',
-              border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-              borderRadius: '8px', background: C.surface,
-              fontFamily: F.inter, fontSize: '13px', color: C.text1,
+              border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+              borderRadius: '8px', background: t.surface,
+              fontFamily: F.inter, fontSize: '13px', color: t.text1,
               outline: 'none', boxSizing: 'border-box',
-              boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+              boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
               transition: 'all 0.12s',
             }}
           />
@@ -266,9 +291,9 @@ function TabSellers() {
           onMouseLeave={() => setAddHov(false)}
           style={{
             height: '36px', padding: '0 14px', flexShrink: 0,
-            background: addHov ? C.blueHover : C.blue,
+            background: addHov ? t.blueHover : t.blue,
             border: 'none', borderRadius: '8px',
-            fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: '#fff',
+            fontFamily: F.inter, fontSize: '13px', fontWeight: 500, color: '#FFFFFF',
             display: 'flex', alignItems: 'center', gap: '6px',
             cursor: 'pointer', transition: 'background 0.12s',
           }}
@@ -278,15 +303,14 @@ function TabSellers() {
         </button>
       </div>
 
-      {/* Table */}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+      <div style={{ border: `1px solid ${t.border}`, borderRadius: '10px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#FAFBFC', borderBottom: `1px solid ${C.border}` }}>
+            <tr style={{ background: headerBg, borderBottom: `1px solid ${t.border}` }}>
               {['Продавец', 'Карт', 'Продано', 'KPI 1', 'KPI 2', 'KPI 3', 'Заработано'].map(h => (
                 <th key={h} style={{
                   padding: '10px 14px', textAlign: h === 'Заработано' ? 'right' : 'left',
-                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: C.text4,
+                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: t.text4,
                   textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
                 }}>
                   {h}
@@ -302,28 +326,28 @@ function TabSellers() {
                   onMouseEnter={() => setHovRow(i)}
                   onMouseLeave={() => setHovRow(null)}
                   style={{
-                    borderBottom: i < filtered.length - 1 ? `1px solid ${C.border}` : 'none',
-                    background: hov ? '#FAFBFC' : C.surface, transition: 'background 0.1s',
+                    borderBottom: i < filtered.length - 1 ? `1px solid ${t.border}` : 'none',
+                    background: hov ? rowHoverBg : t.surface, transition: 'background 0.1s',
                   }}
                 >
                   <td style={td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: C.blueLt, border: `1px solid ${C.blueTint}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ fontFamily: F.inter, fontSize: '9px', fontWeight: 700, color: C.blue }}>
+                      <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: t.blueLt, border: `1px solid ${t.blueTint}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ fontFamily: F.inter, fontSize: '9px', fontWeight: 700, color: t.blue }}>
                           {s.name.slice(0, 2).toUpperCase()}
                         </span>
                       </div>
-                      <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text1, fontWeight: 500 }}>{s.name}</span>
+                      <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text1, fontWeight: 500 }}>{s.name}</span>
                     </div>
                   </td>
-                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.cards}</span></td>
-                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.sold}</span></td>
-                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.k1}</span></td>
-                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.k2}</span></td>
-                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: C.text2 }}>{s.k3}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.cards}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.sold}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.k1}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.k2}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{s.k3}</span></td>
                   <td style={{ ...td, textAlign: 'right' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: C.text1 }}>{s.earned}</span>
-                    <span style={{ fontFamily: F.inter, fontSize: '10px', color: C.text4, marginLeft: '3px' }}>UZS</span>
+                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: t.text1 }}>{s.earned}</span>
+                    <span style={{ fontFamily: F.inter, fontSize: '10px', color: t.text4, marginLeft: '3px' }}>UZS</span>
                   </td>
                 </tr>
               );
@@ -339,21 +363,48 @@ function TabSellers() {
    TAB: КАРТЫ
 ═══════════════════════════════════════════════════════════════════════════ */
 
-const CARDS_DATA = [
-  { num: '...1001', seller: 'Абдуллох', client: 'Алишер Н.',  statusLabel: 'Активна',   statusBg: '#F0FDF4', statusColor: '#15803D', k1: 'done' as const,  k2: 'done' as const,  k3: { p: 100, label: '510K' } },
-  { num: '...1002', seller: 'Абдуллох', client: 'Дилшод К.',  statusLabel: 'Зарег.',    statusBg: '#ECFEFF', statusColor: '#0E7490', k1: 'done' as const,  k2: 'done' as const,  k3: { p: 64,  label: '64%'  } },
-  { num: '...1003', seller: '—',        client: '—',           statusLabel: 'На складе', statusBg: '#F9FAFB', statusColor: '#6B7280', k1: 'none' as const,  k2: 'none' as const,  k3: { p: 0,   label: '—'   } },
+type CardStatusKey = 'Активна' | 'Зарег.' | 'На складе';
+
+interface CardRow {
+  num: string;
+  seller: string;
+  client: string;
+  statusKey: CardStatusKey;
+  k1: 'done' | 'progress' | 'none';
+  k2: 'done' | 'progress' | 'none';
+  k3: { p: number; label: string };
+}
+
+const CARDS_DATA: CardRow[] = [
+  { num: '...1001', seller: 'Абдуллох', client: 'Алишер Н.',  statusKey: 'Активна',   k1: 'done',  k2: 'done',  k3: { p: 100, label: '510K' } },
+  { num: '...1002', seller: 'Абдуллох', client: 'Дилшод К.',  statusKey: 'Зарег.',    k1: 'done',  k2: 'done',  k3: { p: 64,  label: '64%'  } },
+  { num: '...1003', seller: '—',        client: '—',           statusKey: 'На складе', k1: 'none',  k2: 'none',  k3: { p: 0,   label: '—'   } },
 ];
 
-function TabCards() {
+const STATUS_PILL_LIGHT: Record<CardStatusKey, { bg: string; color: string }> = {
+  'Активна':   { bg: '#F0FDF4', color: '#15803D' },
+  'Зарег.':    { bg: '#ECFEFF', color: '#0E7490' },
+  'На складе': { bg: '#F9FAFB', color: '#6B7280' },
+};
+
+const STATUS_PILL_DARK: Record<CardStatusKey, { bg: string; color: string }> = {
+  'Активна':   { bg: 'rgba(52,211,153,0.12)', color: '#34D399' },
+  'Зарег.':    { bg: 'rgba(34,211,238,0.12)', color: '#22D3EE' },
+  'На складе': { bg: D.tableAlt,              color: D.text2 },
+};
+
+function TabCards({ t, dark }: { t: T; dark: boolean }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [focused, setFocused] = useState(false);
   const [hovRow, setHovRow] = useState<number | null>(null);
 
+  const headerBg = dark ? D.tableHeaderBg : '#FAFBFC';
+  const rowHoverBg = dark ? D.tableHover : '#FAFBFC';
+  const statusMap = dark ? STATUS_PILL_DARK : STATUS_PILL_LIGHT;
+
   return (
     <div>
-      {/* Controls */}
       <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative' }}>
           <select
@@ -361,9 +412,9 @@ function TabCards() {
             onChange={e => setStatusFilter(e.target.value)}
             style={{
               height: '36px', padding: '0 32px 0 10px',
-              border: `1px solid ${C.inputBorder}`, borderRadius: '8px',
-              background: C.surface, fontFamily: F.inter, fontSize: '13px',
-              color: C.text2, outline: 'none', appearance: 'none', cursor: 'pointer',
+              border: `1px solid ${t.inputBorder}`, borderRadius: '8px',
+              background: t.surface, fontFamily: F.inter, fontSize: '13px',
+              color: t.text2, outline: 'none', appearance: 'none', cursor: 'pointer',
               minWidth: '140px',
             }}
           >
@@ -372,12 +423,12 @@ function TabCards() {
               <option key={o} value={o}>{o}</option>
             ))}
           </select>
-          <ChevronDown size={13} color={C.text4} style={{
+          <ChevronDown size={13} color={t.text4} style={{
             position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none',
           }} />
         </div>
         <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
-          <Search size={14} color={focused ? C.blue : C.text4} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+          <Search size={14} color={focused ? t.blue : t.text4} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -386,26 +437,25 @@ function TabCards() {
             placeholder="Поиск по карте..."
             style={{
               width: '100%', height: '36px', paddingLeft: '32px', paddingRight: '10px',
-              border: `1px solid ${focused ? C.blue : C.inputBorder}`,
-              borderRadius: '8px', background: C.surface,
-              fontFamily: F.inter, fontSize: '13px', color: C.text1,
+              border: `1px solid ${focused ? t.blue : t.inputBorder}`,
+              borderRadius: '8px', background: t.surface,
+              fontFamily: F.inter, fontSize: '13px', color: t.text1,
               outline: 'none', boxSizing: 'border-box',
-              boxShadow: focused ? `0 0 0 3px ${C.blueTint}` : 'none',
+              boxShadow: focused ? `0 0 0 3px ${t.focusRing}` : 'none',
               transition: 'all 0.12s',
             }}
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+      <div style={{ border: `1px solid ${t.border}`, borderRadius: '10px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#FAFBFC', borderBottom: `1px solid ${C.border}` }}>
+            <tr style={{ background: headerBg, borderBottom: `1px solid ${t.border}` }}>
               {['Карта', 'Продавец', 'Клиент', 'Статус', 'KPI 1', 'KPI 2', 'KPI 3'].map(h => (
                 <th key={h} style={{
                   padding: '10px 14px', textAlign: 'left',
-                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: C.text4,
+                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: t.text4,
                   textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
                 }}>
                   {h}
@@ -416,33 +466,34 @@ function TabCards() {
           <tbody>
             {CARDS_DATA.map((card, i) => {
               const hov = hovRow === i;
+              const pill = statusMap[card.statusKey];
               return (
                 <tr key={card.num}
                   onMouseEnter={() => setHovRow(i)}
                   onMouseLeave={() => setHovRow(null)}
                   style={{
-                    borderBottom: i < CARDS_DATA.length - 1 ? `1px solid ${C.border}` : 'none',
-                    background: hov ? '#FAFBFC' : C.surface, transition: 'background 0.1s',
+                    borderBottom: i < CARDS_DATA.length - 1 ? `1px solid ${t.border}` : 'none',
+                    background: hov ? rowHoverBg : t.surface, transition: 'background 0.1s',
                   }}
                 >
-                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: C.text1 }}>{card.num}</span></td>
-                  <td style={td}><span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{card.seller}</span></td>
-                  <td style={td}><span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{card.client}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: t.text1 }}>{card.num}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{card.seller}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{card.client}</span></td>
                   <td style={td}>
                     <span style={{
                       fontFamily: F.inter, fontSize: '11px', fontWeight: 500,
                       padding: '2px 8px', borderRadius: '8px',
-                      background: card.statusBg, color: card.statusColor, whiteSpace: 'nowrap',
+                      background: pill.bg, color: pill.color, whiteSpace: 'nowrap',
                     }}>
-                      {card.statusLabel}
+                      {card.statusKey}
                     </span>
                   </td>
-                  <td style={td}><KpiCheck status={card.k1} /></td>
-                  <td style={td}><KpiCheck status={card.k2} /></td>
+                  <td style={td}><KpiCheck status={card.k1} t={t} dark={dark} /></td>
+                  <td style={td}><KpiCheck status={card.k2} t={t} dark={dark} /></td>
                   <td style={td}>
-                    {card.k3.p === 100 ? <KpiCheck status="done" /> :
-                     card.k3.p > 0 ? <KpiCheck status="progress" progress={card.k3.p} /> :
-                     <KpiCheck status="none" />}
+                    {card.k3.p === 100 ? <KpiCheck status="done" t={t} dark={dark} /> :
+                     card.k3.p > 0 ? <KpiCheck status="progress" progress={card.k3.p} t={t} dark={dark} /> :
+                     <KpiCheck status="none" t={t} dark={dark} />}
                   </td>
                 </tr>
               );
@@ -464,40 +515,42 @@ const FIN_ROWS = [
   { date: '11.04', seller: 'Абдуллох', card: '...1002', kpi: 'KPI 1', amount: '5 000',  status: 'Начислено' },
 ];
 
-function TabFinance() {
+function TabFinance({ t, dark }: { t: T; dark: boolean }) {
   const [hovRow, setHovRow] = useState<number | null>(null);
+
+  const headerBg = dark ? D.tableHeaderBg : '#FAFBFC';
+  const rowHoverBg = dark ? D.tableHover : '#FAFBFC';
+  const balanceColor = dark ? '#34D399' : '#15803D';
 
   return (
     <div>
-      {/* Summary */}
       <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
+        background: t.surface, border: `1px solid ${t.border}`,
         borderRadius: '12px', padding: '20px 24px', marginBottom: '24px',
       }}>
-        <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginBottom: '6px' }}>
+        <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginBottom: '6px' }}>
           Всего начислено
         </div>
-        <div style={{ fontFamily: F.dm, fontSize: '28px', fontWeight: 700, color: C.text1, lineHeight: 1.2 }}>
-          1 825 000 <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text3 }}>UZS</span>
+        <div style={{ fontFamily: F.dm, fontSize: '28px', fontWeight: 700, color: t.text1, lineHeight: 1.2 }}>
+          1 825 000 <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text3 }}>UZS</span>
         </div>
         <div style={{ display: 'flex', gap: '24px', marginTop: '12px' }}>
           <div>
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Выведено: </span>
-            <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: C.text1 }}>1 200 000</span>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Выведено: </span>
+            <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: t.text1 }}>1 200 000</span>
           </div>
           <div>
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Баланс: </span>
-            <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: '#15803D' }}>625 000</span>
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Баланс: </span>
+            <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: balanceColor }}>625 000</span>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <SectionLabel text="История выплат" />
-      <div style={{ border: `1px solid ${C.border}`, borderRadius: '10px', overflow: 'hidden' }}>
+      <SectionLabel text="История выплат" t={t} />
+      <div style={{ border: `1px solid ${t.border}`, borderRadius: '10px', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#FAFBFC', borderBottom: `1px solid ${C.border}` }}>
+            <tr style={{ background: headerBg, borderBottom: `1px solid ${t.border}` }}>
               {[
                 { label: 'Дата',     align: 'left'  },
                 { label: 'Продавец', align: 'left'  },
@@ -508,7 +561,7 @@ function TabFinance() {
               ].map(h => (
                 <th key={h.label} style={{
                   padding: '10px 14px', textAlign: h.align as any,
-                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: C.text4,
+                  fontFamily: F.inter, fontSize: '11px', fontWeight: 600, color: t.text4,
                   textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap',
                 }}>
                   {h.label}
@@ -524,18 +577,18 @@ function TabFinance() {
                   onMouseEnter={() => setHovRow(i)}
                   onMouseLeave={() => setHovRow(null)}
                   style={{
-                    borderBottom: i < FIN_ROWS.length - 1 ? `1px solid ${C.border}` : 'none',
-                    background: hov ? '#FAFBFC' : C.surface, transition: 'background 0.1s',
+                    borderBottom: i < FIN_ROWS.length - 1 ? `1px solid ${t.border}` : 'none',
+                    background: hov ? rowHoverBg : t.surface, transition: 'background 0.1s',
                   }}
                 >
-                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '12px', color: C.text3 }}>{row.date}</span></td>
-                  <td style={td}><span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text2 }}>{row.seller}</span></td>
-                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: C.text1 }}>{row.card}</span></td>
-                  <td style={td}><BadgeBlue>{row.kpi}</BadgeBlue></td>
+                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '12px', color: t.text3 }}>{row.date}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2 }}>{row.seller}</span></td>
+                  <td style={td}><span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: t.text1 }}>{row.card}</span></td>
+                  <td style={td}><BadgeBlue t={t}>{row.kpi}</BadgeBlue></td>
                   <td style={{ ...td, textAlign: 'right' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: C.text1 }}>{row.amount}</span>
+                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: t.text1 }}>{row.amount}</span>
                   </td>
-                  <td style={td}><BadgeSuccess>{row.status}</BadgeSuccess></td>
+                  <td style={td}><BadgeSuccess dark={dark}>{row.status}</BadgeSuccess></td>
                 </tr>
               );
             })}
@@ -565,7 +618,7 @@ const TABS: { id: TabId; label: string }[] = [
    DEACTIVATE CONFIRMATION MODAL
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+function DeactivateModal({ open, onClose, t, dark }: { open: boolean; onClose: () => void; t: T; dark: boolean }) {
   const [confirmInput, setConfirmInput] = useState('');
   const [cancelHov, setCancelHov] = useState(false);
   const [deactivateHov, setDeactivateHov] = useState(false);
@@ -574,26 +627,33 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
 
   const canDeactivate = confirmInput === 'Mysafar OOO';
 
+  const overlayBg = dark ? 'rgba(0,0,0,0.6)' : 'rgba(0, 0, 0, 0.4)';
+  const modalShadow = dark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 20px 60px rgba(0,0,0,0.15)';
+  const warningTint = dark ? 'rgba(251,191,36,0.08)' : t.surface;
+  const disabledRedBg = dark ? 'rgba(248,113,113,0.3)' : t.border;
+  const errorHoverColor = dark ? '#EF4444' : '#DC2626';
+
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(0, 0, 0, 0.4)',
+      background: overlayBg,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       zIndex: 100,
     }}>
       <div style={{
-        background: C.surface, border: `1px solid ${C.border}`,
+        background: t.surface,
+        border: `1px solid ${t.border}`,
         borderRadius: '16px', width: '480px', maxWidth: '90vw',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+        boxShadow: modalShadow,
       }}>
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '20px 24px', borderBottom: `1px solid ${C.border}`,
+          padding: '20px 24px', borderBottom: `1px solid ${t.border}`,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <AlertTriangle size={24} color={C.warning} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1 }}>
+            <AlertTriangle size={24} color={t.warning} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1 }}>
               Деактивировать организацию
             </span>
           </div>
@@ -601,20 +661,20 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
             onClick={onClose}
             style={{
               width: '32px', height: '32px',
-              border: `1px solid ${C.border}`, borderRadius: '8px',
-              background: C.surface,
+              border: `1px solid ${t.border}`, borderRadius: '8px',
+              background: t.surface,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
             }}
           >
-            <X size={16} color={C.text3} strokeWidth={1.75} />
+            <X size={16} color={t.text3} strokeWidth={1.75} />
           </button>
         </div>
 
         {/* Content */}
         <div style={{ padding: '24px' }}>
           <p style={{
-            fontFamily: F.inter, fontSize: '14px', color: C.text2,
+            fontFamily: F.inter, fontSize: '14px', color: t.text2,
             margin: '0 0 16px',
           }}>
             Вы уверены, что хотите деактивировать организацию?
@@ -622,14 +682,15 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
 
           {/* Warning card */}
           <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderLeft: `3px solid ${C.warning}`,
+            background: warningTint,
+            border: `1px solid ${t.border}`,
+            borderLeft: `3px solid ${t.warning}`,
             borderRadius: '8px', padding: '16px', marginBottom: '20px',
           }}>
-            <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: C.text1, marginBottom: '8px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.text1, marginBottom: '8px' }}>
               Mysafar OOO
             </div>
-            <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginBottom: '8px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2, marginBottom: '8px' }}>
               При деактивации произойдёт следующее:
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -639,8 +700,9 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
                 'Новые продажи станут невозможны',
                 'Текущий KPI прогресс будет заморожен',
               ].map(text => (
-                <div key={text} style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>
-                  • {text}
+                <div key={text} style={{ fontFamily: F.inter, fontSize: '13px', color: t.text2, display: 'flex', gap: '6px' }}>
+                  <span style={{ color: t.text4 }}>•</span>
+                  <span>{text}</span>
                 </div>
               ))}
             </div>
@@ -650,7 +712,7 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
           <div>
             <label style={{
               display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: C.text2, marginBottom: '8px',
+              color: t.text2, marginBottom: '8px',
             }}>
               Введите название организации для подтверждения
             </label>
@@ -660,13 +722,13 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
               placeholder="Mysafar OOO"
               style={{
                 width: '100%', height: '40px', padding: '0 12px',
-                border: `1px solid ${C.inputBorder}`,
-                borderRadius: '8px', background: C.surface,
-                fontFamily: F.inter, fontSize: '14px', color: C.text1,
+                border: `1px solid ${t.inputBorder}`,
+                borderRadius: '8px', background: t.surface,
+                fontFamily: F.inter, fontSize: '14px', color: t.text1,
                 outline: 'none', boxSizing: 'border-box',
               }}
             />
-            <div style={{ fontFamily: F.inter, fontSize: '12px', color: C.text4, marginTop: '6px' }}>
+            <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: '6px' }}>
               Введите точное название
             </div>
           </div>
@@ -675,7 +737,7 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
         {/* Footer */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-          gap: '12px', padding: '16px 24px', borderTop: `1px solid ${C.border}`,
+          gap: '12px', padding: '16px 24px', borderTop: `1px solid ${t.border}`,
         }}>
           <button
             onMouseEnter={() => setCancelHov(true)}
@@ -683,11 +745,11 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
             onClick={onClose}
             style={{
               height: '40px', padding: '0 20px',
-              border: `1px solid ${cancelHov ? C.blue : C.border}`,
+              border: `1px solid ${cancelHov ? t.blue : t.border}`,
               borderRadius: '8px',
-              background: cancelHov ? C.blueLt : C.surface,
+              background: cancelHov ? (dark ? t.tableHover : t.blueLt) : 'transparent',
               fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
-              color: cancelHov ? C.blue : C.text2,
+              color: cancelHov ? t.blue : t.text2,
               cursor: 'pointer', transition: 'all 0.12s',
             }}
           >
@@ -701,10 +763,11 @@ function DeactivateModal({ open, onClose }: { open: boolean; onClose: () => void
             style={{
               height: '40px', padding: '0 20px',
               border: 'none', borderRadius: '8px',
-              background: canDeactivate ? (deactivateHov ? '#DC2626' : C.error) : C.border,
+              background: canDeactivate ? (deactivateHov ? errorHoverColor : t.error) : disabledRedBg,
               fontFamily: F.inter, fontSize: '14px', fontWeight: 500,
               color: '#FFFFFF',
               cursor: canDeactivate ? 'pointer' : 'not-allowed',
+              opacity: canDeactivate ? 1 : 0.5,
               transition: 'all 0.12s',
             }}
           >
@@ -724,14 +787,21 @@ export default function OrgDetailPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const dark = darkMode;
   const [activeTab, setActiveTab] = useState<TabId>('summary');
   const [closeHov, setCloseHov] = useState(false);
   const [editHov, setEditHov] = useState(false);
   const [deactivateHov, setDeactivateHov] = useState(false);
   const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
 
+  const errorHoverBg   = dark ? 'rgba(248,113,113,0.12)' : C.errorBg;
+  const errorTextHov   = dark ? '#F87171' : '#DC2626';
+  const closeHoverBg   = dark ? D.tableHover : '#F9FAFB';
+  const closeHoverBorder = dark ? D.inputBorder : '#D1D5DB';
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
       <Sidebar role="bank"
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(c => !c)}
@@ -745,45 +815,45 @@ export default function OrgDetailPage() {
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Главная</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span onClick={() => navigate('/organizations')} style={{ fontFamily: F.inter, fontSize: '13px', color: C.blue, cursor: 'pointer' }}>Организации</span>
-            <ChevronRight size={13} color={C.text4} strokeWidth={1.75} />
-            <span style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3 }}>Mysafar OOO</span>
+            <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span onClick={() => navigate('/organizations')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Организации</span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Mysafar OOO</span>
           </div>
 
           {/* Header card */}
           <div style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
+            background: t.surface,
+            border: `1px solid ${t.border}`,
             borderRadius: '12px',
             marginBottom: '24px',
           }}>
             {/* Title row */}
             <div style={{
               display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-              padding: '20px 24px', borderBottom: `1px solid ${C.border}`,
+              padding: '20px 24px', borderBottom: `1px solid ${t.border}`,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                 {/* Org avatar */}
                 <div style={{
                   width: '40px', height: '40px', borderRadius: '10px',
-                  background: C.blueLt, border: `1.5px solid ${C.blueTint}`,
+                  background: t.blueLt, border: `1.5px solid ${t.blueTint}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <span style={{ fontFamily: F.dm, fontSize: '14px', fontWeight: 700, color: C.blue }}>MY</span>
+                  <span style={{ fontFamily: F.dm, fontSize: '14px', fontWeight: 700, color: t.blue }}>MY</span>
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                     <h1 style={{
                       fontFamily: F.dm, fontSize: '22px', fontWeight: 700,
-                      color: C.text1, margin: 0, lineHeight: 1.2,
+                      color: t.text1, margin: 0, lineHeight: 1.2,
                     }}>
                       Mysafar OOO
                     </h1>
-                    <BadgeSuccess>Активна</BadgeSuccess>
+                    <BadgeSuccess dark={dark}>Активна</BadgeSuccess>
                   </div>
-                  <div style={{ fontFamily: F.inter, fontSize: '13px', color: C.text3, marginTop: '6px' }}>
+                  <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '6px' }}>
                     Контакт: Рустам Алиев, <span style={{ fontFamily: F.mono, fontSize: '13px' }}>+998 90 123 45 67</span>
                   </div>
                 </div>
@@ -796,11 +866,11 @@ export default function OrgDetailPage() {
                   onClick={() => setDeactivateModalOpen(true)}
                   style={{
                     height: '36px', padding: '0 14px',
-                    border: `1px solid ${deactivateHov ? C.error : C.border}`,
+                    border: `1px solid ${deactivateHov ? t.error : t.border}`,
                     borderRadius: '8px',
-                    background: deactivateHov ? C.errorBg : C.surface,
+                    background: deactivateHov ? errorHoverBg : t.surface,
                     fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                    color: deactivateHov ? '#DC2626' : C.text3,
+                    color: deactivateHov ? errorTextHov : t.text3,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
                     transition: 'all 0.12s',
                   }}
@@ -815,11 +885,11 @@ export default function OrgDetailPage() {
                   onClick={() => navigate('/organizations/1/edit')}
                   style={{
                     height: '36px', padding: '0 14px',
-                    border: `1px solid ${editHov ? C.blue : C.border}`,
+                    border: `1px solid ${editHov ? t.blue : t.border}`,
                     borderRadius: '8px',
-                    background: editHov ? C.blueLt : C.surface,
+                    background: editHov ? t.blueLt : t.surface,
                     fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                    color: editHov ? C.blue : C.text2,
+                    color: editHov ? t.blue : t.text2,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
                     transition: 'all 0.12s',
                   }}
@@ -834,14 +904,14 @@ export default function OrgDetailPage() {
                   onClick={() => navigate('/organizations')}
                   style={{
                     width: '36px', height: '36px',
-                    border: `1px solid ${closeHov ? '#D1D5DB' : C.border}`,
+                    border: `1px solid ${closeHov ? closeHoverBorder : t.border}`,
                     borderRadius: '8px',
-                    background: closeHov ? '#F9FAFB' : C.surface,
+                    background: closeHov ? closeHoverBg : t.surface,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', transition: 'all 0.12s',
                   }}
                 >
-                  <X size={16} color={C.text3} strokeWidth={1.75} />
+                  <X size={16} color={t.text3} strokeWidth={1.75} />
                 </button>
               </div>
             </div>
@@ -857,11 +927,11 @@ export default function OrgDetailPage() {
                     style={{
                       padding: '12px 20px',
                       border: 'none',
-                      borderBottom: active ? `2px solid ${C.blue}` : '2px solid transparent',
+                      borderBottom: active ? `2px solid ${t.blue}` : '2px solid transparent',
                       background: 'none',
                       fontFamily: F.inter, fontSize: '14px',
                       fontWeight: active ? 500 : 400,
-                      color: active ? C.blue : C.text3,
+                      color: active ? t.blue : t.text3,
                       cursor: 'pointer', transition: 'all 0.12s',
                     }}
                   >
@@ -874,17 +944,17 @@ export default function OrgDetailPage() {
 
           {/* Tab content */}
           <div>
-            {activeTab === 'summary' && <TabSvodka />}
-            {activeTab === 'sellers' && <TabSellers />}
-            {activeTab === 'cards' && <TabCards />}
-            {activeTab === 'finance' && <TabFinance />}
+            {activeTab === 'summary' && <TabSvodka t={t} dark={dark} />}
+            {activeTab === 'sellers' && <TabSellers t={t} dark={dark} />}
+            {activeTab === 'cards' && <TabCards t={t} dark={dark} />}
+            {activeTab === 'finance' && <TabFinance t={t} dark={dark} />}
           </div>
 
           <div style={{ height: '48px' }} />
         </div>
       </div>
 
-      <DeactivateModal open={deactivateModalOpen} onClose={() => setDeactivateModalOpen(false)} />
+      <DeactivateModal open={deactivateModalOpen} onClose={() => setDeactivateModalOpen(false)} t={t} dark={dark} />
     </div>
   );
 }
