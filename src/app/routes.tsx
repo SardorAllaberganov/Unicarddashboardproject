@@ -50,6 +50,8 @@ import NotificationDeliveryLogPage from './pages/NotificationDeliveryLogPage';
 import SellerMessageComposePage from './pages/SellerMessageComposePage';
 import SellerMessageHistoryPage from './pages/SellerMessageHistoryPage';
 import SellerMessageDetailPage from './pages/SellerMessageDetailPage';
+import MobileDesignSystemPage from './pages/MobileDesignSystemPage';
+import MobileTabBarShowcasePage from './pages/MobileTabBarShowcasePage';
 
 export const router = createBrowserRouter([
   {
@@ -63,6 +65,14 @@ export const router = createBrowserRouter([
   {
     path: '/design-system',
     Component: DesignSystemPage,
+  },
+  {
+    path: '/mobile-design-system',
+    Component: MobileDesignSystemPage,
+  },
+  {
+    path: '/mobile-tab-bar',
+    Component: MobileTabBarShowcasePage,
   },
   {
     path: '/sidebar',
