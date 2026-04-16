@@ -333,12 +333,12 @@ function ArchiveModal({ open, onClose, onConfirm, t, dark }: {
             onClick={onConfirm}
             style={{
               height: '38px', padding: '0 18px',
-              border: `1px solid ${t.error}`, borderRadius: '8px',
-              background: confirmHov ? (dark ? 'rgba(248,113,113,0.12)' : '#FEF2F2') : 'transparent',
+              border: 'none', borderRadius: '8px',
+              background: confirmHov ? t.blueHover : t.blue,
               fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-              color: t.error, cursor: 'pointer',
+              color: '#FFFFFF', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: '6px',
-              transition: 'all 0.15s',
+              transition: 'background 0.15s',
             }}
           >
             <Archive size={14} strokeWidth={2} />
