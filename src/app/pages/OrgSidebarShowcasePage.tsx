@@ -1,442 +1,292 @@
-import React, { useState } from 'react';
-import { Sidebar, OrgAdminSidebarDemo } from '../components/Sidebar';
-import { F, C } from '../components/ds/tokens';
+import React from 'react';
+import { ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { Sidebar } from '../components/Sidebar';
+import { Navbar } from '../components/Navbar';
+import { F, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
 
-const inter = F.inter;
-const dm    = F.dm;
-const mono  = F.mono;
+type T = ReturnType<typeof theme>;
 
-/* ─── Spec rows ─────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   SIDEBAR SHOWCASE — Organization Admin
+   Developer reference: 4-quadrant Light/Dark × Expanded/Collapsed matrix.
+   Each quadrant renders <Sidebar role="org" /> pinned via the `darkMode`
+   prop, so quadrant theme is independent of the global theme preference.
+═══════════════════════════════════════════════════════════════════════════ */
+
+const QUADRANTS = [
+  { id: 'light-exp',  label: 'Light · Expanded',  dark: false, collapsed: false, width: 260 },
+  { id: 'dark-exp',   label: 'Dark · Expanded',   dark: true,  collapsed: false, width: 260 },
+  { id: 'light-col',  label: 'Light · Collapsed', dark: false, collapsed: true,  width: 68  },
+  { id: 'dark-col',   label: 'Dark · Collapsed',  dark: true,  collapsed: true,  width: 68  },
+] as const;
+
+/* ─── Spec rows ────────────────────────────────────────────────────────── */
 
 const SPEC_ROWS = [
-  { token: 'Role',               value: 'Organization Admin' },
-  { token: 'Width · expanded',   value: '260px' },
-  { token: 'Width · collapsed',  value: '68px' },
-  { token: 'Org badge',          value: 'Outline variant · Border #E5E7EB · dot #2563EB' },
-  { token: 'Header height',      value: '72px (expanded) / 60px (collapsed)' },
-  { token: 'Background',         value: '#FFFFFF / #111827 (dark)' },
-  { token: 'Right border',       value: '1px solid #E5E7EB' },
-  { token: 'Active bg',          value: '#EFF6FF + left 2px #2563EB' },
-  { token: 'Hover bg',           value: '#F9FAFB' },
-  { token: 'Avatar',             value: '"РА" · #F0FDF4 bg · 1.5px #10B981 ring' },
-  { token: 'Nav items total',    value: '7 across 4 groups' },
+  { token: 'Role',              value: 'Organization Admin (role="org")' },
+  { token: 'Width · expanded',  value: '260px' },
+  { token: 'Width · collapsed', value: '68px'  },
+  { token: 'Org subtitle',      value: '"Mysafar OOO" · C.blue · hidden when collapsed' },
+  { token: 'Header height',     value: '60px · 1px divider below' },
+  { token: 'Background',        value: '#FFFFFF light / #12141C dark' },
+  { token: 'Right border',      value: '1px solid #E5E7EB / #2D3148' },
+  { token: 'Active bg',         value: '#EFF6FF + left 2px #2563EB' },
+  { token: 'Hover bg',          value: '#F9FAFB / #1E2130' },
+  { token: 'Nav items',         value: '7 items across 4 groups' },
 ];
 
-const NAV_MAP = [
-  {
-    group: 'ОБЗОР', color: C.blue, bg: C.blueLt,
-    items: [{ n: 1, label: 'Дашборд', state: 'ACTIVE' }],
-  },
-  {
-    group: 'УПРАВЛЕНИЕ', color: '#D97706', bg: '#FFFBEB',
-    items: [
-      { n: 2, label: 'Продавцы',       state: 'default' },
-      { n: 3, label: 'Карты',          state: 'default' },
-      { n: 4, label: 'Назначение карт', state: 'default' },
-    ],
-  },
-  {
-    group: 'ФИНАНСЫ', color: '#10B981', bg: '#F0FDF4',
-    items: [
-      { n: 5, label: 'Вознаграждения', state: 'default' },
-      { n: 6, label: 'Выводы',         state: 'default' },
-    ],
-  },
-  {
-    group: 'СИСТЕМА', color: '#6B7280', bg: '#F3F4F6',
-    items: [{ n: 7, label: 'Настройки', state: 'default' }],
-  },
+const ROLE_COMPARE = [
+  { prop: 'Nav items',      bank: '10 items · 4 groups',   org: '7 items · 4 groups' },
+  { prop: 'Header subtitle',bank: '"Bank Admin"',           org: '"Mysafar OOO" (org name)' },
+  { prop: 'Subtitle color', bank: 'text4 / text3 (dark)',   org: 'C.blue (brand)' },
+  { prop: 'Scope',          bank: 'All organizations',      org: 'Own org only' },
+  { prop: 'Active route',   bank: '/dashboard',             org: '/org-dashboard' },
 ];
 
 /* ─── Page ───────────────────────────────────────────────────────────────── */
 
 export default function OrgSidebarShowcasePage() {
-  const [liveCollapsed, setLiveCollapsed] = useState(false);
-  const [liveDark,      setLiveDark]      = useState(false);
+  const [darkMode, setDarkMode] = useDarkMode();
+  const t = theme(darkMode);
+  const navigate = useNavigate();
 
   return (
-    <div style={{ background: '#F3F4F6', minHeight: '100vh', fontFamily: inter }}>
+    <div style={{
+      display: 'flex',
+      height: '100vh',
+      overflow: 'hidden',
+      background: t.pageBg,
+      transition: 'background 0.2s',
+    }}>
+      {/* ── Page chrome: live org sidebar ── */}
+      <Sidebar
+        role="org"
+        collapsed={false}
+        onToggle={() => {}}
+        darkMode={darkMode}
+        onDarkModeToggle={() => setDarkMode(d => !d)}
+      />
 
-      {/* ── Page header ── */}
-      <div style={{
-        background: C.surface,
-        borderBottom: `1px solid ${C.border}`,
-        padding: '20px 48px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '16px',
-        flexWrap: 'wrap',
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-            <div style={{
-              width: '32px', height: '32px', borderRadius: '8px',
-              background: C.blue,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span style={{ fontFamily: dm, fontSize: '15px', fontWeight: 700, color: '#FFFFFF' }}>M</span>
-            </div>
-            <h1 style={{ fontFamily: dm, fontSize: '22px', fontWeight: 700, color: C.text1, margin: 0 }}>
-              Left Sidebar — Organization Admin
-            </h1>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
+
+        <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
+
+          {/* Breadcrumbs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+            <span
+              onClick={() => navigate('/design-system')}
+              style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}
+            >
+              Дизайн-система
+            </span>
+            <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+            <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Sidebar · Org Admin</span>
           </div>
-          <p style={{ fontFamily: inter, fontSize: '13px', color: C.text3, margin: 0 }}>
-            Prompt 0 §2 · Persistent Navigation · 260px / 68px · 7 nav items · Org badge "Mysafar OOO" · Dark theme
+
+          {/* Header */}
+          <h1 style={{ fontFamily: F.dm, fontSize: '24px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>
+            Left Sidebar — Organization Admin
+          </h1>
+          <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '6px 0 20px', lineHeight: 1.5, maxWidth: '760px' }}>
+            Dev reference for the unified <code style={{ fontFamily: F.mono, color: t.text2 }}>&lt;Sidebar role="org" /&gt;</code> component.
+            Each quadrant below is pinned to a specific theme × collapse state via the{' '}
+            <code style={{ fontFamily: F.mono, color: t.text2 }}>darkMode</code> and{' '}
+            <code style={{ fontFamily: F.mono, color: t.text2 }}>collapsed</code> props. Live sidebar state
+            (hover, active route, theme toggle) lives elsewhere in the app shell.
           </p>
-        </div>
 
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {[
-            { label: 'Component',  value: 'Sidebar role="org"' },
-            { label: 'Expanded',   value: '260px' },
-            { label: 'Collapsed',  value: '68px'  },
-            { label: 'Nav items',  value: '7'     },
-            { label: 'Org badge',  value: 'Outline' },
-          ].map(t => (
-            <div key={t.label} style={{
-              display: 'flex', gap: '6px', alignItems: 'center',
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: '6px',
-              padding: '4px 10px',
-            }}>
-              <span style={{ fontFamily: inter, fontSize: '12px', color: C.text4 }}>{t.label}:</span>
-              <span style={{ fontFamily: mono, fontSize: '12px', fontWeight: 500, color: C.blue }}>{t.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+          {/* §01 — 4-quadrant matrix */}
+          <SectionTitle index="01" title="Reference Matrix" sub="Light + Dark × Expanded + Collapsed · 4 pinned quadrants" t={t} />
 
-      <div style={{ padding: '40px 48px', maxWidth: '1840px', margin: '0 auto' }}>
-
-        {/* ── §01 Live demo ── */}
-        <SectionTitle index="01" title="Live Interactive Demo" sub="Toggle collapse and dark mode in real time" />
-
-        <div style={{
-          background: liveDark ? '#0F172A' : '#F0FDF4',
-          border: `1px solid ${liveDark ? '#1E293B' : '#BBF7D0'}`,
-          borderRadius: '16px',
-          padding: '32px',
-          marginBottom: '48px',
-          display: 'flex',
-          gap: '32px',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-        }}>
-          {/* Sidebar */}
-          <div style={{
-            height: '640px',
-            borderRadius: '12px',
-            overflow: 'visible',
-            boxShadow: liveDark
-              ? '0 4px 24px rgba(0,0,0,0.5)'
-              : '0 4px 24px rgba(16,185,129,0.1)',
-            border: `1px solid ${liveDark ? '#374151' : C.border}`,
-          }}>
-            <Sidebar role="org"
-              collapsed={liveCollapsed}
-              onToggle={() => setLiveCollapsed(c => !c)}
-              darkMode={liveDark}
-              onDarkModeToggle={() => setLiveDark(d => !d)}
-            />
-          </div>
-
-          {/* Info panel */}
-          <div style={{ flex: 1, minWidth: '220px' }}>
-            <div style={{
-              fontFamily: dm,
-              fontSize: '16px',
-              fontWeight: 600,
-              color: liveDark ? '#F9FAFB' : C.text1,
-              marginBottom: '16px',
-            }}>
-              Попробуй сам
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
-              {[
-                { action: 'Нажми chevron-кнопку',       result: 'Сворачивает / разворачивает' },
-                { action: 'Наведи на иконку (collapsed)', result: 'Показывает tooltip' },
-                { action: 'Нажми moon/sun',              result: 'Переключает тему' },
-                { action: 'Expanded header',             result: 'Badge "Mysafar OOO" виден' },
-              ].map(tip => (
-                <div key={tip.action} style={{
-                  background: liveDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.8)',
-                  border: `1px solid ${liveDark ? '#1F2937' : '#BBF7D0'}`,
-                  borderRadius: '8px',
-                  padding: '10px 14px',
-                }}>
-                  <div style={{ fontFamily: inter, fontSize: '13px', fontWeight: 500, color: liveDark ? '#6EE7B7' : '#059669' }}>
-                    {tip.action}
-                  </div>
-                  <div style={{ fontFamily: inter, fontSize: '12px', color: liveDark ? '#6B7280' : C.text3, marginTop: '2px' }}>
-                    {tip.result}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* State pills */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <StatePill
-                label="Collapse state"
-                value={liveCollapsed ? 'Collapsed · 68px' : 'Expanded · 260px'}
-                active={!liveCollapsed}
-                dark={liveDark}
-              />
-              <StatePill
-                label="Theme"
-                value={liveDark ? 'Dark mode' : 'Light mode'}
-                active={liveDark}
-                dark={liveDark}
-              />
-            </div>
-
-            {/* Org badge callout */}
-            <div style={{
-              marginTop: '24px',
-              background: liveDark ? 'rgba(255,255,255,0.04)' : C.surface,
-              border: `1px solid ${liveDark ? '#374151' : C.border}`,
-              borderRadius: '10px',
-              padding: '14px 16px',
-            }}>
-              <div style={{ fontFamily: inter, fontSize: '11px', fontWeight: 600, color: C.text4, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>
-                Org Badge (Expanded only)
-              </div>
-              {/* Visual replica */}
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: '5px',
-                padding: '3px 8px', borderRadius: '6px',
-                border: `1px solid ${liveDark ? '#374151' : C.border}`,
-              }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: C.blue }} />
-                <span style={{ fontFamily: inter, fontSize: '11px', fontWeight: 500, color: liveDark ? '#9CA3AF' : C.text3 }}>
-                  Mysafar OOO
-                </span>
-              </div>
-              <p style={{ fontFamily: inter, fontSize: '12px', color: C.text4, margin: '8px 0 0' }}>
-                Outline badge variant · скрывается в collapsed-режиме
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── §02 All 4 states ── */}
-        <SectionTitle index="02" title="All States · Side by Side" sub="Expanded + Collapsed × Light + Dark" />
-
-        <div style={{
-          background: C.surface,
-          border: `1px solid ${C.border}`,
-          borderRadius: '16px',
-          padding: '32px',
-          marginBottom: '48px',
-          overflowX: 'auto',
-        }}>
-          <Sidebar role="org"Demo />
-        </div>
-
-        {/* ── §03 Comparison: Bank vs Org ── */}
-        <SectionTitle index="03" title="Role Comparison" sub="Bank Admin sidebar vs Org Admin sidebar — key differences" />
-
-        <div style={{
-          background: C.surface,
-          border: `1px solid ${C.border}`,
-          borderRadius: '16px',
-          padding: '24px',
-          marginBottom: '48px',
-          overflowX: 'auto',
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: C.pageBg, borderBottom: `1px solid ${C.border}` }}>
-                {['Property', 'Bank Admin (A-02)', 'Org Admin (A-03)'].map(h => (
-                  <th key={h} style={{
-                    padding: '10px 20px',
-                    textAlign: 'left',
-                    fontFamily: inter,
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: C.text4,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { prop: 'Nav items',    bank: '10 items · 4 groups',   org: '7 items · 4 groups' },
-                { prop: 'Org badge',    bank: '—',                      org: 'Outline "Mysafar OOO"' },
-                { prop: 'Header height',bank: '60px',                   org: '72px (expanded)' },
-                { prop: 'Avatar',       bank: '"АК" · blue ring',       org: '"РА" · green ring' },
-                { prop: 'User name',    bank: 'Админ Камолов',          org: 'Рустам Алиев' },
-                { prop: 'User role',    bank: 'Банк-администратор',     org: 'Менеджер организации' },
-                { prop: 'Scope',        bank: 'All organisations',      org: 'Own org only' },
-              ].map((row, i, arr) => (
-                <tr key={row.prop} style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                  <td style={{ padding: '12px 20px', fontFamily: mono, fontSize: '13px', color: C.blue }}>{row.prop}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: inter, fontSize: '13px', color: C.text3 }}>{row.bank}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: inter, fontSize: '13px', color: C.text2, fontWeight: 500 }}>{row.org}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* ── §04 Navigation map ── */}
-        <SectionTitle index="04" title="Navigation Map" sub="7 items across 4 groups · Org Admin role" />
-
-        <div style={{
-          background: C.surface,
-          border: `1px solid ${C.border}`,
-          borderRadius: '16px',
-          padding: '32px',
-          marginBottom: '48px',
-        }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-            gap: '16px',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '24px',
+            marginBottom: '48px',
           }}>
-            {NAV_MAP.map(group => (
-              <div key={group.group} style={{
-                background: group.bg,
-                border: `1px solid ${C.border}`,
-                borderRadius: '10px',
-                padding: '16px',
-              }}>
-                <div style={{
-                  fontFamily: inter,
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  color: group.color,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.07em',
-                  marginBottom: '10px',
-                }}>
-                  {group.group}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {group.items.map(item => (
-                    <div key={item.n} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontFamily: mono, fontSize: '11px', color: C.text4, width: '18px', textAlign: 'right', flexShrink: 0 }}>
-                        {item.n}
-                      </span>
-                      <span style={{ fontFamily: inter, fontSize: '13px', color: C.text2, flex: 1 }}>
-                        {item.label}
-                      </span>
-                      <span style={{
-                        fontFamily: inter,
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        background: item.state === 'ACTIVE' ? C.blue : '#F3F4F6',
-                        color: item.state === 'ACTIVE' ? '#FFF' : C.text4,
-                      }}>
-                        {item.state}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {QUADRANTS.map(q => (
+              <QuadrantCell key={q.id} q={q} t={t} />
             ))}
           </div>
-        </div>
 
-        {/* ── §05 Token spec ── */}
-        <SectionTitle index="05" title="Design Tokens" sub="Org Admin sidebar–specific values" />
+          {/* §02 — Role comparison */}
+          <SectionTitle index="02" title="Role Comparison" sub="Bank Admin vs Org Admin — key differences" t={t} />
 
-        <div style={{
-          background: C.surface,
-          border: `1px solid ${C.border}`,
-          borderRadius: '16px',
-          overflow: 'hidden',
-          marginBottom: '40px',
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: C.pageBg, borderBottom: `1px solid ${C.border}` }}>
-                {['Token / Property', 'Value'].map(h => (
-                  <th key={h} style={{
-                    padding: '10px 20px',
-                    textAlign: 'left',
-                    fontFamily: inter,
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: C.text4,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {SPEC_ROWS.map((row, i) => (
-                <tr key={row.token} style={{ borderBottom: i < SPEC_ROWS.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                  <td style={{ padding: '12px 20px', fontFamily: mono, fontSize: '13px', color: C.blue }}>{row.token}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: mono, fontSize: '13px', color: C.text2 }}>{row.value}</td>
+          <div style={{
+            background: t.surface,
+            border: `1px solid ${t.border}`,
+            borderRadius: '12px',
+            overflow: 'hidden',
+            marginBottom: '48px',
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: t.tableHeaderBg, borderBottom: `1px solid ${t.border}` }}>
+                  {['Property', 'Bank Admin', 'Org Admin'].map(h => (
+                    <th key={h} style={{
+                      padding: '10px 20px',
+                      textAlign: 'left',
+                      fontFamily: F.inter,
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: t.text4,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                    }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {ROLE_COMPARE.map((row, i) => (
+                  <tr key={row.prop} style={{ borderBottom: i < ROLE_COMPARE.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+                    <td style={{ padding: '12px 20px', fontFamily: F.mono, fontSize: '13px', color: t.blue }}>{row.prop}</td>
+                    <td style={{ padding: '12px 20px', fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>{row.bank}</td>
+                    <td style={{ padding: '12px 20px', fontFamily: F.inter, fontSize: '13px', color: t.text2, fontWeight: 500 }}>{row.org}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
+          {/* §03 — Token spec */}
+          <SectionTitle index="03" title="Design Tokens" sub="All sidebar-specific values · role='org'" t={t} />
+
+          <div style={{
+            background: t.surface,
+            border: `1px solid ${t.border}`,
+            borderRadius: '12px',
+            overflow: 'hidden',
+            marginBottom: '40px',
+          }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: t.tableHeaderBg, borderBottom: `1px solid ${t.border}` }}>
+                  {['Token / Property', 'Value'].map(h => (
+                    <th key={h} style={{
+                      padding: '10px 20px',
+                      textAlign: 'left',
+                      fontFamily: F.inter,
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: t.text4,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {SPEC_ROWS.map((row, i) => (
+                  <tr key={row.token} style={{ borderBottom: i < SPEC_ROWS.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+                    <td style={{ padding: '12px 20px', fontFamily: F.mono, fontSize: '13px', color: t.blue }}>{row.token}</td>
+                    <td style={{ padding: '12px 20px', fontFamily: F.mono, fontSize: '13px', color: t.text2 }}>{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ─── Helpers ────────────────────────────────────────────────────────────── */
+/* ─── Quadrant cell ───────────────────────────────────────────────────── */
 
-function SectionTitle({ index, title, sub }: { index: string; title: string; sub: string }) {
+type Quadrant = typeof QUADRANTS[number];
+
+function QuadrantCell({ q, t }: { q: Quadrant; t: T }) {
+  const cellBg     = q.dark ? '#0F1117' : '#F9FAFB';
+  const cellBorder = q.dark ? '#2D3148' : '#E5E7EB';
+  const labelColor = q.dark ? '#9CA3AF' : t.text3;
+  const dimColor   = q.dark ? '#6B7280' : t.text4;
+
+  return (
+    <div style={{
+      background: cellBg,
+      border: `1px solid ${cellBorder}`,
+      borderRadius: '12px',
+      padding: '24px',
+      boxSizing: 'border-box',
+    }}>
+      {/* Header: label + dims */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '16px',
+        gap: '12px',
+      }}>
+        <div style={{
+          fontSize: '12px',
+          color: labelColor,
+          fontFamily: F.inter,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+        }}>
+          {q.label}
+        </div>
+        <div style={{
+          fontFamily: F.mono,
+          fontSize: '11px',
+          color: dimColor,
+          whiteSpace: 'nowrap',
+        }}>
+          {q.width}px × 560
+        </div>
+      </div>
+
+      {/* Pinned sidebar — darkMode + collapsed forced via props */}
+      <div style={{
+        width: q.width,
+        height: 560,
+        display: 'flex',
+        borderRadius: '10px',
+        overflow: q.collapsed ? 'visible' : 'hidden',
+        boxShadow: q.dark
+          ? '0 4px 16px rgba(0,0,0,0.45)'
+          : '0 4px 16px rgba(17,24,39,0.08)',
+        border: `1px solid ${q.dark ? '#2D3148' : '#E5E7EB'}`,
+      }}>
+        <Sidebar
+          role="org"
+          collapsed={q.collapsed}
+          onToggle={() => {}}
+          darkMode={q.dark}
+          orgName="Mysafar OOO"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Section title ───────────────────────────────────────────────────── */
+
+function SectionTitle({ index, title, sub, t }: { index: string; title: string; sub: string; t: T }) {
   return (
     <div style={{ marginBottom: '20px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '4px' }}>
         <span style={{
-          fontFamily: mono,
+          fontFamily: F.mono,
           fontSize: '11px',
-          color: C.blue,
-          background: C.blueLt,
-          border: `1px solid ${C.blueTint}`,
+          color: t.blue,
+          background: t.blueLt,
+          border: `1px solid ${t.blueTint}`,
           borderRadius: '4px',
           padding: '2px 7px',
         }}>
           §{index}
         </span>
-        <h2 style={{ fontFamily: dm, fontSize: '18px', fontWeight: 700, color: C.text1, margin: 0 }}>
+        <h2 style={{ fontFamily: F.dm, fontSize: '18px', fontWeight: 700, color: t.text1, margin: 0 }}>
           {title}
         </h2>
       </div>
-      <p style={{ fontFamily: inter, fontSize: '13px', color: C.text3, margin: '0 0 12px' }}>{sub}</p>
-      <div style={{ height: '1px', background: C.border }} />
-    </div>
-  );
-}
-
-function StatePill({ label, value, active, dark }: { label: string; value: string; active: boolean; dark: boolean }) {
-  return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: '7px 12px',
-      borderRadius: '7px',
-      background: dark ? 'rgba(255,255,255,0.04)' : C.pageBg,
-      border: `1px solid ${dark ? '#1F2937' : C.border}`,
-    }}>
-      <span style={{ fontFamily: inter, fontSize: '12px', color: dark ? '#6B7280' : C.text3 }}>{label}</span>
-      <span style={{
-        fontFamily: mono,
-        fontSize: '11px',
-        fontWeight: 600,
-        color: active ? '#10B981' : dark ? '#6B7280' : C.text4,
-        background: active ? '#F0FDF4' : 'transparent',
-        padding: '1px 7px',
-        borderRadius: '4px',
-      }}>{value}</span>
+      <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: 0 }}>{sub}</p>
+      <div style={{ height: '1px', background: t.border, marginTop: '12px' }} />
     </div>
   );
 }

@@ -11,11 +11,18 @@ type T = ReturnType<typeof theme>;
 
 /* ═══════════════════════════════════════════════════════════════════════════
    RADIO CARD SHOWCASE — Prompt 0 §11
-   Demonstrates the accessible radio group pattern used in M-03 and C-05.
-   Shows all 5 states in light + dark columns.
+
+   Developer reference: all 5 states rendered side-by-side as pinned
+   light + dark variants. Matrix cells are locked via <RadioGroup dark> /
+   <StaticCard dark> — they do NOT respond to the global theme toggle.
 ═══════════════════════════════════════════════════════════════════════════ */
 
 type Recipient = 'all' | 'orgs' | 'users';
+
+const LIGHT_BG      = '#F9FAFB';
+const LIGHT_BORDER  = '#E5E7EB';
+const DARK_BG       = '#0F1117';
+const DARK_BORDER   = '#2D3148';
 
 const OPTIONS = [
   { value: 'all' as const,   label: 'Все организации',        sub: 'Отправить всем активным администраторам организаций' },
@@ -23,12 +30,14 @@ const OPTIONS = [
   { value: 'users' as const, label: 'Конкретные пользователи', sub: 'Поиск отдельных получателей по имени' },
 ];
 
+type CardState = 'default' | 'selected' | 'hover' | 'focused' | 'disabled';
+
 const STATES: { label: string; sub: string; state: CardState }[] = [
-  { label: 'Default',  sub: 'Unselected resting state',        state: 'default'  },
-  { label: 'Selected', sub: 'Active option, blue border + bg', state: 'selected' },
-  { label: 'Hover',    sub: 'Pointer over unselected option',  state: 'hover'    },
-  { label: 'Focused',  sub: 'Keyboard focus ring via :focus-visible', state: 'focused' },
-  { label: 'Disabled', sub: 'Non-interactive, muted text',     state: 'disabled' },
+  { label: 'Default',  sub: 'Unselected resting state',                state: 'default'  },
+  { label: 'Hover',    sub: 'Pointer over unselected option',          state: 'hover'    },
+  { label: 'Selected', sub: 'Active option, blue border + bg',         state: 'selected' },
+  { label: 'Focused',  sub: 'Keyboard focus ring via :focus-visible',  state: 'focused'  },
+  { label: 'Disabled', sub: 'Non-interactive, muted text',             state: 'disabled' },
 ];
 
 export default function RadioCardShowcasePage() {
@@ -73,7 +82,7 @@ export default function RadioCardShowcasePage() {
             Используется в M-03 (получатели), C-05 (назначение карт) и любых формах с выбором одного из нескольких вариантов.
           </p>
 
-          {/* 1. Live demo */}
+          {/* 1. Live demo — follows global theme */}
           <ContextFrame caption="1. LIVE — интерактивная группа (попробуйте Tab + стрелки)" t={t}>
             <div style={{ maxWidth: '560px' }}>
               <RadioGroup
@@ -119,35 +128,57 @@ export default function RadioCardShowcasePage() {
             </div>
           </ContextFrame>
 
-          {/* 3. All 5 states × 2 themes */}
-          <ContextFrame caption="3. STATES — все 5 состояний в light + dark" t={t}>
+          {/* 3. All 5 states × 2 themes — pinned matrix */}
+          <ContextFrame caption="3. STATES — все 5 состояний в light + dark (pinned)" t={t}>
+            {/* Column headers row */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '140px 1fr 1fr',
+              gridTemplateColumns: '160px 1fr 1fr',
               columnGap: '18px',
-              rowGap: '20px',
-              alignItems: 'center',
+              marginBottom: '12px',
             }}>
-              {/* Column headers */}
               <div />
-              <ColumnHeader t={t} tone="light" />
-              <ColumnHeader t={t} tone="dark" />
+              <ColumnHeader tone="light" />
+              <ColumnHeader tone="dark" />
+            </div>
 
+            {/* State rows */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '160px 1fr 1fr',
+              columnGap: '18px',
+              rowGap: '14px',
+              alignItems: 'stretch',
+            }}>
               {STATES.map(s => (
                 <React.Fragment key={s.state}>
                   <StateLabel t={t} label={s.label} sub={s.sub} />
-                  <VariantFrame dark={false}>
+                  <PinnedCell tone="light">
                     <StaticCard state={s.state} dark={false} />
-                  </VariantFrame>
-                  <VariantFrame dark={true}>
+                  </PinnedCell>
+                  <PinnedCell tone="dark">
                     <StaticCard state={s.state} dark={true} />
-                  </VariantFrame>
+                  </PinnedCell>
                 </React.Fragment>
               ))}
             </div>
           </ContextFrame>
 
-          {/* 4. Dev note */}
+          {/* 4. Live interactive pair — pinned */}
+          <ContextFrame caption="4. LIVE PAIR — полная группа в обоих темах (pinned)" t={t}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px',
+            }}>
+              <PinnedCell tone="light">
+                <LivePair dark={false} />
+              </PinnedCell>
+              <PinnedCell tone="dark">
+                <LivePair dark={true} />
+              </PinnedCell>
+            </div>
+          </ContextFrame>
+
+          {/* 5. Dev note */}
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: '10px',
             padding: '12px 14px',
@@ -171,10 +202,27 @@ export default function RadioCardShowcasePage() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   STATIC CARD — non-interactive render of a single state × theme
+   LIVE PAIR — interactive radio group pinned to a single theme
 ═══════════════════════════════════════════════════════════════════════════ */
 
-type CardState = 'default' | 'selected' | 'hover' | 'focused' | 'disabled';
+function LivePair({ dark }: { dark: boolean }) {
+  const [value, setValue] = useState<Recipient>('orgs');
+  return (
+    <RadioGroup
+      label="Получатели"
+      name={`recipient-${dark ? 'dark' : 'light'}`}
+      value={value}
+      options={OPTIONS}
+      onChange={setValue}
+      orientation="vertical"
+      dark={dark}
+    />
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATIC CARD — non-interactive render of a single state × theme
+═══════════════════════════════════════════════════════════════════════════ */
 
 function StaticCard({ state, dark }: { state: CardState; dark: boolean }) {
   const t = theme(dark);
@@ -210,7 +258,7 @@ function StaticCard({ state, dark }: { state: CardState; dark: boolean }) {
   } else {
     border     = `1px solid ${dark ? D.border : C.inputBorder}`;
     padding    = '12px';
-    bg         = 'transparent';
+    bg         = dark ? D.surface : '#FFFFFF';
     titleColor = dark ? D.text1 : C.text1;
     subColor   = dark ? D.text2 : C.text3;
   }
@@ -246,22 +294,45 @@ function StaticCard({ state, dark }: { state: CardState; dark: boolean }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   PINNED CELL — locks background/border to its tone regardless of global theme
+═══════════════════════════════════════════════════════════════════════════ */
+
+function PinnedCell({ tone, children }: { tone: 'light' | 'dark'; children: React.ReactNode }) {
+  const isDark = tone === 'dark';
+  const bg     = isDark ? DARK_BG     : LIGHT_BG;
+  const border = isDark ? DARK_BORDER : LIGHT_BORDER;
+  return (
+    <div style={{
+      background: bg,
+      border: `1px solid ${border}`,
+      borderRadius: '12px',
+      padding: '16px',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    SUPPORT COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-function ColumnHeader({ t, tone }: { t: T; tone: 'light' | 'dark' }) {
+function ColumnHeader({ tone }: { tone: 'light' | 'dark' }) {
   const isDark = tone === 'dark';
+  const labelColor = isDark ? D.text3 : C.text3;
+  const swatchBg   = isDark ? D.surface : '#FFFFFF';
+  const swatchBorder = isDark ? D.border : C.border;
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '8px',
       fontFamily: F.inter, fontSize: '11px', fontWeight: 700,
-      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.08em',
+      color: labelColor, textTransform: 'uppercase', letterSpacing: '0.08em',
       padding: '0 4px',
     }}>
       <span style={{
         width: '10px', height: '10px', borderRadius: '3px',
-        background: isDark ? D.surface : '#FFFFFF',
-        border: `1px solid ${isDark ? D.border : C.border}`,
+        background: swatchBg,
+        border: `1px solid ${swatchBorder}`,
       }} />
       {tone}
     </div>
@@ -270,7 +341,7 @@ function ColumnHeader({ t, tone }: { t: T; tone: 'light' | 'dark' }) {
 
 function StateLabel({ t, label, sub }: { t: T; label: string; sub: string }) {
   return (
-    <div>
+    <div style={{ paddingTop: '4px' }}>
       <div style={{
         fontFamily: F.inter, fontSize: '12px', fontWeight: 700,
         color: t.text2, textTransform: 'uppercase', letterSpacing: '0.04em',
@@ -283,21 +354,6 @@ function StateLabel({ t, label, sub }: { t: T; label: string; sub: string }) {
       }}>
         {sub}
       </div>
-    </div>
-  );
-}
-
-function VariantFrame({ dark, children }: { dark: boolean; children: React.ReactNode }) {
-  const bg     = dark ? D.surface : C.surface;
-  const border = dark ? D.border  : C.border;
-  return (
-    <div style={{
-      background: bg,
-      border: `1px solid ${border}`,
-      borderRadius: '10px',
-      padding: '10px',
-    }}>
-      {children}
     </div>
   );
 }
