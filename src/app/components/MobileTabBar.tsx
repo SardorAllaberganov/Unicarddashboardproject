@@ -52,11 +52,15 @@ export function MobileTabBar({ darkMode = false }: { darkMode?: boolean }) {
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50,
-      height: 64,
+      // Total height = 64 px tabs + safe-area-inset-bottom (34 pt on iPhones
+      // with home indicator, 0 on Android + non-PWA web). box-sizing makes
+      // the padding part of the height so tabs stay exactly 64 px tall.
+      height: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+      boxSizing: 'border-box',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       background: bg, backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
       borderTop: `1px solid ${borderColor}`,
       display: 'flex', alignItems: 'stretch',
-      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
       {tabs.map(tab => {
         const active = isTabActive(tab.path, pathname, tabs);

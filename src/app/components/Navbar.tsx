@@ -102,8 +102,13 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
       <div style={{
         position: 'sticky', top: 0, zIndex: 40,
         background: t.surface, borderBottom: `1px solid ${t.border}`,
-        height: '56px', display: 'flex', alignItems: 'center',
-        padding: '0 12px', flexShrink: 0,
+        // PWA standalone mode on iOS renders content under the notch. Total
+        // height = 56 px content + safe-area-inset-top. Browsers outside
+        // standalone mode return 0 for the env(), so no visual change there.
+        height: 'calc(56px + env(safe-area-inset-top, 0px))',
+        boxSizing: 'border-box',
+        display: 'flex', alignItems: 'center',
+        padding: 'env(safe-area-inset-top, 0px) 12px 0', flexShrink: 0,
         transition: 'background 0.2s, border-color 0.2s',
       }}>
         {/* Left — app name */}
