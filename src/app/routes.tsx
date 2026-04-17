@@ -52,6 +52,11 @@ import SellerMessageHistoryPage from './pages/SellerMessageHistoryPage';
 import SellerMessageDetailPage from './pages/SellerMessageDetailPage';
 import MobileDesignSystemPage from './pages/MobileDesignSystemPage';
 import MobileTabBarShowcasePage from './pages/MobileTabBarShowcasePage';
+import MobileHeaderShowcasePage from './pages/MobileHeaderShowcasePage';
+import MobileMoreMenuShowcasePage from './pages/MobileMoreMenuShowcasePage';
+import MobileMoreMenuOrgShowcasePage from './pages/MobileMoreMenuOrgShowcasePage';
+import MobileNavMapPage from './pages/MobileNavMapPage';
+import MobileDashboardShowcasePage from './pages/MobileDashboardShowcasePage';
 
 export const router = createBrowserRouter([
   {
@@ -73,6 +78,26 @@ export const router = createBrowserRouter([
   {
     path: '/mobile-tab-bar',
     Component: MobileTabBarShowcasePage,
+  },
+  {
+    path: '/mobile-header',
+    Component: MobileHeaderShowcasePage,
+  },
+  {
+    path: '/mobile-more-menu',
+    Component: MobileMoreMenuShowcasePage,
+  },
+  {
+    path: '/mobile-more-menu-org',
+    Component: MobileMoreMenuOrgShowcasePage,
+  },
+  {
+    path: '/mobile-nav-map',
+    Component: MobileNavMapPage,
+  },
+  {
+    path: '/mobile-dashboard',
+    Component: MobileDashboardShowcasePage,
   },
   {
     path: '/sidebar',
