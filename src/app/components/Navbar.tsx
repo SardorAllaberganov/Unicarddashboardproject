@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router';
 import { F, C, D, theme } from './ds/tokens';
 import { usePopoverPosition } from './usePopoverPosition';
+import { useIsMobile } from './useIsMobile';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -62,6 +63,7 @@ function detectRole(pathname: string): AdminRole {
 ═══════════════════════════════════════════════════════════════════════════ */
 
 export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
+  const mobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
   const [themeHov, setThemeHov] = useState(false);
   const [themeSpinKey, setThemeSpinKey] = useState(0);
@@ -92,6 +94,158 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
     setMenuOpen(false);
     navigate(otherCfg.homePath);
   };
+
+  /* ── MOBILE HEADER ──────────────────────────────────────────────────── */
+  if (mobile) {
+    const unreadCount = 5;
+    return (
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 40,
+        background: t.surface, borderBottom: `1px solid ${t.border}`,
+        height: '56px', display: 'flex', alignItems: 'center',
+        padding: '0 12px', flexShrink: 0,
+        transition: 'background 0.2s, border-color 0.2s',
+      }}>
+        {/* Left — app name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+          <span style={{
+            fontFamily: F.dm, fontSize: '15px', fontWeight: 700,
+            color: currentRole === 'org' ? t.blue : t.text1, whiteSpace: 'nowrap',
+          }}>
+            {currentRole === 'org' ? 'Mysafar OOO' : 'Moment KPI'}
+          </span>
+        </div>
+
+        {/* Right cluster */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {/* Bell */}
+          <button
+            onClick={() => navigate('/notifications')}
+            style={{
+              position: 'relative', width: 36, height: 36, borderRadius: 8,
+              border: `1px solid ${t.border}`, background: t.surface,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            <Bell size={15} color={t.text3} strokeWidth={1.75} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: 'absolute', top: 3, right: 3,
+                minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999,
+                background: '#EF4444', border: `2px solid ${t.surface}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: F.inter, fontSize: '10px', fontWeight: 700, color: '#FFFFFF', lineHeight: 1,
+              }}>
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Theme toggle */}
+          <button
+            onClick={() => { setThemeSpinKey(k => k + 1); onDarkModeToggle(); }}
+            style={{
+              width: 36, height: 36, borderRadius: 8,
+              border: `1px solid ${t.border}`, background: t.surface,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            {darkMode
+              ? <Sun size={15} color="#F59E0B" strokeWidth={1.75} />
+              : <Moon size={15} color={t.text3} strokeWidth={1.75} />}
+          </button>
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 24, background: t.border, margin: '0 2px', flexShrink: 0 }} />
+
+          {/* Avatar + chevron */}
+          <div ref={ref} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 2,
+                padding: '4px 4px 4px 4px',
+                border: 'none', borderRadius: 10,
+                background: menuOpen ? t.blueLt : 'transparent',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{
+                width: 30, height: 30, borderRadius: '50%',
+                background: t.blueTint, border: `1.5px solid ${t.blue}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <span style={{ fontFamily: F.inter, fontSize: '11px', fontWeight: 700, color: t.blue }}>
+                  {cfg.initials}
+                </span>
+              </div>
+              <ChevronDown size={14} color={t.text4} strokeWidth={1.75}
+                style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s', flexShrink: 0 }}
+              />
+            </button>
+
+            {/* Mobile dropdown */}
+            {menuOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+                background: t.surface, border: `1px solid ${t.border}`,
+                borderRadius: 10, padding: 6,
+                boxShadow: dark ? '0 8px 24px rgba(0,0,0,0.45)' : '0 8px 24px rgba(0,0,0,0.09)',
+                zIndex: 60, minWidth: 200,
+              }}>
+                <button style={{
+                  width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 10px', borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer',
+                  fontFamily: F.inter, fontSize: 13, color: t.text2,
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.background = hoverBg)}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: t.blueTint, border: `1.5px solid ${t.blue}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontFamily: F.inter, fontSize: 10, fontWeight: 700, color: t.blue }}>{cfg.initials}</span>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: F.inter, fontSize: 13, fontWeight: 500, color: t.text1 }}>{cfg.name}</div>
+                    <div style={{ fontFamily: F.inter, fontSize: 11, color: t.text4 }}>{cfg.email}</div>
+                  </div>
+                </button>
+                <div style={{ height: 1, background: t.border, margin: '4px 0' }} />
+                <button
+                  onClick={handleSwitchRole}
+                  style={{
+                    width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '8px 10px', borderRadius: 7, border: 'none', background: 'transparent', cursor: 'pointer',
+                    fontFamily: F.inter, fontSize: 13, color: t.text2,
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = hoverBg)}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <ArrowLeftRight size={14} strokeWidth={1.75} />
+                  Переключить на {otherCfg.roleLabel}
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); navigate('/login'); }}
+                  style={{
+                    width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '8px 10px', borderRadius: 7, border: 'none', background: 'transparent', cursor: 'pointer',
+                    fontFamily: F.inter, fontSize: 13, color: dark ? '#F87171' : '#DC2626',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = dark ? 'rgba(248,113,113,0.12)' : '#FEF2F2')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <LogOut size={14} strokeWidth={1.75} /> Выйти из системы
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── DESKTOP NAVBAR (unchanged) ─────────────────────────────────────── */
 
   return (
     <div style={{

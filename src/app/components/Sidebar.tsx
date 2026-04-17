@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router';
 import { F, C, D } from './ds/tokens';
+import { useIsMobile } from './useIsMobile';
+import { MobileTabBar } from './MobileTabBar';
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TYPES
@@ -214,11 +216,16 @@ export function Sidebar({
   orgName = 'Mysafar OOO',
   activePath,
 }: SidebarProps) {
+  const mobile = useIsMobile();
   const dark = darkMode;
   const [collapseHovered, setCollapseHovered] = useState(false);
   const navigate = useNavigate();
   const { pathname: locationPath } = useLocation();
   const pathname = activePath ?? locationPath;
+
+  if (mobile) {
+    return <MobileTabBar darkMode={darkMode} />;
+  }
 
   const surfaceBg       = dark ? D.sidebarBg     : C.sidebarBg;
   const borderColor     = dark ? D.sidebarBorder : C.sidebarBorder;
