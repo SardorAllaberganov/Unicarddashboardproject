@@ -1,6 +1,6 @@
 # AI Context — Moment Card KPI Platform
 
-Last synced: 2026-04-16 (+ mobile design system foundation — `/mobile-design-system` + `/mobile-tab-bar`)
+Last synced: 2026-04-17 (responsive shell + 4 pages mobile-ready + 5 mobile showcase pages)
 
 ## Current state
 
@@ -11,7 +11,9 @@ Moment Card KPI is a React 18 + TypeScript + Vite single-page app serving two ad
 
 There is no backend. All data is mock TypeScript arrays inside each page file. Role is inferred from the URL path (and `?from=org` for shared pages like `/notifications` and `/card-detail/:id`). Dark mode persists via a module-level theme store backed by `localStorage['moment-kpi-theme']` with values `'light' | 'dark' | 'system'`. Every page, showcase, modal, and Design System showcase row (Row 1 through Row 10) now themes against the `theme(dark)` token surface — the rollout hit 100%. The target resolution is 1920×1080 desktop.
 
-A parallel **mobile design system** now lives at [/mobile-design-system](../src/app/pages/MobileDesignSystemPage.tsx) (master reference, 20 sections) plus a detailed per-component showcase at [/mobile-tab-bar](../src/app/pages/MobileTabBarShowcasePage.tsx). These are rendered **inside `PhoneFrame` wrappers on the desktop canvas** — they are reference catalogues, not actual mobile-responsive routes. The app itself still targets desktop.
+A parallel **mobile design system** lives at `/mobile-design-system` (master reference, 20 sections) plus per-component drill-downs at `/mobile-tab-bar`, `/mobile-header`, `/mobile-more-menu`, `/mobile-more-menu-org`, `/mobile-nav-map`, and `/mobile-dashboard`. These are rendered inside `PhoneFrame` wrappers on the desktop canvas as reference catalogues.
+
+The app is now **responsive**. A shared shell detects `<768 px` via [useIsMobile](../src/app/components/useIsMobile.tsx): [Sidebar](../src/app/components/Sidebar.tsx) becomes a fixed-bottom [MobileTabBar](../src/app/components/MobileTabBar.tsx) (4 tabs per role), and [Navbar](../src/app/components/Navbar.tsx) renders a simplified 56 px mobile header (brand left, bell + theme + avatar + chevron right). Key pages have per-page mobile branches: `/dashboard`, `/organizations`, `/organizations/:id`, `/organizations/new`. Mobile form inputs auto-scroll to center on focus (120 ms delay for keyboard).
 
 ## Feature map (what lives where)
 
@@ -31,7 +33,12 @@ A parallel **mobile design system** now lives at [/mobile-design-system](../src/
 | `/export-toast-showcase` | [ExportToastShowcasePage](../src/app/pages/ExportToastShowcasePage.tsx) | Processing / success / error — light + dark stacks |
 | `/design-system` | [DesignSystemPage](../src/app/pages/DesignSystemPage.tsx) | 10-row DS tour |
 | `/mobile-design-system` | [MobileDesignSystemPage](../src/app/pages/MobileDesignSystemPage.tsx) | 20-section mobile reference (390×844 baseline, pinned light+dark phone frames) |
-| `/mobile-tab-bar` | [MobileTabBarShowcasePage](../src/app/pages/MobileTabBarShowcasePage.tsx) | Detailed bottom-tab-bar spec (2 roles × 2 themes, pressed state, home indicator) |
+| `/mobile-tab-bar` | [MobileTabBarShowcasePage](../src/app/pages/MobileTabBarShowcasePage.tsx) | Bottom tab bar spec (2 roles × 2 themes) |
+| `/mobile-header` | [MobileHeaderShowcasePage](../src/app/pages/MobileHeaderShowcasePage.tsx) | Top header 4 variants × 2 scroll states × light/dark |
+| `/mobile-more-menu` | [MobileMoreMenuShowcasePage](../src/app/pages/MobileMoreMenuShowcasePage.tsx) | Bank Admin "Ещё" menu (9 tiles) |
+| `/mobile-more-menu-org` | [MobileMoreMenuOrgShowcasePage](../src/app/pages/MobileMoreMenuOrgShowcasePage.tsx) | Org Admin "Ещё" menu (6 tiles) |
+| `/mobile-nav-map` | [MobileNavMapPage](../src/app/pages/MobileNavMapPage.tsx) | Navigation structure diagram (Bank + Org tree, presentation rules) |
+| `/mobile-dashboard` | [MobileDashboardShowcasePage](../src/app/pages/MobileDashboardShowcasePage.tsx) | Bank dashboard mobile spec (Y-06) |
 | `/sidebar`, `/sidebar-org` | Sidebar showcases |  |
 | `/flow/announcements` | [AnnouncementFlowPage](../src/app/pages/AnnouncementFlowPage.tsx) | Dev-handoff diagram (no sidebar/navbar) |
 
@@ -98,6 +105,8 @@ A parallel **mobile design system** now lives at [/mobile-design-system](../src/
 | [Sidebar.tsx](../src/app/components/Sidebar.tsx) | `<Sidebar role="bank"│"org" />` | Unified sidebar; 260 px / 68 px. Uses dedicated `sidebarBg` / `sidebarBorder` tokens (`#FFFFFF` → `#12141C`). Theme toggle **removed** (moved to navbar); bottom row is the collapse button only. `onDarkModeToggle` prop is a deprecated no-op kept for backward compat. Optional `activePath?: string` overrides `useLocation()` — used by `/sidebar` and `/sidebar-org` showcases so their pinned quadrants highlight a real nav item despite the URL (`/sidebar`) not matching any menu entry. |
 | [DateRangePicker.tsx](../src/app/components/DateRangePicker.tsx) | `<DateRangePicker />` | Range picker with quick-preset panel. Fully dark-themed; reads `useDarkMode()` internally. |
 | [OrgDetailDrawer.tsx](../src/app/components/OrgDetailDrawer.tsx) | `<OrgDetailDrawer />` | 4-tab slide-in drawer used on `/organizations`. Full dark theme; status badges use dedicated dark palettes. |
+| [useIsMobile.tsx](../src/app/components/useIsMobile.tsx) | `useIsMobile()` | Module-level resize listener, breakpoint 768 px. Returns `boolean`. Used by Sidebar and Navbar to switch between desktop and mobile shells. |
+| [MobileTabBar.tsx](../src/app/components/MobileTabBar.tsx) | `<MobileTabBar />` | Fixed-bottom 4-tab bar. Auto-detects role from URL (same `ORG_PATHS` logic as Navbar). Bank: Дашборд / Организации / Карты / Ещё. Org: Дашборд / Продавцы / Карты / Ещё. Backdrop-blur bg + `env(safe-area-inset-bottom)`. |
 | [ds/tokens.ts](../src/app/components/ds/tokens.ts) | `F`, `C`, `D`, `theme(dark)` | Fonts / colors / dark-mode overrides. New tokens: `sidebarBg`, `sidebarBorder`, `tableHeaderBg`, `tableHover`, `tableAlt`, `focusRing`, `skeletonBase`, `skeletonShimmer`, `overlay`, `progressTrack`. |
 
 ## Data model (mock data)
@@ -128,6 +137,9 @@ Full interface catalogue in [DATA_MODELS.md](./DATA_MODELS.md). Each page owns i
 - **Dark-mode state is global** via `useDarkMode()`. Do not re-introduce `useState(false)` — toggle in Navbar or Settings must persist across route changes. (Sidebar no longer has a theme toggle — it moved to the Navbar.)
 - **Page-level dark theming uses `theme()`, not CSS variables.** Pattern: `const t = theme(darkMode); const dark = darkMode;` at the top of the default export, then `t.pageBg` / `t.surface` / `t.border` / `t.text1-4` / `t.blue` etc. in inline styles. Page-local helper components must accept `t` + `dark` as props (not read `useDarkMode()` inline) so showcase pages can force a specific variant. Shared primitives (EmptyState, PaginationBar, RadioGroup, ExportToast, FormatToolbar) follow the opposite pattern — read `useDarkMode()` by default, accept optional `dark` override.
 - **DS showcase rows (Row1–Row10) theme the chrome, not the specimens.** Each row card container, labels, captions, dividers, and interactive samples switch via `t`. But hardcoded hex inside `Swatch` tiles (Row1 palette) and `color` values on `typeScale` entries (Row1 typography specimens) stay literal — they exist to demonstrate that exact color. Row10 deliberately shows both light + dark swatches side-by-side in the "Dark Theme Token Overrides" strip regardless of global theme (it's a reference strip).
+- **Responsive shell is automatic.** `Sidebar` returns `<MobileTabBar>` at <768 px; `Navbar` renders a 56 px mobile header. Every page gets this for free — no per-page changes needed for the shell. Per-page mobile content branches are opt-in via `useIsMobile()` + conditional render (currently done for `/dashboard`, `/organizations`, `/organizations/:id`, `/organizations/new`).
+- **Mobile form inputs must auto-scroll to center on focus.** Wrap each field in a `ref` div and call `scrollIntoView({ behavior: 'smooth', block: 'center' })` after a 120 ms `setTimeout` on focus. The delay lets the mobile keyboard open first.
+- **Mobile create/edit pages use Y-02 V4 header** (X close + centered title + action text button), not the standard Navbar. They render their own header inside the mobile branch and skip `<Navbar>`.
 - **Mobile design system is a desktop-canvas reference, not a mobile route.** [/mobile-design-system](../src/app/pages/MobileDesignSystemPage.tsx) and [/mobile-tab-bar](../src/app/pages/MobileTabBarShowcasePage.tsx) wrap every section in the `PhoneFrame` primitive from [mds/frame.tsx](../src/app/components/mds/frame.tsx) — a 390 px fixed-width rounded bezel — so the existing desktop sidebar/navbar frame the mobile mockups. Mobile-specific tokens (safe areas, tab-bar backdrop blur, iOS touch highlight, Android ripple) live in the `MDS` const in `frame.tsx`, not in `ds/tokens.ts`. All color values inherit from existing `F`/`C`/`D`/`theme()`. Sections render pinned light+dark via the `<Pair>` helper. Interactions are static representational mocks (no real tab switching, sheet open/close, PTR gesture) — converting any section to a real mobile route is a separate future task.
 - **Status pills need dedicated dark palettes.** The semantic token layer (`t.successBg` etc.) only covers pill backgrounds, not the saturated pill text colors. For status badges with multiple-state maps (Активна / На паузе / Неактивна, Активна / Зарег. / На складе …), define a `_DARK` sibling map at module scope and branch on `dark`.
 - **Notification bell consumes `window` CustomEvents** (`app:notif:new`, `app:notif:batch`). Events dispatched before `navigate()` are lost (navbar unmounts) — needs a module-level store for real cross-page delivery.

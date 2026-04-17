@@ -21,6 +21,13 @@ Root cause: Every page-local helper in this codebase uses `dark: boolean` as its
 Fix: When the theming agent reports complete, grep each touched file for `<Sidebar ` / `<Navbar ` and confirm the prop name is `darkMode`, not `dark`.
 Rule: Shared shell components (`Sidebar`, `Navbar`) take `darkMode={darkMode}`. Every other component in the codebase takes `dark={dark}`. When reviewing a page's theming work, audit the shell props first.
 
+## 2026-04-17 — Mobile form inputs must auto-scroll to center on focus
+
+Mistake: On mobile, tapping a form field near the bottom of the viewport caused the keyboard to open and push the field out of view — the user couldn't see what they were typing.
+Root cause: Mobile browsers don't reliably scroll focused elements into view when the virtual keyboard appears, especially inside scrollable divs that aren't the document body.
+Fix: Added `scrollIntoView({ behavior: 'smooth', block: 'center' })` on focus with a 120 ms `setTimeout`. The delay lets the keyboard animation start before the scroll adjusts, so the field lands in the visible center of the viewport — not at the edge.
+Rule: Every `FormInput`, `FormTextarea`, and custom input wrapper in a mobile form page must have a wrapper `ref` and call `scrollIntoView` on focus. Pattern: `const wrapRef = useRef<HTMLDivElement>(null); onFocus={() => { setFocused(true); setTimeout(() => wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120); }}`.
+
 ## 2026-04-16 — Mobile reference ≠ mobile-responsive route
 
 Mistake: When first asked to build "a mobile-first design system at 390×844", it's tempting to (a) make the whole app mobile-responsive via viewport media queries, or (b) create standalone mobile routes with no desktop chrome. Neither matches the project's intent.

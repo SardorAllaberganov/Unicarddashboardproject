@@ -4,6 +4,7 @@ Before writing any code, gather full context on the task.
 1. Read `CLAUDE.md` for critical rules, design tokens, and conventions
 2. Read `docs/readme.md` for project overview, routes, and structure
 3. Check `.claude/commands/` for any relevant workflow commands
+4. Reaad `MEMORY.md` also and related files inside of it to keep the rules
 
 ### Step 2: Identify Scope
 1. Identify which files will be affected (pages, components, routes, sidebar, navbar)

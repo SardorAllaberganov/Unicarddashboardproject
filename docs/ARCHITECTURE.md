@@ -37,6 +37,8 @@ src/
 │       ├── usePopoverPosition.ts  # shared anchored-popover hook
 │       ├── useExportToast.tsx     # shared export-toast hook + <ExportToast /> (dark-aware)
 │       ├── useDarkMode.tsx        # module-level theme store (localStorage-backed)
+│       ├── useIsMobile.tsx        # viewport <768px hook (shared module-level listener)
+│       ├── MobileTabBar.tsx       # fixed-bottom 4-tab bar (Bank/Org auto-detected from URL)
 │       ├── renderMarkdown.tsx     # markdown-lite renderer + FormatToolbar (dark-aware)
 │       ├── ds/
 │       │   ├── tokens.ts          # F (fonts), C (colors), D (dark), theme()
@@ -98,6 +100,16 @@ Pages add `const t = theme(darkMode); const dark = darkMode;` at the top of the 
 Shared primitives ([EmptyState](../src/app/components/EmptyState.tsx), [PaginationBar](../src/app/components/PaginationBar.tsx), [RadioGroup](../src/app/components/RadioCard.tsx), [ExportToast](../src/app/components/useExportToast.tsx), [FormatToolbar](../src/app/components/renderMarkdown.tsx), [DateRangePicker](../src/app/components/DateRangePicker.tsx), [OrgDetailDrawer](../src/app/components/OrgDetailDrawer.tsx)) use the opposite pattern — they read `useDarkMode()` by default and accept an optional `dark` prop to override. The `renderMarkdown()` function takes dark as its **2nd positional arg** instead since it's a function, not a component.
 
 Status badges with multiple states (e.g. Активна / На паузе / Неактивна across pages) define two sibling maps — `STATUS_STYLE_LIGHT` and `STATUS_STYLE_DARK` — and branch on `dark`. Saturated pill colors aren't in the token layer.
+
+## Responsive mobile shell
+
+At `<768 px` the app switches to a mobile layout automatically via [useIsMobile](../src/app/components/useIsMobile.tsx):
+
+- **Sidebar** → returns `<MobileTabBar>` (position: fixed bottom, 64 px + safe-area) instead of the side panel. The parent flex container gets 0 px sidebar width, so content fills 100%.
+- **Navbar** → renders a 56 px mobile header: brand text left + bell (36×36 bordered, count badge) + theme toggle + divider + avatar (30 px, blue ring) + ChevronDown. Dropdown menu still works.
+- **Per-page mobile branches** — opt-in via `const mobile = useIsMobile()` + conditional render: `{mobile ? <MobileLayout /> : <DesktopLayout />}`. Currently done for: `/dashboard`, `/organizations`, `/organizations/:id`, `/organizations/new`.
+- **Mobile form convention** — inputs auto-scroll to center on focus (120 ms delay via `scrollIntoView({ behavior: 'smooth', block: 'center' })`).
+- **Create/edit pages** render their own Y-02 V4 header (X close + title + action text) inside the mobile branch, bypassing Navbar.
 
 ## Shared primitives
 

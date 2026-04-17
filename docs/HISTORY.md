@@ -4,6 +4,31 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
+## 2026-04-17 — Responsive mobile shell + per-page mobile layouts + 5 showcase pages
+
+**Module:** all (responsive infrastructure + mobile page content)
+**Commits:** uncommitted working tree — 15 files (+7 new, 8 modified), +1,211 lines. Builds on `08caab3`.
+**Files touched:** 15
+
+**What changed:**
+
+- **Responsive shell** — new [useIsMobile](../src/app/components/useIsMobile.tsx) hook (breakpoint 768 px, module-level resize listener) + new [MobileTabBar](../src/app/components/MobileTabBar.tsx) (position: fixed bottom, 4 tabs per role auto-detected from URL). [Sidebar](../src/app/components/Sidebar.tsx) returns `<MobileTabBar>` on mobile instead of the side panel. [Navbar](../src/app/components/Navbar.tsx) renders a simplified 56 px mobile header on mobile (brand left, bell + theme + avatar + ChevronDown right, with dropdown menu). All 50+ pages get this shell automatically.
+- **Per-page mobile branches** — 4 pages now conditionally render mobile content via `useIsMobile()`:
+  - `/dashboard` — greeting + hero blue-gradient KPI card + 2×2 stats + compact funnel + top orgs list + activity feed.
+  - `/organizations` — search bar + stat strip + list rows with avatar + status badge + amount + chevron.
+  - `/organizations/:id` — Y-02 V3 header (back + title + ⋯) + hero with badges + phone tap-to-call + 2×2 stats + iOS segmented control (4 tabs) + all 4 tab contents (Сводка with KPI bars + activity, Продавцы list rows, Карты with search + badge rows, Финансы with summary chips + transaction list) + action bottom sheet (Edit / Assign / Pause / Deactivate + Cancel).
+  - `/organizations/new` — Y-02 V4 modal header (X close + title + "Создать" text button) + stacked single-column form fields grouped by section headers + SMS toggle + sticky bottom "Создать организацию" button with disabled state.
+- **Mobile form auto-scroll** — `FormInput` and `FormTextarea` call `scrollIntoView({ behavior: 'smooth', block: 'center' })` on focus with 120 ms delay for keyboard open.
+- **`iconVariant` bug fix** — function was missing in `OrgDetailPage.tsx` (defined only in `BankAdminDashboardPage.tsx`), causing `ReferenceError` on mobile. Added inline.
+- **5 new mobile showcase pages** — `/mobile-header` (4 header variants × 2 scroll states × light/dark), `/mobile-more-menu` (Bank "Ещё", 9 tiles), `/mobile-more-menu-org` (Org "Ещё", 6 tiles), `/mobile-nav-map` (navigation tree diagram with presentation rules), `/mobile-dashboard` (Bank dashboard spec Y-06). All routed and linked from `/mobile-design-system`.
+- **Routes** — 5 new entries in [routes.tsx](../src/app/routes.tsx): `/mobile-header`, `/mobile-more-menu`, `/mobile-more-menu-org`, `/mobile-nav-map`, `/mobile-dashboard`.
+
+**Follow-ups:**
+- Remaining pages (card batches, KPI config, settings, all org-admin pages, etc.) still need per-page mobile branches — they get the responsive shell (tab bar + mobile header) but content is still desktop layout at narrow widths.
+- `iconVariant` is duplicated across `BankAdminDashboardPage` and `OrgDetailPage` — consider extracting to a shared util.
+
+---
+
 ## 2026-04-16 (night) — Mobile design system foundation
 
 **Module:** mobile (new area)
