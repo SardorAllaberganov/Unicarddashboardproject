@@ -5,6 +5,8 @@ import {
 import { Sidebar } from '../components/Sidebar';
 import { F, theme } from '../components/ds/tokens';
 import { useDarkMode, useThemePref, type ThemePref } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
+import { MobileSettings } from '../components/MobileSettings';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
@@ -1374,6 +1376,7 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
   const [activeTab, setActiveTab] = useState<TabId>('profile');
@@ -1390,6 +1393,9 @@ export default function SettingsPage() {
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
+        {mobile ? (
+          <MobileSettings role="bank" t={t} dark={dark} navigate={navigate} />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
@@ -1430,6 +1436,7 @@ export default function SettingsPage() {
 
           <div style={{ height: '48px' }} />
         </div>
+        )}
       </div>
     </div>
   );

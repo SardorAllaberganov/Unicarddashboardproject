@@ -3,6 +3,8 @@ import { ChevronRight } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
+import { MobileSettings } from '../components/MobileSettings';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
@@ -547,6 +549,7 @@ export default function OrgSettingsPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
 
   const t = theme(darkMode);
@@ -564,6 +567,9 @@ export default function OrgSettingsPage() {
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
+        {mobile ? (
+          <MobileSettings role="org" t={t} dark={dark} navigate={navigate} />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
@@ -599,6 +605,7 @@ export default function OrgSettingsPage() {
 
           <div style={{ height: '48px' }} />
         </div>
+        )}
       </div>
 
       {/* Responsive: tabs go horizontal on tablet */}
