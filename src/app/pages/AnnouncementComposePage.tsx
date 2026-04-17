@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell, ChevronRight, ChevronLeft, Plus, X, Check, ChevronDown, Search,
   Save, AlertTriangle, Calendar as CalendarIcon, Clock,
@@ -9,6 +9,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { renderMarkdown, FormatToolbar } from '../components/renderMarkdown';
 
@@ -68,9 +69,701 @@ const EMPTY_FORM: FormState = {
    PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — Announcement Compose (M-03)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function MobileSectionHeader({ text, t }: { text: string; t: T }) {
+  return (
+    <div style={{
+      fontFamily: F.inter, fontSize: 11, fontWeight: 600,
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
+      padding: '20px 4px 10px',
+    }}>
+      {text}
+    </div>
+  );
+}
+
+function MobileCard({ children, t }: { children: React.ReactNode; t: T }) {
+  return (
+    <div style={{
+      background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14,
+      overflow: 'hidden',
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function MobileTitleInput({
+  label, value, onChange, placeholder, t,
+}: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; t: T;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    setTimeout(() => {
+      wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }, []);
+  return (
+    <div ref={wrapRef} style={{ padding: 16 }}>
+      <label style={{
+        display: 'block', fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+        color: t.text2, marginBottom: 8,
+      }}>{label}</label>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={handleFocus}
+        onBlur={() => setFocused(false)}
+        placeholder={placeholder}
+        maxLength={80}
+        style={{
+          width: '100%', height: 48,
+          padding: '0 14px',
+          border: `1.5px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: 12,
+          background: t.surface,
+          fontFamily: F.inter, fontSize: 15, color: t.text1,
+          outline: 'none', boxSizing: 'border-box',
+          transition: 'border-color 0.12s',
+        }}
+      />
+    </div>
+  );
+}
+
+function MobileBodyField({
+  label, value, onChange, placeholder, t, dark,
+}: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string; t: T; dark: boolean;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
+  const [focused, setFocused] = useState(false);
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    setTimeout(() => {
+      wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }, []);
+
+  const max = 500;
+  const count = value.length;
+  const near = count >= max * 0.8;
+
+  return (
+    <div
+      ref={wrapRef}
+      style={{ padding: 16, borderTop: `1px solid ${t.border}` }}
+    >
+      <label style={{
+        display: 'block', fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+        color: t.text2, marginBottom: 8,
+      }}>
+        {label}
+      </label>
+
+      {/* Format toolbar above textarea */}
+      <div style={{ marginBottom: 6 }}>
+        <FormatToolbar textareaRef={textRef} value={value} onChange={onChange} dark={dark} />
+      </div>
+
+      <textarea
+        ref={textRef}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={handleFocus}
+        onBlur={() => setFocused(false)}
+        placeholder={placeholder}
+        maxLength={max}
+        style={{
+          width: '100%', minHeight: 120,
+          padding: '12px 14px',
+          border: `1.5px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: 12,
+          background: t.surface,
+          fontFamily: F.inter, fontSize: 15, color: t.text1,
+          outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+          lineHeight: 1.5,
+          transition: 'border-color 0.12s',
+        }}
+      />
+      <div style={{
+        display: 'flex', justifyContent: 'flex-end', marginTop: 6,
+        fontFamily: F.mono, fontSize: 11,
+        color: near ? t.warning : t.text4,
+      }}>
+        {count} / {max}
+      </div>
+    </div>
+  );
+}
+
+function MobileCheckboxRow({
+  label, checked, onChange, disabled, hint, isLast, t,
+}: {
+  label: string; checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean;
+  hint?: React.ReactNode; isLast?: boolean; t: T;
+}) {
+  return (
+    <div
+      onClick={() => !disabled && onChange?.(!checked)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '14px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: F.inter, fontSize: 15, color: t.text1 }}>{label}</div>
+        {hint && <div style={{ fontFamily: F.inter, fontSize: 12, color: t.text3, marginTop: 3 }}>{hint}</div>}
+      </div>
+      <div style={{
+        width: 22, height: 22, borderRadius: 6,
+        border: `1.5px solid ${checked ? t.blue : t.inputBorder}`,
+        background: checked ? t.blue : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0, transition: 'all 0.12s',
+      }}>
+        {checked && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+      </div>
+    </div>
+  );
+}
+
+function MobileRadioRow({
+  label, sub, selected, onSelect, isLast, t,
+}: {
+  label: string; sub?: string; selected: boolean; onSelect: () => void; isLast?: boolean; t: T;
+}) {
+  return (
+    <div
+      onClick={onSelect}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '14px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: F.inter, fontSize: 15, color: t.text1 }}>{label}</div>
+        {sub && <div style={{ fontFamily: F.inter, fontSize: 12, color: t.text3, marginTop: 3 }}>{sub}</div>}
+      </div>
+      <div style={{
+        width: 22, height: 22, borderRadius: '50%',
+        border: `1.5px solid ${selected ? t.blue : t.inputBorder}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        {selected && <div style={{ width: 10, height: 10, borderRadius: '50%', background: t.blue }} />}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Recipient picker sheet (full-screen multi-select) ───────────────── */
+
+function MobileRecipientPicker({
+  open, onClose, t, dark, mode, setMode, selectedOrgs, setSelectedOrgs, selectedUsers, setSelectedUsers,
+}: {
+  open: boolean;
+  onClose: () => void;
+  t: T; dark: boolean;
+  mode: RecipientMode;
+  setMode: (m: RecipientMode) => void;
+  selectedOrgs: string[];
+  setSelectedOrgs: (v: string[]) => void;
+  selectedUsers: string[];
+  setSelectedUsers: (v: string[]) => void;
+}) {
+  if (!open) return null;
+  const toggleOrg = (o: string) => {
+    if (selectedOrgs.includes(o)) setSelectedOrgs(selectedOrgs.filter(x => x !== o));
+    else setSelectedOrgs([...selectedOrgs, o]);
+  };
+  const toggleUser = (u: string) => {
+    if (selectedUsers.includes(u)) setSelectedUsers(selectedUsers.filter(x => x !== u));
+    else setSelectedUsers([...selectedUsers, u]);
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 80,
+      background: t.pageBg,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Header */}
+      <div style={{
+        height: 56, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 8px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`,
+      }}>
+        <button
+          onClick={onClose}
+          style={{
+            width: 40, height: 40, borderRadius: 10, border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}
+        >
+          <X size={22} color={t.text1} strokeWidth={2} />
+        </button>
+        <span style={{ fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1 }}>
+          Получатели
+        </span>
+        <button
+          onClick={onClose}
+          style={{
+            height: 40, padding: '0 12px', borderRadius: 10, border: 'none', background: 'transparent',
+            fontFamily: F.inter, fontSize: 14, fontWeight: 600, color: t.blue, cursor: 'pointer',
+          }}
+        >
+          Готово
+        </button>
+      </div>
+
+      {/* Mode tabs */}
+      <div style={{ padding: '16px' }}>
+        <div style={{
+          display: 'flex', padding: 4, borderRadius: 999,
+          background: dark ? '#2D3148' : '#F3F4F6',
+          height: 36, boxSizing: 'border-box',
+        }}>
+          {(['all', 'orgs', 'users'] as RecipientMode[]).map(m => {
+            const label = m === 'all' ? 'Все' : m === 'orgs' ? 'Организации' : 'Пользователи';
+            const isActive = mode === m;
+            return (
+              <div
+                key={m}
+                onClick={() => setMode(m)}
+                style={{
+                  flex: 1, borderRadius: 999,
+                  background: isActive ? t.surface : 'transparent',
+                  boxShadow: isActive ? (dark ? '0 1px 2px rgba(0,0,0,0.4)' : '0 1px 2px rgba(17,24,39,0.08)') : 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+                  color: isActive ? t.text1 : t.text3,
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* List */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px calc(16px + env(safe-area-inset-bottom))' }}>
+        {mode === 'all' && (
+          <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+            <div style={{ fontFamily: F.inter, fontSize: 14, color: t.text3 }}>
+              Объявление будет отправлено всем организациям и пользователям системы
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: 13, color: t.text4, marginTop: 10 }}>
+              {TOTAL_ORG_COUNT} организаций · {TOTAL_USER_COUNT} пользователей
+            </div>
+          </div>
+        )}
+        {mode === 'orgs' && (
+          <MobileCard t={t}>
+            {ORGANIZATIONS.map((o, i) => (
+              <MobileCheckboxRow
+                key={o}
+                label={o}
+                checked={selectedOrgs.includes(o)}
+                onChange={() => toggleOrg(o)}
+                isLast={i === ORGANIZATIONS.length - 1}
+                t={t}
+              />
+            ))}
+          </MobileCard>
+        )}
+        {mode === 'users' && (
+          <MobileCard t={t}>
+            {USERS.map((u, i) => (
+              <MobileCheckboxRow
+                key={u}
+                label={u}
+                checked={selectedUsers.includes(u)}
+                onChange={() => toggleUser(u)}
+                isLast={i === USERS.length - 1}
+                t={t}
+              />
+            ))}
+          </MobileCard>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Preview sheet ────────────────────────────────────────────────────── */
+
+function MobilePreviewSheet({
+  open, onClose, title, body, t, dark,
+}: {
+  open: boolean; onClose: () => void; title: string; body: string; t: T; dark: boolean;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.4)' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0,
+          background: t.surface,
+          borderTopLeftRadius: 24, borderTopRightRadius: 24,
+          boxShadow: dark ? '0 -4px 24px rgba(0,0,0,0.6)' : '0 -4px 24px rgba(17,24,39,0.15)',
+          paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+          maxHeight: '85vh',
+          display: 'flex', flexDirection: 'column',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: t.inputBorder }} />
+        </div>
+        <div style={{ padding: '4px 20px 12px', fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1 }}>
+          Предпросмотр
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 20px' }}>
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 12,
+            padding: 14,
+            border: `1px solid ${t.border}`, borderRadius: 14, background: t.surface,
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%', background: t.blueLt,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Bell size={20} color={t.blue} strokeWidth={2} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontFamily: F.inter, fontSize: 15, fontWeight: 600, color: t.text1, lineHeight: 1.3,
+              }}>
+                {title.trim() || <span style={{ color: t.text4, fontWeight: 500 }}>Заголовок</span>}
+              </div>
+              <div style={{ marginTop: 6, lineHeight: 1.5 }}>
+                {body.trim()
+                  ? renderMarkdown(body, dark)
+                  : <span style={{ fontFamily: F.inter, fontSize: 13, color: t.text4 }}>Текст сообщения появится здесь</span>}
+              </div>
+              <div style={{ fontFamily: F.inter, fontSize: 11, color: t.text4, marginTop: 8 }}>
+                Только что
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{ padding: '12px 16px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%', height: 48, borderRadius: 12,
+              background: dark ? 'rgba(160,165,184,0.12)' : '#F3F4F6',
+              border: 'none',
+              fontFamily: F.inter, fontSize: 16, fontWeight: 600, color: t.text2,
+              cursor: 'pointer',
+            }}
+          >
+            Закрыть
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main mobile compose ─────────────────────────────────────────────── */
+
+function MobileAnnouncementCompose({
+  form, patch, onSend, onClose, t, dark,
+}: {
+  form: FormState;
+  patch: (p: Partial<FormState>) => void;
+  onSend: () => void;
+  onClose: () => void;
+  t: T;
+  dark: boolean;
+}) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const recipientCount = useMemo(() => {
+    if (form.mode === 'all') return TOTAL_ORG_COUNT + TOTAL_USER_COUNT;
+    if (form.mode === 'orgs') return form.selectedOrgs.length;
+    return form.selectedUsers.length;
+  }, [form.mode, form.selectedOrgs, form.selectedUsers]);
+
+  const recipientLabel = form.mode === 'all'
+    ? `Все (${TOTAL_ORG_COUNT} орг. · ${TOTAL_USER_COUNT} польз.)`
+    : form.mode === 'orgs'
+      ? `${form.selectedOrgs.length} организаций`
+      : `${form.selectedUsers.length} пользователей`;
+
+  const valid = form.title.trim().length > 0 && form.body.trim().length > 0 && recipientCount > 0;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 60,
+      background: t.pageBg,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Header Y-02 V4 */}
+      <div style={{
+        height: 56, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 8px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`,
+      }}>
+        <button
+          onClick={onClose}
+          style={{
+            width: 40, height: 40, borderRadius: 10, border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+          }}
+        >
+          <X size={22} color={t.text1} strokeWidth={2} />
+        </button>
+        <span style={{ fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1 }}>
+          Новое объявление
+        </span>
+        <button
+          onClick={valid ? onSend : undefined}
+          disabled={!valid}
+          style={{
+            height: 40, padding: '0 12px', borderRadius: 10, border: 'none', background: 'transparent',
+            fontFamily: F.inter, fontSize: 14, fontWeight: 600,
+            color: valid ? t.blue : t.textDisabled,
+            cursor: valid ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Отправить
+        </button>
+      </div>
+
+      {/* Scrollable form */}
+      <div style={{
+        flex: 1, overflowY: 'auto',
+        padding: '0 16px calc(88px + env(safe-area-inset-bottom))',
+      }}>
+        {/* СОДЕРЖАНИЕ */}
+        <MobileSectionHeader text="Содержание" t={t} />
+        <MobileCard t={t}>
+          <MobileTitleInput
+            label="Заголовок"
+            value={form.title}
+            onChange={v => patch({ title: v })}
+            placeholder="Краткий заголовок объявления"
+            t={t}
+          />
+          <MobileBodyField
+            label="Текст сообщения"
+            value={form.body}
+            onChange={v => patch({ body: v })}
+            placeholder="Подробности объявления. Поддерживается **жирный**, _курсив_, списки."
+            t={t} dark={dark}
+          />
+        </MobileCard>
+
+        {/* ПОЛУЧАТЕЛИ */}
+        <MobileSectionHeader text="Получатели" t={t} />
+        <MobileCard t={t}>
+          <div
+            onClick={() => setPickerOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '14px 16px',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontFamily: F.inter, fontSize: 15, color: t.text1 }}>Аудитория</span>
+            <span style={{
+              flex: 1, textAlign: 'right',
+              fontFamily: F.inter, fontSize: 14, color: t.text2,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>
+              {recipientLabel}
+            </span>
+            <ChevronRight size={18} color={t.textDisabled} strokeWidth={1.75} />
+          </div>
+        </MobileCard>
+        <div style={{ fontFamily: F.inter, fontSize: 12, color: t.text3, padding: '8px 4px 0' }}>
+          {recipientCount} получателей
+        </div>
+
+        {/* КАНАЛЫ */}
+        <MobileSectionHeader text="Каналы" t={t} />
+        <MobileCard t={t}>
+          <MobileCheckboxRow label="In-app" checked={true} disabled hint="Всегда включено" t={t} />
+          <MobileCheckboxRow
+            label="Email"
+            checked={form.channels.email}
+            onChange={v => patch({ channels: { ...form.channels, email: v } })}
+            t={t}
+          />
+          <MobileCheckboxRow
+            label="SMS"
+            checked={form.channels.sms}
+            onChange={v => patch({ channels: { ...form.channels, sms: v } })}
+            isLast
+            hint={form.channels.sms ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: t.warning }}>
+                <AlertTriangle size={12} strokeWidth={1.75} />
+                ~{SMS_COST_PER_MSG} UZS × {recipientCount} = {(SMS_COST_PER_MSG * recipientCount).toLocaleString()} UZS
+              </span>
+            ) : undefined}
+            t={t}
+          />
+        </MobileCard>
+
+        {/* РАСПИСАНИЕ */}
+        <MobileSectionHeader text="Расписание" t={t} />
+        <MobileCard t={t}>
+          <MobileRadioRow
+            label="Отправить сейчас"
+            sub="Объявление доставится немедленно"
+            selected={form.schedule === 'now'}
+            onSelect={() => patch({ schedule: 'now' })}
+            t={t}
+          />
+          <MobileRadioRow
+            label="Запланировать"
+            sub="Отложить публикацию на конкретное время"
+            selected={form.schedule === 'scheduled'}
+            onSelect={() => patch({ schedule: 'scheduled' })}
+            isLast
+            t={t}
+          />
+          {form.schedule === 'scheduled' && (
+            <>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px',
+                borderTop: `1px solid ${t.border}`,
+                background: dark ? 'rgba(59,130,246,0.04)' : '#F9FAFB',
+              }}>
+                <CalendarIcon size={18} color={t.text3} strokeWidth={1.75} />
+                <span style={{ flex: 1, fontFamily: F.inter, fontSize: 15, color: t.text1 }}>
+                  Дата
+                </span>
+                <input
+                  value={form.scheduleDate}
+                  onChange={e => patch({ scheduleDate: e.target.value })}
+                  placeholder="ДД.ММ.ГГГГ"
+                  style={{
+                    width: 120, height: 32, padding: '0 10px',
+                    border: `1px solid ${t.inputBorder}`, borderRadius: 8,
+                    background: t.surface,
+                    fontFamily: F.mono, fontSize: 13, color: t.text1,
+                    outline: 'none', textAlign: 'center',
+                  }}
+                />
+              </div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px',
+                borderTop: `1px solid ${t.border}`,
+                background: dark ? 'rgba(59,130,246,0.04)' : '#F9FAFB',
+              }}>
+                <Clock size={18} color={t.text3} strokeWidth={1.75} />
+                <span style={{ flex: 1, fontFamily: F.inter, fontSize: 15, color: t.text1 }}>
+                  Время
+                </span>
+                <input
+                  value={form.scheduleTime}
+                  onChange={e => patch({ scheduleTime: e.target.value })}
+                  placeholder="ЧЧ:ММ"
+                  style={{
+                    width: 80, height: 32, padding: '0 10px',
+                    border: `1px solid ${t.inputBorder}`, borderRadius: 8,
+                    background: t.surface,
+                    fontFamily: F.mono, fontSize: 13, color: t.text1,
+                    outline: 'none', textAlign: 'center',
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </MobileCard>
+
+        <div style={{ height: 24 }} />
+      </div>
+
+      {/* Sticky footer — Preview + Send */}
+      <div style={{
+        flexShrink: 0,
+        padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+        background: t.surface, borderTop: `1px solid ${t.border}`,
+        display: 'flex', gap: 10,
+      }}>
+        <button
+          onClick={() => setPreviewOpen(true)}
+          style={{
+            flex: 1, height: 48, borderRadius: 12,
+            border: `1.5px solid ${t.inputBorder}`, background: 'transparent',
+            fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.text1,
+            cursor: 'pointer',
+          }}
+        >
+          Предпросмотр
+        </button>
+        <button
+          onClick={valid ? onSend : undefined}
+          disabled={!valid}
+          style={{
+            flex: 2, height: 48, borderRadius: 12, border: 'none',
+            background: valid ? t.blue : (dark ? '#3A3F50' : '#D1D5DB'),
+            fontFamily: F.inter, fontSize: 15, fontWeight: 600, color: '#FFFFFF',
+            cursor: valid ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Отправить
+        </button>
+      </div>
+
+      <MobileRecipientPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        t={t} dark={dark}
+        mode={form.mode}
+        setMode={m => patch({ mode: m })}
+        selectedOrgs={form.selectedOrgs}
+        setSelectedOrgs={v => patch({ selectedOrgs: v })}
+        selectedUsers={form.selectedUsers}
+        setSelectedUsers={v => patch({ selectedUsers: v })}
+      />
+
+      <MobilePreviewSheet
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={form.title}
+        body={form.body}
+        t={t} dark={dark}
+      />
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+
 export default function AnnouncementComposePage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -205,6 +898,19 @@ export default function AnnouncementComposePage() {
   const crumbLink: React.CSSProperties = {
     fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer',
   };
+
+  if (mobile) {
+    return (
+      <MobileAnnouncementCompose
+        form={form}
+        patch={patch}
+        onSend={() => { console.log('send announcement', form); navigate('/announcements'); }}
+        onClose={() => navigate('/announcements')}
+        t={t}
+        dark={dark}
+      />
+    );
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg }}>

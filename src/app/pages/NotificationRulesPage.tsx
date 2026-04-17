@@ -10,6 +10,8 @@ import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
+import { ChevronLeft } from 'lucide-react';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 
 type T = ReturnType<typeof theme>;
@@ -1751,9 +1753,332 @@ function DuplicateSuccessToast({ toast, onDismiss, onOpen, t, dark }: {
    PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — Rules list (M-01)
+═══════════════════════════════════════════════════════════════════════════ */
+
+const MOBILE_TABS: { key: RuleTab; label: string }[] = [
+  { key: 'kpi',     label: 'KPI' },
+  { key: 'finance', label: 'Финансы' },
+  { key: 'cards',   label: 'Карты' },
+  { key: 'system',  label: 'Система' },
+];
+
+function MobileSegmented({
+  active, onChange, t, dark,
+}: { active: RuleTab; onChange: (k: RuleTab) => void; t: T; dark: boolean }) {
+  const trackBg = dark ? '#2D3148' : '#F3F4F6';
+  return (
+    <div style={{
+      display: 'flex', padding: 4, borderRadius: 999, background: trackBg,
+      height: 36, boxSizing: 'border-box',
+    }}>
+      {MOBILE_TABS.map(tb => {
+        const isActive = tb.key === active;
+        return (
+          <div
+            key={tb.key}
+            onClick={() => onChange(tb.key)}
+            style={{
+              flex: 1, borderRadius: 999,
+              background: isActive ? t.surface : 'transparent',
+              boxShadow: isActive ? (dark ? '0 1px 2px rgba(0,0,0,0.4)' : '0 1px 2px rgba(17,24,39,0.08)') : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+              color: isActive ? t.text1 : t.text3,
+              cursor: 'pointer',
+            }}
+          >
+            {tb.label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MobileRuleCard({
+  rule, t, dark, navigate, onToggle, onDuplicate, onDelete, swipedId, setSwipedId,
+}: {
+  rule: Rule;
+  t: T; dark: boolean;
+  navigate: (p: string) => void;
+  onToggle: (id: string) => void;
+  onDuplicate: (r: Rule) => void;
+  onDelete: (r: Rule) => void;
+  swipedId: string | null;
+  setSwipedId: (id: string | null) => void;
+}) {
+  const startX = useRef<number | null>(null);
+  const movedX = useRef(0);
+  const actionsW = 180;
+  const revealed = swipedId === rule.id;
+  const Icon = rule.icon;
+  const tone = (dark ? TONE_COLOR_DARK : TONE_COLOR_LIGHT)[rule.iconTone];
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    movedX.current = 0;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startX.current === null) return;
+    movedX.current = e.touches[0].clientX - startX.current;
+  };
+  const onTouchEnd = () => {
+    if (movedX.current < -40) setSwipedId(rule.id);
+    else if (movedX.current > 40) setSwipedId(null);
+    startX.current = null;
+    movedX.current = 0;
+  };
+
+  const visibleChannels = rule.channels.slice(0, 3);
+  const extra = rule.channels.length - 3;
+
+  return (
+    <div style={{
+      position: 'relative', overflow: 'hidden',
+      borderRadius: 16, marginBottom: 10,
+    }}>
+      {/* Swipe actions */}
+      <div style={{
+        position: 'absolute', top: 0, right: 0, bottom: 0,
+        width: actionsW, display: 'flex',
+      }}>
+        <button
+          onClick={() => { setSwipedId(null); onDuplicate(rule); }}
+          style={{
+            flex: 1, border: 'none', background: t.blue,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 4, cursor: 'pointer',
+          }}
+        >
+          <Copy size={18} color="#FFFFFF" strokeWidth={2} />
+          <span style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 500, color: '#FFFFFF' }}>Дублировать</span>
+        </button>
+        <button
+          onClick={() => { setSwipedId(null); onDelete(rule); }}
+          style={{
+            flex: 1, border: 'none', background: t.error,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 4, cursor: 'pointer',
+          }}
+        >
+          <Trash2 size={18} color="#FFFFFF" strokeWidth={2} />
+          <span style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 500, color: '#FFFFFF' }}>Удалить</span>
+        </button>
+      </div>
+
+      {/* Card foreground */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={() => {
+          if (revealed) { setSwipedId(null); return; }
+          navigate(`/notification-rules/${rule.id}`);
+        }}
+        style={{
+          position: 'relative',
+          background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+          padding: 16,
+          display: 'flex', flexDirection: 'column', gap: 10,
+          transform: `translateX(${revealed ? -actionsW : 0}px)`,
+          transition: 'transform 0.18s ease',
+          cursor: 'pointer',
+          opacity: rule.enabled ? 1 : 0.65,
+        }}
+      >
+        {/* Row 1 — icon + title + toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%',
+            background: tone.bg,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Icon size={18} color={tone.fg} strokeWidth={2} />
+          </div>
+          <span style={{
+            flex: 1, fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.text1,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {rule.title}
+          </span>
+          <div onClick={e => { e.stopPropagation(); onToggle(rule.id); }}>
+            <Switch
+              checked={rule.enabled}
+              onChange={() => onToggle(rule.id)}
+              ariaLabel={`${rule.title} активно`}
+              t={t}
+              dark={dark}
+            />
+          </div>
+        </div>
+
+        {/* Row 2 — description */}
+        <div style={{
+          fontFamily: F.inter, fontSize: 13, color: t.text3, lineHeight: 1.4,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>
+          {rule.description}
+        </div>
+
+        {/* Row 3 — channel badges + recipients */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {visibleChannels.map(ch => (
+            <span
+              key={ch}
+              style={{
+                fontFamily: F.inter, fontSize: 11, fontWeight: 500,
+                padding: '3px 8px', borderRadius: 8,
+                background: t.blueLt, color: t.blue,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {ch}
+            </span>
+          ))}
+          {extra > 0 && (
+            <span style={{
+              fontFamily: F.inter, fontSize: 11, fontWeight: 500,
+              padding: '3px 8px', borderRadius: 8,
+              background: dark ? 'rgba(160,165,184,0.15)' : '#F3F4F6',
+              color: t.text3,
+            }}>
+              +{extra}
+            </span>
+          )}
+          <div style={{ width: 1, height: 12, background: t.border }} />
+          <span style={{
+            flex: 1, minWidth: 0,
+            fontFamily: F.inter, fontSize: 12, color: t.text3,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {rule.recipients.join(', ')}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileRules({
+  t, dark, navigate, rules, setRules, setDeletingRule, setDuplicatingRule,
+}: {
+  t: T;
+  dark: boolean;
+  navigate: (p: string) => void;
+  rules: Rule[];
+  setRules: React.Dispatch<React.SetStateAction<Rule[]>>;
+  setDeletingRule: (r: Rule | null) => void;
+  setDuplicatingRule: (r: Rule | null) => void;
+}) {
+  const [tab, setTab] = useState<RuleTab>('kpi');
+  const [swipedId, setSwipedId] = useState<string | null>(null);
+  const visible = rules.filter(r => r.tab === tab);
+
+  const toggle = (id: string) =>
+    setRules(prev => prev.map(r => r.id === id ? { ...r, enabled: !r.enabled } : r));
+
+  return (
+    <>
+      {/* Sticky header */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        height: 52, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 4px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`,
+      }}>
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={{
+            width: 48, height: 48, border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+          }}
+        >
+          <ChevronLeft size={24} color={t.blue} strokeWidth={2} />
+        </button>
+        <span style={{
+          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+          fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1,
+          whiteSpace: 'nowrap',
+        }}>
+          Правила уведомлений
+        </span>
+        <button
+          onClick={() => navigate('/notification-rules/new')}
+          style={{
+            width: 40, height: 40, margin: '0 8px', borderRadius: 10,
+            background: t.blue, border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+          }}
+        >
+          <Plus size={20} color="#FFFFFF" strokeWidth={2} />
+        </button>
+      </div>
+
+      <div
+        onClick={() => swipedId !== null && setSwipedId(null)}
+        style={{ padding: '14px 0 96px', boxSizing: 'border-box', width: '100%' }}
+      >
+        {/* Segmented */}
+        <div style={{ padding: '0 16px 16px' }}>
+          <MobileSegmented active={tab} onChange={setTab} t={t} dark={dark} />
+        </div>
+
+        {/* Rule cards */}
+        <div style={{ padding: '0 16px' }}>
+          {visible.length === 0 ? (
+            <div style={{
+              padding: '48px 24px', textAlign: 'center',
+              background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+            }}>
+              <div style={{ fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text2, marginBottom: 4 }}>
+                Нет правил
+              </div>
+              <div style={{ fontFamily: F.inter, fontSize: 14, color: t.text3 }}>
+                Создайте первое правило уведомлений
+              </div>
+            </div>
+          ) : (
+            visible.map(rule => (
+              <MobileRuleCard
+                key={rule.id}
+                rule={rule}
+                t={t} dark={dark}
+                navigate={navigate}
+                onToggle={toggle}
+                onDuplicate={r => setDuplicatingRule(r)}
+                onDelete={r => setDeletingRule(r)}
+                swipedId={swipedId}
+                setSwipedId={setSwipedId}
+              />
+            ))
+          )}
+        </div>
+
+        <div style={{
+          fontFamily: F.inter, fontSize: 12, color: t.text4,
+          textAlign: 'center', marginTop: 16, padding: '0 16px',
+        }}>
+          Проведите карточку влево для действий
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+
 export default function NotificationRulesPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
   const [tab, setTab] = useState<RuleTab>('kpi');
@@ -1797,6 +2122,16 @@ export default function NotificationRulesPage() {
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
+        {mobile ? (
+          <MobileRules
+            t={t} dark={dark}
+            navigate={navigate}
+            rules={rules}
+            setRules={setRules}
+            setDeletingRule={setDeletingRule}
+            setDuplicatingRule={setDuplicatingRule}
+          />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
@@ -1843,40 +2178,6 @@ export default function NotificationRulesPage() {
             ))}
           </div>
 
-          <DeleteRuleModal
-            rule={deletingRule}
-            onClose={() => setDeletingRule(null)}
-            onConfirm={() => {
-              if (deletingRule) remove(deletingRule.id);
-              setDeletingRule(null);
-            }}
-            t={t}
-            dark={dark}
-          />
-
-          <DuplicateRuleModal
-            rule={duplicatingRule}
-            onClose={() => setDuplicatingRule(null)}
-            onConfirm={(title, inactive) => {
-              if (duplicatingRule) commitDuplicate(duplicatingRule, title, inactive);
-            }}
-            t={t}
-            dark={dark}
-          />
-
-          <DuplicateSuccessToast
-            toast={toast}
-            onDismiss={() => setToast(null)}
-            onOpen={() => {
-              if (toast) {
-                setToast(null);
-                openEdit(toast.openRule);
-              }
-            }}
-            t={t}
-            dark={dark}
-          />
-
           {/* Footer summary */}
           <div style={{
             marginTop: '24px', padding: '16px 18px',
@@ -1893,6 +2194,42 @@ export default function NotificationRulesPage() {
             </div>
           </div>
         </div>
+        )}
+
+        {/* Modals — shared between desktop and mobile */}
+        <DeleteRuleModal
+          rule={deletingRule}
+          onClose={() => setDeletingRule(null)}
+          onConfirm={() => {
+            if (deletingRule) remove(deletingRule.id);
+            setDeletingRule(null);
+          }}
+          t={t}
+          dark={dark}
+        />
+
+        <DuplicateRuleModal
+          rule={duplicatingRule}
+          onClose={() => setDuplicatingRule(null)}
+          onConfirm={(title, inactive) => {
+            if (duplicatingRule) commitDuplicate(duplicatingRule, title, inactive);
+          }}
+          t={t}
+          dark={dark}
+        />
+
+        <DuplicateSuccessToast
+          toast={toast}
+          onDismiss={() => setToast(null)}
+          onOpen={() => {
+            if (toast) {
+              setToast(null);
+              openEdit(toast.openRule);
+            }
+          }}
+          t={t}
+          dark={dark}
+        />
       </div>
     </div>
   );
