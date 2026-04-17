@@ -14,6 +14,29 @@ Rule: What to do differently next time
 
 ---
 
+## 2026-04-17 — `npm install` in a pnpm project silently removes React
+
+Mistake: Ran `npm install --save-dev vite-plugin-pwa --legacy-peer-deps` to add a new devDep. Build then failed with `Rollup failed to resolve import "react/jsx-runtime"` — `node_modules/react` didn't exist.
+Root cause: The project's [package.json](../package.json) declares `react` and `react-dom` in `peerDependencies` (marked optional) rather than regular `dependencies`. This is a pnpm convention where the actual install is handled by the workspace resolver. When `npm install` runs against such a package.json, it respects "optional peer deps" by NOT installing them — so React disappears from `node_modules`. The build had been working because the previous install was done with pnpm.
+Fix: `rm -rf node_modules package-lock.json` + `npm install -g pnpm` + `pnpm install`. Never touch `package-lock.json` in this repo — `pnpm-lock.yaml` is the source of truth.
+Rule: Always use `pnpm` against this codebase. If you need a new dep, run `pnpm add <pkg>` / `pnpm add -D <pkg>`. If `package-lock.json` appears for any reason, delete it. If a package script invokes `npm install` directly (e.g., icon generator scripts), it may not corrupt the install but it's still best to change it to `pnpm install`. The presence of `pnpm-lock.yaml` at repo root is the signal — respect it.
+
+## 2026-04-17 — PWA `beforeinstallprompt` never fires during `pnpm dev` by default
+
+Mistake: Installed `vite-plugin-pwa`, wired `registerSW` in `main.tsx`, added manifest + meta tags. Ran `pnpm dev`, opened DevTools mobile view. The "Приложение" section showed "Ожидание браузера…" — the install button never became active, and Chrome showed no install banner.
+Root cause: `vite-plugin-pwa`'s `devOptions.enabled` defaults to `false`. In dev mode the service worker isn't registered, no manifest is linked, and Chrome's installability heuristic fails → `beforeinstallprompt` never fires. The plugin docs warn about this but the silent-false default makes it easy to miss.
+Fix: Set `devOptions: { enabled: true, type: 'module', navigateFallback: 'index.html' }` in the VitePWA config. After `pnpm dev` restart, the SW registers and Chrome fires the event once user-engagement heuristic is met (a couple of scrolls/taps).
+Rule: When wiring `vite-plugin-pwa`, always enable `devOptions.enabled: true` during development so you can test the install flow without running `pnpm build && pnpm exec vite preview` on every change. For production, the plugin generates the SW from `build` automatically — no action needed.
+
+## 2026-04-17 — Sticky/fixed bars need `calc(Xpx + env(safe-area-inset-Y))` + `box-sizing: border-box` in PWA standalone
+
+Mistake: First pass of the mobile Navbar used `height: 56px; padding: 0 12px`. On iPhone PWA standalone mode the title + buttons rendered **under** the notch — clipped and invisible. Similarly, MobileTabBar had `height: 64; paddingBottom: env(safe-area-inset-bottom)` with default `content-box` sizing, which caused the tab bar's total visual height to balloon past what existing pages had calibrated `paddingBottom: 96px` against, so the last content row clipped on notched phones.
+Root cause: `env(safe-area-inset-top)` / `...-bottom` return 0 in browser tabs but 44 pt / 34 pt in PWA standalone on notched iPhones. A sticky/fixed bar that doesn't reserve space for the safe area bleeds into the notch/home-indicator. With default `content-box`, adding `padding: env(...)` on top of a fixed `height` DOUBLES the container's visual height, which throws off every sibling's clearance math.
+Fix: Size the container as `height: calc(Xpx + env(safe-area-inset-{top,bottom}, 0px))` with `box-sizing: border-box`, then apply the safe-area as `padding-{top,bottom}` of the same length. The content row stays exactly `Xpx`; the safe-area portion is empty buffer that pushes the bar into the notch/indicator zone. In a regular browser `env()` returns 0 so the change is a no-op — the adjustment is only visible in PWA standalone.
+Rule: For any sticky top bar use `height: calc(Hpx + env(safe-area-inset-top, 0px)); box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px)`. For fixed bottom tab bars mirror this with `-bottom`. Never rely on content-box + padding to "add" safe area — it's a source of silent layout drift. Same pattern applies to any full-bleed modal/sheet that has a sticky header inside.
+
+---
+
 ## 2026-04-16 — `<Sidebar>` / `<Navbar>` use `darkMode`, NOT `dark`
 
 Mistake: Multiple theming agents threaded `dark={dark}` into `<Sidebar>` / `<Navbar>` instead of `darkMode={darkMode}`. TypeScript tolerated it as an unknown prop (stripped at runtime), so the shell appeared to work in light mode but flickered on theme toggle.

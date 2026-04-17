@@ -4,6 +4,47 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
+## 2026-04-17 (late) — PWA wiring + 13 mobile page layouts + 3 new showcase routes + safe-area fixes
+
+**Module:** all (PWA infrastructure + mobile page rollout)
+**Commits:** uncommitted working tree — 19 modified + 10 new files (including `public/` assets and `scripts/`). Builds on `11ded12`.
+**Files touched:** 29
+
+**What changed:**
+
+- **PWA (new):** installed `vite-plugin-pwa 1.2` + `workbox-window 7`. Configured in [vite.config.ts](../vite.config.ts) with manifest (`Moment KPI`, Russian, standalone, portrait, `#2563EB` theme) + runtime caching strategies (NetworkFirst pages, StaleWhileRevalidate scripts, CacheFirst images/fonts) + 4 MB precache ceiling. Build emits `dist/sw.js`, `dist/manifest.webmanifest`, raster icons. SW registered via `registerSW({ autoUpdate })` in [src/main.tsx](../src/main.tsx). 17 files / ~2.2 MB precached.
+- **PWA icons (new):** [public/favicon.svg](../public/favicon.svg) (master blue-tile "M"), generated PNG rasters via [scripts/gen-pwa-icons.mjs](../scripts/gen-pwa-icons.mjs) (one-shot `sharp`-based script). Placeholder art — ready for brand replacement.
+- **PWA meta tags:** [index.html](../index.html) — `theme-color` (light/dark media queries), `apple-mobile-web-app-*`, favicon links, `viewport-fit=cover`.
+- **Install button:** new [useInstallPrompt](../src/app/components/useInstallPrompt.tsx) hook captures `beforeinstallprompt` event (Chrome/Edge/Android), detects `(display-mode: standalone)` + iOS Safari. New "Приложение" section in [MobileSettings](../src/app/components/MobileSettings.tsx) renders one of 4 states: installed (green check) / can-install (blue Download) / iOS (Share icon + 3-step help sheet) / waiting (gray with "Откройте в Chrome/Edge…" hint). IosInstallSheet is a dedicated bottom sheet with numbered instructions.
+- **Safe-area fix for PWA standalone mode:** [Navbar](../src/app/components/Navbar.tsx) mobile header now uses `height: calc(56px + env(safe-area-inset-top))` + `box-sizing: border-box`. [MobileTabBar](../src/app/components/MobileTabBar.tsx) uses `calc(64px + env(safe-area-inset-bottom))` same way. Tabs/header content stays exact size; safe-area pushes into notch/home-indicator.
+- **New shared component:** [MobileSettings](../src/app/components/MobileSettings.tsx) — role-aware iOS-grouped settings list. Consumed by both [SettingsPage](../src/app/pages/SettingsPage.tsx) (bank) and [OrgSettingsPage](../src/app/pages/OrgSettingsPage.tsx) (org). Sections: Профиль → Приложение → Аккаунт → Организация (org only) → KPI по умолчанию (bank only) → Интеграции (bank only) → Система уведомлений (bank only: Правила / Объявления / Лог доставки) → Внешний вид → Поддержка → Выйти.
+- **13 pages got mobile branches:**
+  - `/` + `/login` — [LoginPage](../src/app/pages/LoginPage.tsx) full-screen mobile login: 80×80 blue logo tile + title + stacked inputs + Remember/Forgot row + primary "Войти" + divider + outline "Войти через Unired ID" + copyright caption
+  - `/dashboard` — already had mobile branch; no changes this session
+  - `/org-dashboard` — new [OrgAdminDashboardPage](../src/app/pages/OrgAdminDashboardPage.tsx) mobile: greeting + hero gradient card + 2×2 stats + seller rankings (🥇🥈🥉) + KPI conversion bars + activity rows
+  - `/all-cards` — new [AllCardsPage](../src/app/pages/AllCardsPage.tsx) mobile: Y-02 V2 header + horizontal stat pills + grouped "Сегодня/Вчера" sections + 3-dot KPI indicator rows + full-screen FilterSheet
+  - `/sellers` — new [SellersManagementPage](../src/app/pages/SellersManagementPage.tsx) mobile: search + stat pills + seller rows with swipe-left (Редакт./Карты) + full-screen MobileAddSellerModal
+  - `/sellers/:id` — new [SellerDetailPage](../src/app/pages/SellerDetailPage.tsx) mobile: Y-02 V3 header + 72 px avatar hero + 2×2 stats + iOS segmented tabs (Сводка/Карты/Финансы) + gradient UCOIN balance card + 4-action bottom sheet
+  - `/notifications` — new [NotificationsHistoryPage](../src/app/pages/NotificationsHistoryPage.tsx) mobile: back + "Прочитать все" + segmented (Все/Непрочитанные) + date-grouped rows with swipe-left delete + 3 px blue left accent for unread
+  - `/notification-rules` — new [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx) mobile (M-01): segmented (KPI/Финансы/Карты/Система) + rule cards with toggle switch + swipe-left (Дублировать blue + Удалить red). DeleteRuleModal/DuplicateRuleModal/DuplicateSuccessToast hoisted out of desktop wrapper to render for both branches.
+  - `/notification-rules/new` + `/notification-rules/:id/edit` — new [NotificationRuleEditorPage](../src/app/pages/NotificationRuleEditorPage.tsx) mobile (M-02): full-screen form with Y-02 V4 header + grouped sections (Событие / Каналы / Получатели / Расписание / Активно) + trigger select opens bottom sheet with trigger groups + digest-frequency sub-sheet
+  - `/announcements/new` — new [AnnouncementComposePage](../src/app/pages/AnnouncementComposePage.tsx) mobile (M-03): full-screen form + FormatToolbar + char count + full-screen RecipientPicker (Все/Организации/Пользователи segmented) + Preview bottom sheet + SMS cost hint + date/time pickers
+  - `/seller-messages/new` — new [SellerMessageComposePage](../src/app/pages/SellerMessageComposePage.tsx) mobile (N-01): same as announcement compose + горизонтальная "БЫСТРЫЕ ШАБЛОНЫ" row of template cards (200×92) at top
+  - `/settings` + `/org-settings` — both now render `<MobileSettings>` on mobile
+- **3 new showcase routes:**
+  - `/mobile-bottom-sheets` — [MobileBottomSheetsShowcasePage](../src/app/pages/MobileBottomSheetsShowcasePage.tsx) — 6 sheet variants (action menu / filter single-select / confirm delete / confirm simple / export / approve-reject) × light+dark pairs + spec table. X-00 §11.
+  - `/mobile-empty-skeletons` — [MobileEmptySkeletonsShowcasePage](../src/app/pages/MobileEmptySkeletonsShowcasePage.tsx) — 6 empty states + 4 skeleton loaders (list/stat/stepper/detail) + 3 PTR states. Shimmer via `@keyframes mdsShimmer`. X-00 §15 §16.
+  - `/mobile-toasts` — [MobileToastsShowcasePage](../src/app/pages/MobileToastsShowcasePage.tsx) — 6 toast variants + 2 positioning scenes (above tab bar / no tab bar). Entrance `toastSlideUp 200 ms`, exit `toastSlideDown 200 ms`. X-00 §13.
+- **Infrastructure:** `.gitignore` adds `/dev-dist` (vite-plugin-pwa dev output). `package-lock.json` deleted — this project is pnpm, not npm.
+
+**Follow-ups:**
+- Placeholder PWA icons are a plain blue "M" tile — replace `public/favicon.svg` with real brand artwork, then `node scripts/gen-pwa-icons.mjs` regenerates all sizes.
+- No iOS splash screens generated (optional; needs `pwa-asset-generator` for ~15 device-sized images).
+- Double-header issue: pages with their own mobile sticky header (NotificationsHistoryPage, NotificationRulesPage, SellersManagementPage, AllCardsPage, SellerDetailPage) render BOTH the Navbar mobile header AND their own page header, stacking to ~108 px of header. For a more native feel, consider hiding Navbar on mobile for pages that render their own Y-02 V3/V4 header.
+- `MobileTabBar` `paddingBottom: calc(96px + env(safe-area-inset-bottom))` is correct for tab-bar clearance, but many existing mobile pages only use `paddingBottom: 96px` — last content row may clip by a few px on devices with home indicators. Audit pass recommended.
+
+---
+
 ## 2026-04-17 — Responsive mobile shell + per-page mobile layouts + 5 showcase pages
 
 **Module:** all (responsive infrastructure + mobile page content)

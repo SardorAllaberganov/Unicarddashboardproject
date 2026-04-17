@@ -17,6 +17,7 @@
 | Dates | date-fns 3.6 | |
 | Drag-drop | react-dnd 16 | Card import page |
 | Toasts | sonner 2 + bespoke `useExportToast` | |
+| PWA | **vite-plugin-pwa 1.2** + **workbox-window 7** | Auto-update SW, manifest generation, precache (~2.2 MB / 17 files). Config in [vite.config.ts](../vite.config.ts). |
 
 ## Folder layout
 
@@ -38,7 +39,9 @@ src/
 │       ├── useExportToast.tsx     # shared export-toast hook + <ExportToast /> (dark-aware)
 │       ├── useDarkMode.tsx        # module-level theme store (localStorage-backed)
 │       ├── useIsMobile.tsx        # viewport <768px hook (shared module-level listener)
-│       ├── MobileTabBar.tsx       # fixed-bottom 4-tab bar (Bank/Org auto-detected from URL)
+│       ├── useInstallPrompt.tsx   # PWA install hook (beforeinstallprompt + standalone detection + iOS fallback)
+│       ├── MobileTabBar.tsx       # fixed-bottom 4-tab bar (Bank/Org auto-detected); total height calc(64+safe-area-bottom)
+│       ├── MobileSettings.tsx     # role-aware mobile settings list (shared by /settings and /org-settings)
 │       ├── renderMarkdown.tsx     # markdown-lite renderer + FormatToolbar (dark-aware)
 │       ├── ds/
 │       │   ├── tokens.ts          # F (fonts), C (colors), D (dark), theme()
@@ -52,6 +55,17 @@ src/
 ├── styles/
 │   ├── theme.css                  # @theme inline tokens (light + dark)
 │   └── fonts.css                  # the only place fonts are imported
+├── main.tsx                       # RouterProvider root + registerSW (PWA auto-update)
+└── vite-env.d.ts                  # triple-slash refs for vite/client + vite-plugin-pwa/client
+public/                            # static PWA assets (served as-is)
+├── favicon.svg                    # master SVG — regenerated raster icons from this
+├── favicon.ico                    # 32×32 fallback
+├── pwa-192x192.png                # PWA icon (any purpose)
+├── pwa-512x512.png                # PWA icon (any purpose)
+├── pwa-512x512-maskable.png       # PWA icon (maskable — 80% safe zone)
+└── apple-touch-icon-180.png       # iOS home-screen icon
+scripts/
+└── gen-pwa-icons.mjs              # one-shot sharp-based rasterizer from favicon.svg
 docs/                              # this folder
 tasks/
 └── lessons.md                     # cross-session lessons
@@ -131,10 +145,29 @@ If you find yourself writing a fourth copy of something, hoist it here too. See 
 
 Most pages use inline `style={{ ... }}` with values from `F`/`C` tokens rather than Tailwind classes. The project follows the rule: **no Tailwind font-size / font-weight / line-height classes** — those defaults live in [theme.css](../src/styles/theme.css). Tailwind is used mostly for the shadcn/ui primitives under [`components/ui/`](../src/app/components/ui/).
 
+## Progressive Web App
+
+Configured via `vite-plugin-pwa` in [vite.config.ts](../vite.config.ts). Generates a workbox-based service worker + `manifest.webmanifest` at build time.
+
+**Manifest** — `Moment KPI`, Russian (`lang: 'ru'`), `display: 'standalone'`, `orientation: 'portrait'`, brand blue `#2563EB` theme color, `background_color: '#F9FAFB'`. Icons: 192 any, 512 any, 512 maskable.
+
+**Service worker strategy** — `autoUpdate` (registered in [main.tsx](../src/main.tsx) via `registerSW`). New SW takes over on next navigation; `onNeedRefresh` triggers silent `updateSW(true)`. Runtime caching:
+- Pages (`request.destination === 'document'`) → **NetworkFirst**, 3 s timeout
+- Scripts/styles/workers → **StaleWhileRevalidate**
+- Images → **CacheFirst** (30-day expiration)
+- Google fonts → **CacheFirst** (1-year expiration)
+
+`maximumFileSizeToCacheInBytes: 4 MB` because the main JS bundle is ~2.1 MB (default workbox limit 2 MB). `devOptions.enabled: true` so the SW registers during `pnpm dev` — needed to test `beforeinstallprompt` locally.
+
+**Install button** — [useInstallPrompt](../src/app/components/useInstallPrompt.tsx) hook captures `beforeinstallprompt` (Chrome/Edge/Android), detects `(display-mode: standalone)` + iOS Safari. Surfaced as a row in [MobileSettings](../src/app/components/MobileSettings.tsx) "Приложение" section with 4 dynamic states.
+
+**Safe-area padding** — both [Navbar](../src/app/components/Navbar.tsx) mobile header and [MobileTabBar](../src/app/components/MobileTabBar.tsx) size their container as `calc(Xpx + env(safe-area-inset-{top,bottom}))` with `box-sizing: border-box`. Keeps content rows exactly 56 px (top) / 64 px (tabs) regardless of device; safe-area pushes the whole bar into the notch / home-indicator zone. Outside PWA standalone mode `env()` returns 0 so there's no visual change.
+
 ## Build & dev
 
 - `pnpm dev` — Vite dev server on port 5173.
-- `pnpm build` — Vite production build.
+- `pnpm build` — Vite production build; emits `dist/sw.js`, `dist/manifest.webmanifest`, and raster icons alongside the bundle.
+- `pnpm exec vite preview` — local preview at `:4173` (use this to test PWA install, not `dev`).
 - No test suite currently wired up.
 - No CI pipeline committed.
-- `pnpm-lock.yaml` is **protected** — do not modify by hand.
+- **`pnpm-lock.yaml` is the source of truth, NOT `package-lock.json`.** This project declares `react`/`react-dom` as optional `peerDependencies`; `pnpm` handles that correctly, `npm` drops them entirely. If `package-lock.json` reappears after a stray `npm install`, delete it and run `pnpm install`.

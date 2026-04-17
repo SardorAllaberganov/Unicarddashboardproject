@@ -82,6 +82,9 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/mobile-more-menu-org` | shared | [MobileMoreMenuOrgShowcasePage](../src/app/pages/MobileMoreMenuOrgShowcasePage.tsx) | Org "Ещё" menu (Y-04) |
 | `/mobile-nav-map` | shared | [MobileNavMapPage](../src/app/pages/MobileNavMapPage.tsx) | Navigation tree diagram (Y-05) |
 | `/mobile-dashboard` | shared | [MobileDashboardShowcasePage](../src/app/pages/MobileDashboardShowcasePage.tsx) | Bank dashboard spec (Y-06) |
+| `/mobile-bottom-sheets` | shared | [MobileBottomSheetsShowcasePage](../src/app/pages/MobileBottomSheetsShowcasePage.tsx) | 6 sheet variants (action menu / filter single-select / confirm delete / confirm simple / export / approve-reject) × light+dark PhoneFrame pairs. X-00 §11 |
+| `/mobile-empty-skeletons` | shared | [MobileEmptySkeletonsShowcasePage](../src/app/pages/MobileEmptySkeletonsShowcasePage.tsx) | 6 empty-state variants + 4 skeleton loaders (list / stat 2×2 / KPI stepper / detail) + 3 PTR states (idle / pulling / refreshing). Shimmer via `@keyframes mdsShimmer`. X-00 §15 §16 |
+| `/mobile-toasts` | shared | [MobileToastsShowcasePage](../src/app/pages/MobileToastsShowcasePage.tsx) | 6 toast variants (success / error / warning / info-long / loading / undo) + 2 positioning scenes (above tab bar / no tab bar). Entrance `toastSlideUp 200 ms`, exit `toastSlideDown 200 ms`. X-00 §13 |
 | `/sidebar` | shared | [SidebarShowcasePage](../src/app/pages/SidebarShowcasePage.tsx) | |
 | `/sidebar-org` | shared | [OrgSidebarShowcasePage](../src/app/pages/OrgSidebarShowcasePage.tsx) | |
 
@@ -325,7 +328,35 @@ interface MobileTabBarProps {
 }
 ```
 
-Position: fixed bottom, `z-index: 50`, 64 px height + `env(safe-area-inset-bottom)`. Auto-detects role from URL (same `ORG_PATHS` logic as Navbar). Bank tabs: Дашборд → `/dashboard`, Организации → `/organizations`, Карты → `/all-cards`, Ещё → `/settings`. Org tabs: Дашборд → `/org-dashboard`, Продавцы → `/sellers`, Карты → `/org-cards`, Ещё → `/org-settings`. Active tab detection includes a "Ещё" catch-all for routes not matched by other tabs. Backdrop-blur bg, 1 px top border.
+Position: fixed bottom, `z-index: 50`. Total height `calc(64px + env(safe-area-inset-bottom))` with `box-sizing: border-box` so the tab content row stays exactly 64 px on any device; safe-area just adds below. Auto-detects role from URL (same `ORG_PATHS` logic as Navbar). Bank tabs: Дашборд → `/dashboard`, Организации → `/organizations`, Карты → `/all-cards`, Ещё → `/settings`. Org tabs: Дашборд → `/org-dashboard`, Продавцы → `/sellers`, Карты → `/org-cards`, Ещё → `/org-settings`. Active tab detection includes a "Ещё" catch-all for routes not matched by other tabs. Backdrop-blur bg, 1 px top border.
+
+### `<MobileSettings />`
+File: [MobileSettings.tsx](../src/app/components/MobileSettings.tsx)
+
+```ts
+interface MobileSettingsProps {
+  role: 'bank' | 'org';
+  t: ReturnType<typeof theme>;
+  dark: boolean;
+  navigate: (p: string) => void;
+}
+```
+
+Role-aware mobile settings list — rendered by [SettingsPage](../src/app/pages/SettingsPage.tsx) and [OrgSettingsPage](../src/app/pages/OrgSettingsPage.tsx) when `useIsMobile()` is true. iOS-grouped section cards: ПРОФИЛЬ → АККАУНТ (Безопасность / Уведомления / Язык) → **ПРИЛОЖЕНИЕ** (install button, 4 states) → ОРГАНИЗАЦИЯ (org only) → KPI ПО УМОЛЧАНИЮ (bank only) → ИНТЕГРАЦИИ (bank only) → **СИСТЕМА УВЕДОМЛЕНИЙ** (bank only: Правила / Объявления / Лог доставки) → ВНЕШНИЙ ВИД (opens ThemeSheet bottom sheet for light/dark/system) → ПОДДЕРЖКА → Выйти destructive ghost + v1.0.0 caption.
+
+### `useInstallPrompt()`
+File: [useInstallPrompt.tsx](../src/app/components/useInstallPrompt.tsx)
+
+```ts
+useInstallPrompt(): {
+  canInstall: boolean;    // Chrome/Edge/Android fired beforeinstallprompt
+  isInstalled: boolean;   // already running in standalone mode
+  isIos: boolean;         // iOS Safari (no prompt API, manual flow needed)
+  promptInstall: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
+}
+```
+
+Captures the `beforeinstallprompt` event (calls `preventDefault()` to defer it for the Settings "Установить" button). Listens for `appinstalled` + `(display-mode: standalone)` media-query changes. Used by `MobileSettings` to render one of four states: installed (green "Установлено"), can-install (blue "Установить"), iOS (Share icon + 3-step sheet), or waiting (gray "Ожидание браузера…").
 
 ---
 
