@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ChevronRight, ChevronDown, Download, Search, Check,
+  ChevronLeft, SlidersHorizontal, X, CreditCard,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../components/Navbar';
 
@@ -533,12 +535,652 @@ function DataTable({ cards, onRowClick, t, dark }: { cards: CardRow[]; onRowClic
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — All Cards list + FilterSheet
+═══════════════════════════════════════════════════════════════════════════ */
+
+type MobileFilters = {
+  orgs: Set<string>;
+  batches: Set<string>;
+  status: string; // '' = Все
+  kpi: string;    // '' = Все
+};
+
+const EMPTY_FILTERS: MobileFilters = { orgs: new Set(), batches: new Set(), status: '', kpi: '' };
+
+function filtersCount(f: MobileFilters): number {
+  return f.orgs.size + f.batches.size + (f.status ? 1 : 0) + (f.kpi ? 1 : 0);
+}
+
+/* ─── KPI dots row ─────────────────────────────────────────────────────── */
+
+function KpiDots({ card, t, dark }: { card: CardRow; t: T; dark: boolean }) {
+  const green = dark ? '#34D399' : '#16A34A';
+  const blue  = t.blue;
+  const empty = dark ? 'rgba(255,255,255,0.10)' : '#E5E7EB';
+
+  const dot = (state: 'done' | 'progress' | 'none') => {
+    const bg = state === 'done' ? green : state === 'progress' ? blue : empty;
+    return <span style={{ width: 8, height: 8, borderRadius: '50%', background: bg, flexShrink: 0 }} />;
+  };
+
+  const k1: 'done' | 'progress' | 'none' = card.kpi1 === true ? 'done' : 'none';
+  const k2: 'done' | 'progress' | 'none' = card.kpi2 === true ? 'done' : 'none';
+  const k3: 'done' | 'progress' | 'none' =
+    card.kpi3 === true ? 'done' :
+    typeof card.kpi3 === 'number' ? 'progress' : 'none';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      {dot(k1)}
+      {dot(k2)}
+      {dot(k3)}
+    </div>
+  );
+}
+
+/* ─── Card list row ────────────────────────────────────────────────────── */
+
+function CardListRow({
+  card, isLast, t, dark, onTap,
+}: { card: CardRow; isLast: boolean; t: T; dark: boolean; onTap: () => void }) {
+  const last4 = card.cardNumber.slice(-4);
+  const sellerName = card.seller === '—' ? null : card.seller;
+  const clientName = card.client === '—' ? null : card.client;
+  const statusLine = sellerName && clientName
+    ? `${sellerName} → ${clientName}`
+    : sellerName
+      ? `${sellerName} → —`
+      : '—';
+
+  const showStatusBadge = card.status === 'На складе' || card.status === 'У продавца';
+  const statusPalette = dark
+    ? {
+        'На складе':  { bg: 'rgba(160,165,184,0.15)', fg: '#A0A5B8' },
+        'У продавца': { bg: 'rgba(251,191,36,0.15)',  fg: '#FBBF24' },
+      }
+    : {
+        'На складе':  { bg: '#F3F4F6', fg: '#4B5563' },
+        'У продавца': { bg: '#FFFBEB', fg: '#B45309' },
+      };
+
+  const isKpi3Done = card.kpi3 === true;
+  const isKpi3InProgress = typeof card.kpi3 === 'number';
+
+  return (
+    <div
+      onClick={onTap}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '14px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+        cursor: 'pointer',
+      }}
+    >
+      {/* Card icon 40×40 rounded */}
+      <div style={{
+        width: 40, height: 40, borderRadius: 10,
+        background: t.blueLt,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <CreditCard size={20} color={t.blue} strokeWidth={2} />
+      </div>
+
+      {/* Middle: number + status line */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: F.mono, fontSize: 14, fontWeight: 500, color: t.text1,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          •••• {last4}
+        </div>
+        <div style={{
+          fontFamily: F.inter, fontSize: 12, color: t.text3, marginTop: 2,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {statusLine}
+        </div>
+      </div>
+
+      {/* Right: KPI dots + status or KPI3 value */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+        <KpiDots card={card} t={t} dark={dark} />
+        {showStatusBadge ? (
+          <span style={{
+            fontFamily: F.inter, fontSize: 10, fontWeight: 500,
+            padding: '2px 7px', borderRadius: 8,
+            background: statusPalette[card.status as 'На складе' | 'У продавца'].bg,
+            color: statusPalette[card.status as 'На складе' | 'У продавца'].fg,
+            whiteSpace: 'nowrap',
+          }}>
+            {card.status}
+          </span>
+        ) : isKpi3Done ? (
+          <span style={{
+            fontFamily: F.mono, fontSize: 11, fontWeight: 500,
+            color: dark ? '#34D399' : '#16A34A',
+          }}>
+            ✅ {card.spent !== '—' ? card.spent.split(' ').slice(0, -1).join(' ') + 'K' : ''}
+          </span>
+        ) : isKpi3InProgress ? (
+          <span style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 600, color: t.blue }}>
+            {card.kpi3 as number}%
+          </span>
+        ) : null}
+      </div>
+
+      <ChevronRight size={18} color={t.textDisabled} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+    </div>
+  );
+}
+
+/* ─── Filter sheet ─────────────────────────────────────────────────────── */
+
+function CheckboxRow({ label, checked, onToggle, isLast, t }: {
+  label: string; checked: boolean; onToggle: () => void; isLast: boolean; t: T;
+}) {
+  return (
+    <div
+      onClick={onToggle}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+        cursor: 'pointer',
+      }}
+    >
+      <span style={{ fontFamily: F.inter, fontSize: 15, color: t.text1 }}>{label}</span>
+      <div style={{
+        width: 22, height: 22, borderRadius: 6,
+        border: `1.5px solid ${checked ? t.blue : t.inputBorder}`,
+        background: checked ? t.blue : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.12s', flexShrink: 0,
+      }}>
+        {checked && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+      </div>
+    </div>
+  );
+}
+
+function RadioRow({ label, selected, onSelect, isLast, t }: {
+  label: string; selected: boolean; onSelect: () => void; isLast: boolean; t: T;
+}) {
+  return (
+    <div
+      onClick={onSelect}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+        cursor: 'pointer',
+      }}
+    >
+      <span style={{ fontFamily: F.inter, fontSize: 15, color: t.text1 }}>{label}</span>
+      <div style={{
+        width: 22, height: 22, borderRadius: '50%',
+        border: `1.5px solid ${selected ? t.blue : t.inputBorder}`,
+        background: 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.12s', flexShrink: 0,
+      }}>
+        {selected && (
+          <div style={{ width: 10, height: 10, borderRadius: '50%', background: t.blue }} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FilterSection({ title, children, t }: { title: string; children: React.ReactNode; t: T }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{
+        fontFamily: F.inter, fontSize: 11, fontWeight: 600, color: t.text3,
+        textTransform: 'uppercase', letterSpacing: '0.06em',
+        padding: '12px 16px 8px',
+      }}>
+        {title}
+      </div>
+      <div style={{
+        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 14,
+        margin: '0 16px', overflow: 'hidden',
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function MobileFilterSheet({
+  open, initial, t, dark, onClose, onApply,
+}: {
+  open: boolean;
+  initial: MobileFilters;
+  t: T;
+  dark: boolean;
+  onClose: () => void;
+  onApply: (f: MobileFilters) => void;
+}) {
+  const [draft, setDraft] = useState<MobileFilters>(initial);
+
+  useEffect(() => {
+    if (open) setDraft({ ...initial, orgs: new Set(initial.orgs), batches: new Set(initial.batches) });
+  }, [open, initial]);
+
+  if (!open) return null;
+
+  const toggleOrg = (org: string) => {
+    const next = new Set(draft.orgs);
+    next.has(org) ? next.delete(org) : next.add(org);
+    setDraft({ ...draft, orgs: next });
+  };
+  const toggleBatch = (b: string) => {
+    const next = new Set(draft.batches);
+    next.has(b) ? next.delete(b) : next.add(b);
+    setDraft({ ...draft, batches: next });
+  };
+
+  const statusOpts = ['Все', 'На складе', 'У продавца', 'Продана', 'Зарег.', 'Активна'];
+  const kpiOpts    = ['Все', 'Без KPI', 'KPI 1 ✅', 'KPI 2 ✅', 'KPI 3 ✅'];
+
+  const activeCount = filtersCount(draft);
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 60,
+      background: t.pageBg,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Header Y-02 V4 — X close + title + Сбросить */}
+      <div style={{
+        height: 56, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 8px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`,
+      }}>
+        <button
+          onClick={onClose}
+          style={{
+            width: 40, height: 40, borderRadius: 10,
+            border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <X size={22} color={t.text1} strokeWidth={2} />
+        </button>
+        <span style={{ fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1 }}>
+          Фильтры
+        </span>
+        <button
+          onClick={() => setDraft(EMPTY_FILTERS)}
+          style={{
+            height: 40, padding: '0 12px', borderRadius: 10,
+            border: 'none', background: 'transparent',
+            fontFamily: F.inter, fontSize: 14, fontWeight: 500, color: t.blue,
+            cursor: 'pointer',
+          }}
+        >
+          Сбросить
+        </button>
+      </div>
+
+      {/* Scrollable sections */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0 16px' }}>
+        <FilterSection title="Организация" t={t}>
+          {ORGANIZATIONS.map((org, i) => (
+            <CheckboxRow
+              key={org}
+              label={org}
+              checked={draft.orgs.has(org)}
+              onToggle={() => toggleOrg(org)}
+              isLast={i === ORGANIZATIONS.length - 1}
+              t={t}
+            />
+          ))}
+        </FilterSection>
+
+        <FilterSection title="Партия" t={t}>
+          {BATCHES.map((b, i) => (
+            <CheckboxRow
+              key={b}
+              label={b}
+              checked={draft.batches.has(b)}
+              onToggle={() => toggleBatch(b)}
+              isLast={i === BATCHES.length - 1}
+              t={t}
+            />
+          ))}
+        </FilterSection>
+
+        <FilterSection title="Статус" t={t}>
+          {statusOpts.map((s, i) => (
+            <RadioRow
+              key={s}
+              label={s}
+              selected={(s === 'Все' && !draft.status) || draft.status === s}
+              onSelect={() => setDraft({ ...draft, status: s === 'Все' ? '' : s })}
+              isLast={i === statusOpts.length - 1}
+              t={t}
+            />
+          ))}
+        </FilterSection>
+
+        <FilterSection title="KPI прогресс" t={t}>
+          {kpiOpts.map((k, i) => (
+            <RadioRow
+              key={k}
+              label={k}
+              selected={(k === 'Все' && !draft.kpi) || draft.kpi === k}
+              onSelect={() => setDraft({ ...draft, kpi: k === 'Все' ? '' : k })}
+              isLast={i === kpiOpts.length - 1}
+              t={t}
+            />
+          ))}
+        </FilterSection>
+      </div>
+
+      {/* Sticky footer */}
+      <div style={{
+        flexShrink: 0, padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+        background: t.surface, borderTop: `1px solid ${t.border}`,
+        display: 'flex', gap: 10,
+      }}>
+        <button
+          onClick={() => setDraft(EMPTY_FILTERS)}
+          style={{
+            flex: 1, height: 48, borderRadius: 12,
+            border: `1px solid ${t.inputBorder}`, background: 'transparent',
+            fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.text1,
+            cursor: 'pointer',
+          }}
+        >
+          Сбросить
+        </button>
+        <button
+          onClick={() => onApply(draft)}
+          style={{
+            flex: 2, height: 48, borderRadius: 12,
+            border: 'none', background: t.blue,
+            fontFamily: F.inter, fontSize: 15, fontWeight: 600, color: '#FFFFFF',
+            cursor: 'pointer',
+          }}
+        >
+          {activeCount > 0 ? `Применить (${activeCount})` : 'Применить'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Mobile header (Y-02 V2) + main content ─────────────────────────── */
+
+function MobileAllCards({
+  t, dark, navigate,
+}: { t: T; dark: boolean; navigate: (p: string) => void }) {
+  const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [filters, setFilters] = useState<MobileFilters>(EMPTY_FILTERS);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+
+  const active = filtersCount(filters);
+
+  const onSearchFocus = () => {
+    setSearchFocused(true);
+    setTimeout(() => {
+      searchWrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  };
+
+  const matchesFilters = (c: CardRow) => {
+    if (filters.orgs.size && !filters.orgs.has(c.organization)) return false;
+    if (filters.status) {
+      if (c.status !== filters.status) return false;
+    }
+    if (filters.kpi) {
+      const k3Done = c.kpi3 === true;
+      if (filters.kpi === 'Без KPI' && (c.kpi1 || c.kpi2 || c.kpi3 !== null)) return false;
+      if (filters.kpi === 'KPI 1 ✅' && !c.kpi1) return false;
+      if (filters.kpi === 'KPI 2 ✅' && !c.kpi2) return false;
+      if (filters.kpi === 'KPI 3 ✅' && !k3Done) return false;
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      if (!c.cardNumber.includes(search) &&
+          !c.client.toLowerCase().includes(q) &&
+          !c.seller.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  };
+
+  const visible = CARDS.filter(matchesFilters);
+  const today = visible.slice(0, 5);
+  const yesterday = visible.slice(5);
+
+  const stickyHeaderBg = t.surface;
+
+  return (
+    <>
+      {/* Header Y-02 V2 — back + centered title + search/filter icons */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        height: 52, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 8px',
+        background: stickyHeaderBg, borderBottom: `1px solid ${t.border}`,
+      }}>
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={{
+            width: 40, height: 40, borderRadius: 10,
+            border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <ChevronLeft size={24} color={t.text1} strokeWidth={2} />
+        </button>
+
+        <span style={{
+          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+          fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1,
+          whiteSpace: 'nowrap',
+        }}>
+          Все карты
+        </span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button
+            onClick={() => searchWrapRef.current?.querySelector('input')?.focus()}
+            style={{
+              width: 40, height: 40, borderRadius: 10,
+              border: 'none', background: 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <Search size={20} color={t.text2} strokeWidth={2} />
+          </button>
+          <button
+            onClick={() => setSheetOpen(true)}
+            style={{
+              position: 'relative', width: 40, height: 40, borderRadius: 10,
+              border: 'none', background: 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <SlidersHorizontal size={20} color={t.text2} strokeWidth={2} />
+            {active > 0 && (
+              <span style={{
+                position: 'absolute', top: 4, right: 4,
+                minWidth: 16, height: 16, padding: '0 4px', borderRadius: 999,
+                background: t.blue, border: `2px solid ${t.surface}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: F.inter, fontSize: 10, fontWeight: 700, color: '#FFFFFF', lineHeight: 1,
+              }}>
+                {active}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable content */}
+      <div style={{ padding: '12px 0 96px', boxSizing: 'border-box', width: '100%' }}>
+        {/* Search bar */}
+        <div ref={searchWrapRef} style={{ padding: '0 16px 14px' }}>
+          <div style={{
+            height: 44, borderRadius: 12,
+            background: dark ? '#2D3148' : '#F3F4F6',
+            padding: '0 14px',
+            display: 'flex', alignItems: 'center', gap: 8,
+            boxSizing: 'border-box',
+            border: searchFocused ? `1.5px solid ${t.blue}` : '1.5px solid transparent',
+            transition: 'border-color 0.12s',
+          }}>
+            <Search size={18} color={t.text3} strokeWidth={2} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onFocus={onSearchFocus}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="Поиск по номеру карты..."
+              style={{
+                flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                fontFamily: F.inter, fontSize: 15, color: t.text1,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Stat pill row — horizontal scroll */}
+        <div style={{
+          display: 'flex', gap: 8, overflowX: 'auto',
+          padding: '0 16px 4px', scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+        }}>
+          {([
+            { label: 'Всего',       val: '5 000', variant: 'neutral' as const },
+            { label: 'На складе',   val: '1 260', variant: 'neutral' as const },
+            { label: 'У продавцов', val: '1 400', variant: 'neutral' as const },
+            { label: 'Продано',     val: '2 340', variant: 'success' as const },
+            { label: 'KPI 3 ✅',    val: '567',   variant: 'neutral' as const },
+          ]).map(p => {
+            const cfg = p.variant === 'success'
+              ? (dark
+                  ? { bg: 'rgba(52,211,153,0.12)', color: '#34D399', border: 'transparent' }
+                  : { bg: C.successBg, color: '#15803D', border: '#BBF7D0' })
+              : (dark
+                  ? { bg: 'transparent', color: D.text2, border: D.border }
+                  : { bg: '#F3F4F6', color: C.text2, border: C.border });
+            return (
+              <div key={p.label} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 10,
+                background: cfg.bg, border: `1px solid ${cfg.border}`,
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                <span style={{ fontFamily: F.inter, fontSize: 12, color: t.text3 }}>{p.label}:</span>
+                <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 600, color: cfg.color }}>
+                  {p.val}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* СЕГОДНЯ section */}
+        {today.length > 0 && (
+          <>
+            <div style={{
+              fontFamily: F.inter, fontSize: 11, fontWeight: 600, color: t.text3,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              padding: '20px 20px 8px',
+            }}>
+              Сегодня
+            </div>
+            <div style={{
+              background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+              margin: '0 16px', overflow: 'hidden',
+            }}>
+              {today.map((c, i) => (
+                <CardListRow
+                  key={c.id}
+                  card={c}
+                  isLast={i === today.length - 1}
+                  t={t}
+                  dark={dark}
+                  onTap={() => navigate(`/card-detail/${c.id}`)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ВЧЕРА section */}
+        {yesterday.length > 0 && (
+          <>
+            <div style={{
+              fontFamily: F.inter, fontSize: 11, fontWeight: 600, color: t.text3,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              padding: '20px 20px 8px',
+            }}>
+              Вчера
+            </div>
+            <div style={{
+              background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+              margin: '0 16px', overflow: 'hidden',
+            }}>
+              {yesterday.map((c, i) => (
+                <CardListRow
+                  key={c.id}
+                  card={c}
+                  isLast={i === yesterday.length - 1}
+                  t={t}
+                  dark={dark}
+                  onTap={() => navigate(`/card-detail/${c.id}`)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Empty state */}
+        {visible.length === 0 && (
+          <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+            <div style={{ fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text2, marginBottom: 4 }}>
+              Ничего не найдено
+            </div>
+            <div style={{ fontFamily: F.inter, fontSize: 14, color: t.text3 }}>
+              Попробуйте изменить фильтры или поиск
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Filter sheet */}
+      <MobileFilterSheet
+        open={sheetOpen}
+        initial={filters}
+        t={t}
+        dark={dark}
+        onClose={() => setSheetOpen(false)}
+        onApply={(f) => { setFilters(f); setSheetOpen(false); }}
+      />
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
 export default function AllCardsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
 
@@ -569,6 +1211,9 @@ export default function AllCardsPage() {
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
+        {mobile ? (
+          <MobileAllCards t={t} dark={dark} navigate={navigate} />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
             <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
@@ -734,6 +1379,7 @@ export default function AllCardsPage() {
 
           <div style={{ height: '48px' }} />
         </div>
+        )}
       </div>
     </div>
   );

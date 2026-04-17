@@ -3,11 +3,13 @@ import {
   X, CreditCard, ShoppingBag, CheckCircle2, Wallet,
   Check, Minus, Search, ChevronDown, ChevronRight,
   Pencil, Lock, AlertTriangle, Info, ArrowDown, ArrowRightLeft,
+  ChevronLeft, MoreHorizontal, Phone, ArrowRightCircle, XCircle,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { useNavigate } from 'react-router';
 
 type T = ReturnType<typeof theme>;
@@ -1746,10 +1748,501 @@ function EditSellerModal({ open, onClose, onSave, t, dark }: {
   );
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — Seller Detail (Y-13)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function iconTint(variant: 'blue' | 'green' | 'violet' | 'amber', dark: boolean) {
+  const light = {
+    blue:   { bg: '#EFF6FF', color: '#2563EB' },
+    green:  { bg: '#F0FDF4', color: '#16A34A' },
+    violet: { bg: '#F3F0FF', color: '#7C3AED' },
+    amber:  { bg: '#FFFBEB', color: '#D97706' },
+  };
+  const darkV = {
+    blue:   { bg: 'rgba(37,99,235,0.15)',  color: '#3B82F6' },
+    green:  { bg: 'rgba(22,163,74,0.15)',  color: '#34D399' },
+    violet: { bg: 'rgba(124,58,237,0.15)', color: '#A78BFA' },
+    amber:  { bg: 'rgba(217,119,6,0.15)',  color: '#FBBF24' },
+  };
+  return (dark ? darkV : light)[variant];
+}
+
+function MSegmented({ active, onChange, t, dark }: { active: TabId; onChange: (id: TabId) => void; t: T; dark: boolean }) {
+  const trackBg = dark ? '#2D3148' : '#F3F4F6';
+  return (
+    <div style={{
+      display: 'flex', padding: 4, borderRadius: 999,
+      background: trackBg, height: 36, boxSizing: 'border-box',
+    }}>
+      {TABS.map(tab => {
+        const isActive = active === tab.id;
+        return (
+          <div
+            key={tab.id}
+            onClick={() => onChange(tab.id)}
+            style={{
+              flex: 1, borderRadius: 999,
+              background: isActive ? t.surface : 'transparent',
+              boxShadow: isActive ? (dark ? '0 1px 2px rgba(0,0,0,0.4)' : '0 1px 2px rgba(17,24,39,0.08)') : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+              color: isActive ? t.text1 : t.text3,
+              cursor: 'pointer',
+            }}
+          >
+            {tab.label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MSellerActionSheet({
+  open, onClose, onAssign, onEdit, onReassign, onDeactivate, t, dark,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onAssign: () => void;
+  onEdit: () => void;
+  onReassign: () => void;
+  onDeactivate: () => void;
+  t: T;
+  dark: boolean;
+}) {
+  if (!open) return null;
+  const actions = [
+    { icon: CreditCard,        label: 'Назначить карты',      onClick: () => { onClose(); onAssign(); },     destructive: false },
+    { icon: Pencil,            label: 'Редактировать',        onClick: () => { onClose(); onEdit(); },       destructive: false },
+    { icon: ArrowRightCircle,  label: 'Переназначить карты',  onClick: () => { onClose(); onReassign(); },   destructive: false },
+    { icon: XCircle,           label: 'Деактивировать',       onClick: () => { onClose(); onDeactivate(); }, destructive: true  },
+  ];
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 100, background: dark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.4)' }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'absolute', left: 0, right: 0, bottom: 0,
+          background: t.surface,
+          borderTopLeftRadius: 24, borderTopRightRadius: 24,
+          boxShadow: dark ? '0 -4px 24px rgba(0,0,0,0.6)' : '0 -4px 24px rgba(17,24,39,0.15)',
+          paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: t.inputBorder }} />
+        </div>
+        <div style={{ padding: '8px 20px 12px', fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1 }}>
+          Действия с продавцом
+        </div>
+        {actions.map((a, i) => {
+          const Icon = a.icon;
+          const color = a.destructive ? t.error : t.text1;
+          const iconBg = a.destructive ? (dark ? 'rgba(248,113,113,0.15)' : '#FEF2F2') : t.blueLt;
+          const iconColor = a.destructive ? t.error : t.blue;
+          return (
+            <div
+              key={i}
+              onClick={a.onClick}
+              style={{
+                minHeight: 52, display: 'flex', alignItems: 'center', gap: 14,
+                padding: '12px 20px',
+                borderBottom: i < actions.length - 1 ? `1px solid ${t.border}` : 'none',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon size={20} color={iconColor} strokeWidth={2} />
+              </div>
+              <span style={{ fontFamily: F.inter, fontSize: 16, fontWeight: 500, color }}>{a.label}</span>
+            </div>
+          );
+        })}
+        <div style={{ padding: '12px 16px' }}>
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%', height: 48, borderRadius: 12,
+              background: dark ? 'rgba(160,165,184,0.12)' : '#F3F4F6',
+              border: 'none', fontFamily: F.inter, fontSize: 16, fontWeight: 600, color: t.text2,
+              cursor: 'pointer',
+            }}
+          >
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MSH({ text, t }: { text: string; t: T }) {
+  return (
+    <div style={{
+      fontFamily: F.inter, fontSize: 11, fontWeight: 600,
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
+      padding: '20px 0 10px',
+    }}>
+      {text}
+    </div>
+  );
+}
+
+function MobileSellerDetail({
+  t, dark, navigate, activeTab, setActiveTab, onEdit, onDeactivate,
+}: {
+  t: T;
+  dark: boolean;
+  navigate: (p: string) => void;
+  activeTab: TabId;
+  setActiveTab: (id: TabId) => void;
+  onEdit: () => void;
+  onDeactivate: () => void;
+}) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  const kpi1Color = dark ? '#60A5FA' : '#2563EB';
+  const kpi2Color = dark ? '#A78BFA' : '#7C3AED';
+  const kpi3Color = dark ? '#34D399' : '#10B981';
+  const successBg = dark ? 'rgba(52,211,153,0.12)' : C.successBg;
+  const successFg = dark ? '#34D399' : '#15803D';
+  const trackBg = dark ? D.progressTrack : '#EFF6FF';
+
+  return (
+    <>
+      {/* Header Y-02 V3 */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 40,
+        height: 56, display: 'flex', alignItems: 'center', padding: '0 4px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`, flexShrink: 0,
+      }}>
+        <div
+          onClick={() => navigate('/sellers')}
+          style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <ChevronLeft size={24} color={t.blue} strokeWidth={2} />
+        </div>
+        <div style={{
+          flex: 1, textAlign: 'center',
+          fontFamily: F.inter, fontSize: 17, fontWeight: 600, color: t.text1,
+          overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',
+        }}>
+          Санжар Мирзаев
+        </div>
+        <div
+          onClick={() => setSheetOpen(true)}
+          style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <MoreHorizontal size={24} color={t.text1} strokeWidth={1.75} />
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, padding: '0 16px 96px' }}>
+        {/* Hero */}
+        <div style={{ padding: '20px 0 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          {/* Avatar 72×72 */}
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: t.blueLt,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 12,
+          }}>
+            <span style={{ fontFamily: F.dm, fontSize: 26, fontWeight: 700, color: t.blue }}>
+              СМ
+            </span>
+          </div>
+
+          <h1 style={{ fontFamily: F.dm, fontSize: 24, fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.15 }}>
+            Санжар Мирзаев
+          </h1>
+
+          <a
+            href="tel:+998911112233"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, textDecoration: 'none' }}
+          >
+            <Phone size={14} color={t.blue} strokeWidth={2} />
+            <span style={{ fontFamily: F.mono, fontSize: 14, color: t.blue }}>
+              +998 91 111 22 33
+            </span>
+          </a>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+              padding: '3px 10px', borderRadius: 12,
+              background: successBg, color: successFg, whiteSpace: 'nowrap',
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: successFg }} />
+              Активен
+            </span>
+            <span style={{ fontFamily: F.inter, fontSize: 12, color: t.text4 }}>
+              UCOIN: <span style={{ fontFamily: F.mono, color: t.text3 }}>UCN-0091</span>
+            </span>
+          </div>
+        </div>
+
+        {/* 2×2 stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          {([
+            { icon: CreditCard,   v: 'blue'   as const, label: 'Назначено',       value: '100' },
+            { icon: ShoppingBag,  v: 'green'  as const, label: 'Продано',         value: '62 (62%)' },
+            { icon: CheckCircle2, v: 'violet' as const, label: 'KPI 3 завершено', value: '15' },
+            { icon: Wallet,       v: 'amber'  as const, label: 'Заработано',     value: '555K UZS' },
+          ]).map(s => {
+            const pal = iconTint(s.v, dark);
+            const Icon = s.icon;
+            return (
+              <div key={s.label} style={{
+                background: t.surface, border: `1px solid ${t.border}`,
+                borderRadius: 16, padding: 14,
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: '50%',
+                  background: pal.bg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 10,
+                }}>
+                  <Icon size={20} color={pal.color} strokeWidth={2} />
+                </div>
+                <div style={{ fontFamily: F.inter, fontSize: 12, fontWeight: 500, color: t.text3, marginBottom: 2 }}>
+                  {s.label}
+                </div>
+                <div style={{ fontFamily: F.dm, fontSize: 20, fontWeight: 700, color: t.text1, lineHeight: 1 }}>
+                  {s.value}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Segmented */}
+        <MSegmented active={activeTab} onChange={setActiveTab} t={t} dark={dark} />
+
+        {/* Tab content */}
+        <div style={{ marginTop: 16 }}>
+          {activeTab === 'summary' && (
+            <div>
+              <MSH text="KPI прогресс" t={t} />
+              <div style={{
+                background: t.surface, border: `1px solid ${t.border}`,
+                borderRadius: 16, padding: 16,
+              }}>
+                {([
+                  { label: 'KPI 1 — Регистрация', value: 55, total: 62, color: kpi1Color },
+                  { label: 'KPI 2 — Пополнение',  value: 41, total: 62, color: kpi2Color },
+                  { label: 'KPI 3 — Оплата 500K', value: 15, total: 62, color: kpi3Color },
+                ]).map((row, i, arr) => {
+                  const pct = ((row.value / row.total) * 100).toFixed(1);
+                  return (
+                    <div key={row.label} style={{ marginBottom: i < arr.length - 1 ? 16 : 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontFamily: F.inter, fontSize: 14, color: t.text2 }}>{row.label}</span>
+                        <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 500, color: t.text1 }}>
+                          {row.value}/{row.total} ({pct}%)
+                        </span>
+                      </div>
+                      <div style={{ height: 8, borderRadius: 4, background: trackBg, overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: row.color, borderRadius: 4 }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <MSH text="Заработок" t={t} />
+              <div style={{
+                background: t.surface, border: `1px solid ${t.border}`,
+                borderRadius: 16, padding: '14px 16px',
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                {([
+                  { label: 'KPI 1 × 55', value: '275 000 UZS' },
+                  { label: 'KPI 2 × 41', value: '205 000 UZS' },
+                  { label: 'KPI 3 × 15', value: '150 000 UZS' },
+                ]).map(row => (
+                  <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: F.inter, fontSize: 14, color: t.text3 }}>{row.label}</span>
+                    <span style={{ fontFamily: F.mono, fontSize: 14, color: t.text1 }}>{row.value}</span>
+                  </div>
+                ))}
+                <div style={{ height: 1, background: t.border, margin: '2px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: F.inter, fontSize: 15, fontWeight: 600, color: t.text1 }}>Итого</span>
+                  <span style={{ fontFamily: F.mono, fontSize: 16, fontWeight: 700, color: t.text1 }}>555 000 UZS</span>
+                </div>
+              </div>
+
+              {/* UCOIN balance card */}
+              <div style={{ marginTop: 16 }}>
+                <div style={{
+                  background: dark
+                    ? 'linear-gradient(135deg, #1E3A5F 0%, #1A2B4A 100%)'
+                    : 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+                  borderRadius: 16, padding: 18,
+                  display: 'flex', flexDirection: 'column', gap: 12,
+                }}>
+                  <div>
+                    <div style={{ fontFamily: F.inter, fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 4 }}>
+                      Баланс UCOIN
+                    </div>
+                    <div style={{ fontFamily: F.dm, fontSize: 28, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.1 }}>
+                      155 000 UZS
+                    </div>
+                  </div>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.18)',
+                  }}>
+                    <span style={{ fontFamily: F.inter, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>Выведено:</span>
+                    <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 600, color: '#FFFFFF' }}>400 000 UZS</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'cards' && (
+            <div>
+              <MSH text={`Карты (${SELLER_CARDS.length})`} t={t} />
+              <div style={{
+                background: t.surface, border: `1px solid ${t.border}`,
+                borderRadius: 16, overflow: 'hidden',
+              }}>
+                {SELLER_CARDS.map((card, i) => {
+                  const k1 = card.k1 === 'done';
+                  const k2 = card.k2 === 'done';
+                  const k3Done = card.k3.status === 'done';
+                  const k3Prog = card.k3.status === 'progress';
+                  const greenDot = dark ? '#34D399' : '#16A34A';
+                  const emptyDot = dark ? 'rgba(255,255,255,0.10)' : '#E5E7EB';
+                  return (
+                    <div
+                      key={card.num}
+                      onClick={() => navigate(`/card-detail/${i + 1}`)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '14px 16px',
+                        borderBottom: i < SELLER_CARDS.length - 1 ? `1px solid ${t.border}` : 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 10,
+                        background: t.blueLt,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <CreditCard size={20} color={t.blue} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: F.mono, fontSize: 14, fontWeight: 500, color: t.text1 }}>
+                          {card.num}
+                        </div>
+                        <div style={{ fontFamily: F.inter, fontSize: 12, color: t.text3, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {card.client} · {card.soldDate}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: k1 ? greenDot : emptyDot }} />
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: k2 ? greenDot : emptyDot }} />
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: k3Done ? greenDot : k3Prog ? t.blue : emptyDot }} />
+                        </div>
+                        {k3Done && card.k3.label && (
+                          <span style={{ fontFamily: F.mono, fontSize: 11, fontWeight: 500, color: greenDot }}>
+                            ✅ {card.k3.label}
+                          </span>
+                        )}
+                        {k3Prog && typeof card.k3.progress === 'number' && (
+                          <span style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 600, color: t.blue }}>
+                            {card.k3.progress}%
+                          </span>
+                        )}
+                      </div>
+                      <ChevronRight size={18} color={t.textDisabled} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'finance' && (
+            <div>
+              <MSH text="Транзакции" t={t} />
+              <div style={{
+                background: t.surface, border: `1px solid ${t.border}`,
+                borderRadius: 16, overflow: 'hidden',
+              }}>
+                {TRANSACTIONS.map((tx, i) => {
+                  const isCredit = tx.positive;
+                  const amountColor = isCredit ? (dark ? '#34D399' : '#16A34A') : (dark ? '#F87171' : '#DC2626');
+                  const iconBg = isCredit ? (dark ? 'rgba(52,211,153,0.15)' : '#F0FDF4') : (dark ? 'rgba(248,113,113,0.15)' : '#FEF2F2');
+                  const Icon = isCredit ? ArrowDown : ArrowRightLeft;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '14px 16px',
+                        borderBottom: i < TRANSACTIONS.length - 1 ? `1px solid ${t.border}` : 'none',
+                      }}
+                    >
+                      <div style={{
+                        width: 36, height: 36, borderRadius: '50%',
+                        background: iconBg,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        <Icon size={16} color={amountColor} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: F.inter, fontSize: 14, color: t.text1 }}>
+                          {tx.type === 'kpi' ? `${tx.kpiLabel} · карта ${tx.card}` : 'Вывод UCOIN'}
+                        </div>
+                        <div style={{ fontFamily: F.inter, fontSize: 12, color: t.text4, marginTop: 2 }}>
+                          {tx.date}
+                        </div>
+                      </div>
+                      <span style={{ fontFamily: F.mono, fontSize: 14, fontWeight: 600, color: amountColor, flexShrink: 0 }}>
+                        {tx.amount}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <MSellerActionSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onAssign={() => navigate('/card-assignment')}
+        onEdit={onEdit}
+        onReassign={() => navigate('/card-assignment')}
+        onDeactivate={onDeactivate}
+        t={t}
+        dark={dark}
+      />
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+
 export default function SellerDetailPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
   const [activeTab, setActiveTab] = useState<TabId>('summary');
@@ -1775,6 +2268,17 @@ export default function SellerDetailPage() {
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
+        {mobile ? (
+          <MobileSellerDetail
+            t={t}
+            dark={dark}
+            navigate={navigate}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onEdit={() => setEditOpen(true)}
+            onDeactivate={() => setDeactivateOpen(true)}
+          />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
@@ -1908,6 +2412,7 @@ export default function SellerDetailPage() {
 
           <div style={{ height: '48px' }} />
         </div>
+        )}
       </div>
 
       <EditSellerModal

@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   ChevronRight, ChevronDown, Search, Plus, MoreVertical, X,
+  Pencil, CreditCard,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { usePopoverPosition } from '../components/usePopoverPosition';
@@ -690,6 +692,514 @@ function AddSellerModal({ open, onClose, t, dark }: { open: boolean; onClose: ()
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — Sellers list (Y-12 Org Tab 2)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function earnedShort(amount: string): string {
+  // "555 000" -> "555K", "1 250 000" -> "1.25M"
+  const digits = parseInt(amount.replace(/\s/g, ''), 10);
+  if (!isFinite(digits)) return amount;
+  if (digits >= 1_000_000) return (digits / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'M';
+  if (digits >= 1_000) return Math.round(digits / 1000) + 'K';
+  return String(digits);
+}
+
+/* ─── Mobile seller row with swipe-left reveal ───────────────────────── */
+
+function MobileSellerRow({
+  seller, isLast, t, dark, navigate,
+  swipedId, setSwipedId,
+}: {
+  seller: SellerRow;
+  isLast: boolean;
+  t: T;
+  dark: boolean;
+  navigate: (p: string) => void;
+  swipedId: number | null;
+  setSwipedId: (id: number | null) => void;
+}) {
+  const startX = useRef<number | null>(null);
+  const movedX = useRef(0);
+  const actionsW = 180;
+  const revealed = swipedId === seller.id;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    movedX.current = 0;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startX.current === null) return;
+    movedX.current = e.touches[0].clientX - startX.current;
+  };
+  const onTouchEnd = () => {
+    if (movedX.current < -40) setSwipedId(seller.id);
+    else if (movedX.current > 40) setSwipedId(null);
+    startX.current = null;
+    movedX.current = 0;
+  };
+
+  const onTap = () => {
+    if (revealed) { setSwipedId(null); return; }
+    navigate(`/sellers/${seller.id}`);
+  };
+
+  const trackBg = dark ? D.progressTrack : '#EFF6FF';
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderBottom: isLast ? 'none' : `1px solid ${t.border}` }}>
+      {/* Swipe-revealed actions */}
+      <div style={{
+        position: 'absolute', top: 0, right: 0, bottom: 0,
+        display: 'flex', alignItems: 'stretch',
+        width: actionsW,
+      }}>
+        <button
+          onClick={() => { setSwipedId(null); console.log('Edit', seller.id); }}
+          style={{
+            flex: 1, border: 'none', background: dark ? '#3A3F50' : '#E5E7EB',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 4, cursor: 'pointer',
+          }}
+        >
+          <Pencil size={18} color={t.text1} strokeWidth={1.75} />
+          <span style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 500, color: t.text1 }}>Редакт.</span>
+        </button>
+        <button
+          onClick={() => { setSwipedId(null); navigate('/card-assignment'); }}
+          style={{
+            flex: 1, border: 'none', background: t.blue,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 4, cursor: 'pointer',
+          }}
+        >
+          <CreditCard size={18} color="#FFFFFF" strokeWidth={1.75} />
+          <span style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 500, color: '#FFFFFF' }}>Карты</span>
+        </button>
+      </div>
+
+      {/* Row foreground */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={onTap}
+        style={{
+          position: 'relative',
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '14px 16px',
+          background: t.surface,
+          transform: `translateX(${revealed ? -actionsW : 0}px)`,
+          transition: 'transform 0.18s ease',
+          cursor: 'pointer',
+        }}
+      >
+        {/* Avatar 32 */}
+        <div style={{
+          width: 40, height: 40, borderRadius: '50%',
+          background: t.blueLt,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <span style={{ fontFamily: F.inter, fontSize: 13, fontWeight: 600, color: t.blue }}>
+            {initials(seller.name)}
+          </span>
+        </div>
+
+        {/* Middle */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.text1,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {seller.name}
+          </div>
+          <div style={{
+            fontFamily: F.inter, fontSize: 12, color: t.text3, marginTop: 2,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {seller.assigned} карт · {seller.sold} продано · {earnedShort(seller.earned)} UZS
+          </div>
+          {/* Mini progress */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <div style={{
+              flex: 1, height: 4, borderRadius: 2, background: trackBg, overflow: 'hidden',
+            }}>
+              <div style={{
+                width: `${seller.percentSold}%`, height: '100%',
+                background: t.blue, borderRadius: 2,
+              }} />
+            </div>
+            <span style={{ fontFamily: F.mono, fontSize: 11, color: t.text4, flexShrink: 0 }}>
+              {seller.percentSold}%
+            </span>
+          </div>
+        </div>
+
+        <ChevronRight size={18} color={t.textDisabled} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Mobile-only form primitives (scrollIntoView on focus) ───────────── */
+
+function MFormInput({
+  label, value, onChange, placeholder, type = 'text', t,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  t: T;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    setTimeout(() => {
+      wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }, []);
+  return (
+    <div ref={wrapRef}>
+      <label style={{
+        display: 'block', fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+        color: t.text2, marginBottom: 8,
+      }}>{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={handleFocus}
+        onBlur={() => setFocused(false)}
+        placeholder={placeholder}
+        style={{
+          width: '100%', height: 48,
+          padding: '0 14px',
+          border: `1.5px solid ${focused ? t.blue : t.inputBorder}`,
+          borderRadius: 12,
+          background: t.surface,
+          fontFamily: F.inter, fontSize: 15, color: t.text1,
+          outline: 'none', boxSizing: 'border-box',
+          transition: 'border-color 0.12s',
+        }}
+      />
+    </div>
+  );
+}
+
+function MFormStepper({ label, value, onChange, t }: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  t: T;
+}) {
+  return (
+    <div>
+      <label style={{
+        display: 'block', fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+        color: t.text2, marginBottom: 8,
+      }}>{label}</label>
+      <div style={{
+        display: 'flex', alignItems: 'stretch',
+        border: `1.5px solid ${t.inputBorder}`, borderRadius: 12,
+        overflow: 'hidden', background: t.surface,
+      }}>
+        <button
+          onClick={() => onChange(Math.max(0, value - 1))}
+          style={{
+            width: 48, border: 'none', background: 'transparent',
+            fontFamily: F.inter, fontSize: 20, color: t.text1,
+            cursor: 'pointer',
+          }}
+        >−</button>
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: F.mono, fontSize: 16, fontWeight: 600, color: t.text1,
+          borderLeft: `1px solid ${t.border}`, borderRight: `1px solid ${t.border}`,
+        }}>
+          {value}
+        </div>
+        <button
+          onClick={() => onChange(value + 1)}
+          style={{
+            width: 48, border: 'none', background: 'transparent',
+            fontFamily: F.inter, fontSize: 20, color: t.text1,
+            cursor: 'pointer',
+          }}
+        >+</button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Mobile full-screen Add Seller modal ────────────────────────────── */
+
+function MobileAddSellerModal({
+  open, onClose, t, dark,
+}: { open: boolean; onClose: () => void; t: T; dark: boolean }) {
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [wallet, setWallet] = useState('');
+  const [cardsCount, setCardsCount] = useState(0);
+
+  useEffect(() => {
+    if (open) {
+      setFullName(''); setPhone(''); setWallet(''); setCardsCount(0);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const canSubmit = fullName.trim().length > 0 && phone.trim().length > 0;
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 70,
+      background: t.pageBg,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Header Y-02 V4 */}
+      <div style={{
+        height: 56, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 8px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`,
+      }}>
+        <button
+          onClick={onClose}
+          style={{
+            width: 40, height: 40, borderRadius: 10,
+            border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <X size={22} color={t.text1} strokeWidth={2} />
+        </button>
+        <span style={{ fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1 }}>
+          Новый продавец
+        </span>
+        <button
+          disabled={!canSubmit}
+          onClick={() => { console.log('Create seller', { fullName, phone, wallet, cardsCount }); onClose(); }}
+          style={{
+            height: 40, padding: '0 12px', borderRadius: 10,
+            border: 'none', background: 'transparent',
+            fontFamily: F.inter, fontSize: 14, fontWeight: 600,
+            color: canSubmit ? t.blue : t.textDisabled,
+            cursor: canSubmit ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Создать
+        </button>
+      </div>
+
+      {/* Scrollable form */}
+      <div style={{
+        flex: 1, overflowY: 'auto',
+        padding: '20px 16px calc(96px + env(safe-area-inset-bottom))',
+        display: 'flex', flexDirection: 'column', gap: 18,
+      }}>
+        <MFormInput label="ФИО"          value={fullName}   onChange={setFullName}  placeholder="Фамилия Имя Отчество" t={t} />
+        <MFormInput label="Телефон"      value={phone}      onChange={setPhone}     placeholder="+998 __ ___ __ __" type="tel" t={t} />
+        <MFormInput label="UCOIN кошелёк" value={wallet}    onChange={setWallet}    placeholder="UCOIN0001234567" t={t} />
+        <MFormStepper label="Количество карт" value={cardsCount} onChange={setCardsCount} t={t} />
+      </div>
+
+      {/* Sticky footer action */}
+      <div style={{
+        flexShrink: 0,
+        padding: '12px 16px calc(12px + env(safe-area-inset-bottom))',
+        background: t.surface, borderTop: `1px solid ${t.border}`,
+      }}>
+        <button
+          disabled={!canSubmit}
+          onClick={() => { console.log('Create seller', { fullName, phone, wallet, cardsCount }); onClose(); }}
+          style={{
+            width: '100%', height: 52, borderRadius: 12,
+            border: 'none', background: canSubmit ? t.blue : (dark ? '#3A3F50' : '#D1D5DB'),
+            fontFamily: F.inter, fontSize: 15, fontWeight: 600, color: '#FFFFFF',
+            cursor: canSubmit ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Создать продавца
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Mobile Sellers main content ─────────────────────────────────────── */
+
+function MobileSellers({
+  t, dark, navigate,
+}: { t: T; dark: boolean; navigate: (p: string) => void }) {
+  const [search, setSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [swipedId, setSwipedId] = useState<number | null>(null);
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+
+  const onSearchFocus = () => {
+    setSearchFocused(true);
+    setTimeout(() => {
+      searchWrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  };
+
+  const filtered = SELLERS.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
+
+  const totalSold = SELLERS.reduce((acc, s) => acc + s.sold, 0);
+  const totalEarnedNum = SELLERS.reduce((acc, s) => acc + parseInt(s.earned.replace(/\s/g, ''), 10), 0);
+  const totalEarnedShort = totalEarnedNum >= 1_000_000
+    ? (totalEarnedNum / 1_000_000).toFixed(2).replace(/\.?0+$/, '') + 'M'
+    : Math.round(totalEarnedNum / 1000) + 'K';
+
+  const pills: Array<{ label: string; val: string; variant: 'neutral' | 'success' }> = [
+    { label: 'Всего',      val: String(SELLERS.length), variant: 'neutral' },
+    { label: 'Активных',   val: String(SELLERS.filter(s => s.status === 'Активен').length), variant: 'success' },
+    { label: 'Продано',    val: String(totalSold), variant: 'neutral' },
+    { label: 'Заработано', val: totalEarnedShort, variant: 'neutral' },
+  ];
+
+  return (
+    <>
+      {/* Header Y-02 V1 (title + Plus button) */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        height: 52, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`,
+      }}>
+        <span style={{ fontFamily: F.dm, fontSize: 20, fontWeight: 700, color: t.text1 }}>
+          Продавцы
+        </span>
+        <button
+          onClick={() => setAddOpen(true)}
+          style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: t.blue, border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <Plus size={20} color="#FFFFFF" strokeWidth={2} />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div
+        onClick={() => swipedId !== null && setSwipedId(null)}
+        style={{ padding: '12px 0 96px', boxSizing: 'border-box', width: '100%' }}
+      >
+        {/* Search */}
+        <div ref={searchWrapRef} style={{ padding: '0 16px 14px' }}>
+          <div style={{
+            height: 44, borderRadius: 12,
+            background: dark ? '#2D3148' : '#F3F4F6',
+            padding: '0 14px',
+            display: 'flex', alignItems: 'center', gap: 8,
+            boxSizing: 'border-box',
+            border: searchFocused ? `1.5px solid ${t.blue}` : '1.5px solid transparent',
+            transition: 'border-color 0.12s',
+          }}>
+            <Search size={18} color={t.text3} strokeWidth={2} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onFocus={onSearchFocus}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="Поиск продавцов..."
+              style={{
+                flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                fontFamily: F.inter, fontSize: 15, color: t.text1,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Stat pills */}
+        <div style={{
+          display: 'flex', gap: 8, overflowX: 'auto',
+          padding: '0 16px 4px', scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+        }}>
+          {pills.map(p => {
+            const cfg = p.variant === 'success'
+              ? (dark
+                  ? { bg: 'rgba(52,211,153,0.12)', color: '#34D399', border: 'transparent' }
+                  : { bg: C.successBg, color: '#15803D', border: '#BBF7D0' })
+              : (dark
+                  ? { bg: 'transparent', color: D.text2, border: D.border }
+                  : { bg: '#F3F4F6', color: C.text2, border: C.border });
+            return (
+              <div key={p.label} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 10,
+                background: cfg.bg, border: `1px solid ${cfg.border}`,
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}>
+                <span style={{ fontFamily: F.inter, fontSize: 12, color: t.text3 }}>{p.label}:</span>
+                <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 600, color: cfg.color }}>
+                  {p.val}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* List */}
+        <div style={{
+          margin: '16px 16px 0',
+          background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+          overflow: 'hidden',
+        }}>
+          {filtered.length === 0 && (
+            <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+              <div style={{ fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text2, marginBottom: 4 }}>
+                Ничего не найдено
+              </div>
+              <div style={{ fontFamily: F.inter, fontSize: 14, color: t.text3 }}>
+                Попробуйте другой запрос
+              </div>
+            </div>
+          )}
+          {filtered.map((seller, i) => (
+            <MobileSellerRow
+              key={seller.id}
+              seller={seller}
+              isLast={i === filtered.length - 1}
+              t={t}
+              dark={dark}
+              navigate={navigate}
+              swipedId={swipedId}
+              setSwipedId={setSwipedId}
+            />
+          ))}
+        </div>
+
+        <div style={{
+          fontFamily: F.inter, fontSize: 12, color: t.text4,
+          textAlign: 'center', marginTop: 14, padding: '0 16px',
+        }}>
+          Проведите строку влево для действий
+        </div>
+      </div>
+
+      <MobileAddSellerModal open={addOpen} onClose={() => setAddOpen(false)} t={t} dark={dark} />
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -697,6 +1207,7 @@ export default function SellersManagementPage() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
 
@@ -724,6 +1235,9 @@ export default function SellersManagementPage() {
         {/* Top Navbar */}
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
+        {mobile ? (
+          <MobileSellers t={t} dark={dark} navigate={navigate} />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
@@ -887,10 +1401,13 @@ export default function SellersManagementPage() {
 
           <div style={{ height: '48px' }} />
         </div>
+        )}
       </div>
 
-      {/* Add Seller Modal */}
-      <AddSellerModal open={addModalOpen} onClose={() => setAddModalOpen(false)} t={t} dark={dark} />
+      {/* Add Seller Modal (desktop) */}
+      {!mobile && (
+        <AddSellerModal open={addModalOpen} onClose={() => setAddModalOpen(false)} t={t} dark={dark} />
+      )}
 
       {/* Responsive styles */}
       <style>{`

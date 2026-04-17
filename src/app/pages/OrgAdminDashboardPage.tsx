@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronRight, ChevronDown, CreditCard, ShoppingBag, UserCheck,
-  ArrowUpDown, Wallet, Check,
+  ArrowUpDown, Wallet, Check, TrendingUp,
   ArrowRight, Circle, Dot,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
-import { F, C, theme } from '../components/ds/tokens';
+import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -487,6 +488,334 @@ function ActivityTimeline({ activities, t, dark }: { activities: Activity[]; t: 
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — Org Admin Dashboard (Y-06 · Org Tab 1)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function mIconVariant(variant: 'blue' | 'green' | 'cyan' | 'rose', dark: boolean) {
+  const light = {
+    blue:  { bg: '#EFF6FF', color: '#2563EB' },
+    green: { bg: '#F0FDF4', color: '#16A34A' },
+    cyan:  { bg: '#ECFEFF', color: '#0891B2' },
+    rose:  { bg: '#FFF1F2', color: '#E11D48' },
+  };
+  const darkV = {
+    blue:  { bg: 'rgba(37,99,235,0.15)',  color: '#3B82F6' },
+    green: { bg: 'rgba(22,163,74,0.15)',  color: '#34D399' },
+    cyan:  { bg: 'rgba(8,145,178,0.15)',  color: '#22D3EE' },
+    rose:  { bg: 'rgba(225,29,72,0.15)',  color: '#FB7185' },
+  };
+  return (dark ? darkV : light)[variant];
+}
+
+function MobileStatCard({
+  icon: Icon, variant, label, value, trend, t, dark,
+}: {
+  icon: React.ElementType;
+  variant: 'blue' | 'green' | 'cyan' | 'rose';
+  label: string;
+  value: string;
+  trend?: { value: string; positive: boolean };
+  t: T; dark: boolean;
+}) {
+  const iv = mIconVariant(variant, dark);
+  const trendBg = trend?.positive
+    ? (dark ? 'rgba(52,211,153,0.15)' : '#F0FDF4')
+    : (dark ? 'rgba(248,113,113,0.15)' : '#FEF2F2');
+  const trendFg = trend?.positive
+    ? (dark ? '#34D399' : '#15803D')
+    : (dark ? '#F87171' : '#DC2626');
+
+  return (
+    <div style={{
+      background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+      padding: 14, display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: '50%',
+        background: iv.bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={22} color={iv.color} strokeWidth={2} />
+      </div>
+      <div>
+        <div style={{ fontFamily: F.inter, fontSize: 13, fontWeight: 500, color: t.text3, marginBottom: 3 }}>
+          {label}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: F.dm, fontSize: 24, fontWeight: 700, color: t.text1, lineHeight: 1 }}>
+            {value}
+          </span>
+          {trend && (
+            <span style={{
+              fontFamily: F.inter, fontSize: 11, fontWeight: 500,
+              color: trendFg, background: trendBg,
+              padding: '1px 6px', borderRadius: 8,
+            }}>
+              {trend.value}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MSectionHeader({ text, t }: { text: string; t: T }) {
+  return (
+    <div style={{
+      fontFamily: F.inter, fontSize: 11, fontWeight: 600,
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
+      padding: '24px 4px 10px',
+    }}>
+      {text}
+    </div>
+  );
+}
+
+function MSellerRow({
+  medal, name, sold, kpi3, earned, isLast, t, onTap,
+}: {
+  medal: string; name: string; sold: number; kpi3: number; earned: string;
+  isLast: boolean; t: T; onTap: () => void;
+}) {
+  return (
+    <div
+      onClick={onTap}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '14px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{
+        width: 40, height: 40, borderRadius: '50%',
+        background: t.blueLt,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        fontSize: 22, lineHeight: 1,
+      }}>
+        {medal}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.text1,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {name}
+        </div>
+        <div style={{
+          fontFamily: F.inter, fontSize: 13, color: t.text3, marginTop: 2,
+        }}>
+          {sold} продано · {kpi3} KPI 3
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 500, color: t.text2 }}>
+          {earned}
+        </span>
+        <ChevronRight size={18} color={t.textDisabled} strokeWidth={1.75} />
+      </div>
+    </div>
+  );
+}
+
+function MActivityRow({
+  tint, text, time, isLast, t, dark,
+}: {
+  tint: 'green' | 'blue' | 'amber' | 'gray';
+  text: string; time: string; isLast: boolean; t: T; dark: boolean;
+}) {
+  const palette = dark
+    ? {
+        green: { bg: 'rgba(52,211,153,0.15)', fg: '#34D399' },
+        blue:  { bg: 'rgba(59,130,246,0.15)', fg: '#3B82F6' },
+        amber: { bg: 'rgba(251,191,36,0.15)', fg: '#FBBF24' },
+        gray:  { bg: 'rgba(160,165,184,0.15)', fg: '#A0A5B8' },
+      }
+    : {
+        green: { bg: '#F0FDF4', fg: '#16A34A' },
+        blue:  { bg: '#EFF6FF', fg: '#2563EB' },
+        amber: { bg: '#FFFBEB', fg: '#D97706' },
+        gray:  { bg: '#F3F4F6', fg: '#6B7280' },
+      };
+  const pal = palette[tint];
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '14px 16px',
+      borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: '50%',
+        background: pal.bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <div style={{ width: 10, height: 10, borderRadius: '50%', background: pal.fg }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontFamily: F.inter, fontSize: 14, color: t.text1,
+          overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {text}
+        </div>
+        <div style={{ fontFamily: F.inter, fontSize: 12, color: t.text4, marginTop: 2 }}>
+          {time}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileOrgDashboard({
+  t, dark, navigate,
+}: { t: T; dark: boolean; navigate: (p: string) => void }) {
+  const conversionRows = [
+    { label: 'Регистрация',    value: 185, pct: 80.4, tint: 'cyan'   as const },
+    { label: 'Пополнение',     value: 120, pct: 52.2, tint: 'blue'   as const },
+    { label: 'Оплата 500K',    value: 45,  pct: 19.6, tint: 'rose'   as const },
+  ];
+
+  return (
+    <div style={{ padding: '12px 16px 96px', boxSizing: 'border-box', width: '100%' }}>
+      {/* Greeting */}
+      <h1 style={{
+        fontFamily: F.dm, fontSize: 32, fontWeight: 700,
+        color: t.text1, margin: '4px 0 0', lineHeight: 1.1,
+      }}>
+        Привет, Рустам!
+      </h1>
+      <p style={{ fontFamily: F.inter, fontSize: 15, color: t.text3, margin: '6px 0 16px' }}>
+        Mysafar OOO — обзор продаж
+      </p>
+
+      {/* Hero gradient card */}
+      <div style={{
+        background: dark
+          ? 'linear-gradient(135deg, #1E3A5F 0%, #1A2B4A 100%)'
+          : 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+        borderRadius: 20, padding: 20, marginBottom: 16,
+      }}>
+        <div style={{ fontFamily: F.inter, fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>
+          Всего начислено
+        </div>
+        <div style={{ fontFamily: F.dm, fontSize: 32, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.1, marginBottom: 10 }}>
+          1 825 000 UZS
+        </div>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '4px 10px', borderRadius: 20,
+          background: 'rgba(255,255,255,0.18)',
+        }}>
+          <TrendingUp size={14} color="#FFFFFF" strokeWidth={2.5} />
+          <span style={{ fontFamily: F.inter, fontSize: 13, fontWeight: 600, color: '#FFFFFF' }}>
+            +12% vs прошлый месяц
+          </span>
+        </div>
+      </div>
+
+      {/* 2×2 Stat Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <MobileStatCard icon={CreditCard}  variant="blue"  label="Карт получено" value="500"      t={t} dark={dark} />
+        <MobileStatCard icon={ShoppingBag} variant="green" label="Продано"       value="230" trend={{ value: '+12%', positive: true }} t={t} dark={dark} />
+        <MobileStatCard icon={UserCheck}   variant="cyan"  label="KPI 1 (80%)"   value="185"      t={t} dark={dark} />
+        <MobileStatCard icon={Wallet}      variant="rose"  label="KPI 3 (20%)"   value="45"       t={t} dark={dark} />
+      </div>
+
+      {/* Sellers */}
+      <MSectionHeader text="Рейтинг продавцов" t={t} />
+      <div style={{
+        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+        overflow: 'hidden',
+      }}>
+        <MSellerRow medal="🥇" name="Санжар М."    sold={62} kpi3={15} earned="555K UZS" isLast={false} t={t} onTap={() => navigate('/sellers')} />
+        <MSellerRow medal="🥈" name="Ислом Т."     sold={42} kpi3={10} earned="350K UZS" isLast={false} t={t} onTap={() => navigate('/sellers')} />
+        <MSellerRow medal="🥉" name="Абдуллох Р."  sold={45} kpi3={8}  earned="330K UZS" isLast={true}  t={t} onTap={() => navigate('/sellers')} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 0' }}>
+        <span
+          onClick={() => navigate('/sellers')}
+          style={{ fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.blue, padding: '10px 20px', cursor: 'pointer' }}
+        >
+          Все продавцы
+        </span>
+      </div>
+
+      {/* KPI conversion */}
+      <MSectionHeader text="KPI конверсия" t={t} />
+      <div style={{
+        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+        padding: 16,
+      }}>
+        {conversionRows.map((row, i) => {
+          const iv = mIconVariant(row.tint, dark);
+          return (
+            <div key={row.label} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              marginBottom: i < conversionRows.length - 1 ? 14 : 0,
+            }}>
+              <div style={{
+                minWidth: 100, fontFamily: F.inter, fontSize: 13, color: t.text2, flexShrink: 0,
+              }}>
+                {row.label}
+              </div>
+              <div style={{
+                flex: 1, height: 8, borderRadius: 4,
+                background: dark ? D.progressTrack : '#EFF6FF',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  width: `${row.pct}%`, height: '100%',
+                  background: iv.color, borderRadius: 4,
+                }} />
+              </div>
+              <div style={{
+                width: 64, display: 'flex', flexDirection: 'column',
+                alignItems: 'flex-end', flexShrink: 0,
+              }}>
+                <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 500, color: t.text1 }}>
+                  {row.value}
+                </span>
+                <span style={{ fontFamily: F.inter, fontSize: 11, color: t.text4 }}>
+                  {row.pct}%
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Activity */}
+      <MSectionHeader text="Последняя активность" t={t} />
+      <div style={{
+        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+        overflow: 'hidden',
+      }}>
+        {ACTIVITIES.slice(0, 5).map((a, i, arr) => (
+          <MActivityRow
+            key={a.text}
+            tint={a.color}
+            text={a.text}
+            time={a.time}
+            isLast={i === arr.length - 1}
+            t={t}
+            dark={dark}
+          />
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 0' }}>
+        <span
+          onClick={() => navigate('/notifications')}
+          style={{ fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.blue, padding: '10px 20px', cursor: 'pointer' }}
+        >
+          Все уведомления
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -497,6 +826,7 @@ export default function OrgAdminDashboardPage() {
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
   const [sellersHover, setSellersHover] = useState(false);
   const [activityHover, setActivityHover] = useState(false);
+  const mobile = useIsMobile();
 
   const t = theme(darkMode);
   const dark = darkMode;
@@ -541,6 +871,9 @@ export default function OrgAdminDashboardPage() {
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
+        {mobile ? (
+          <MobileOrgDashboard t={t} dark={dark} navigate={navigate} />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
@@ -760,6 +1093,7 @@ export default function OrgAdminDashboardPage() {
 
           <div style={{ height: '48px' }} />
         </div>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  ChevronDown, ChevronRight, Settings, MoreVertical,
+  ChevronDown, ChevronRight, ChevronLeft, Settings, MoreVertical,
   CheckCircle2, CreditCard, ArrowDown, Upload, AlertTriangle,
   CheckCheck, Trash2, Check, Bell,
 } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { usePopoverPosition } from '../components/usePopoverPosition';
 import { DateRangePicker } from '../components/DateRangePicker';
 import { EmptyState } from '../components/EmptyState';
@@ -298,9 +299,388 @@ function NotifRow({ notif, onRead, onDelete, t, dark }: {
    PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — Notifications history
+═══════════════════════════════════════════════════════════════════════════ */
+
+type NotifColorKey = 'green' | 'blue' | 'amber' | 'red';
+
+function notifTint(color: NotifColorKey, dark: boolean) {
+  const light: Record<NotifColorKey, { bg: string; fg: string }> = {
+    green: { bg: '#F0FDF4', fg: '#16A34A' },
+    blue:  { bg: '#EFF6FF', fg: '#2563EB' },
+    amber: { bg: '#FFFBEB', fg: '#D97706' },
+    red:   { bg: '#FEF2F2', fg: '#DC2626' },
+  };
+  const darkV: Record<NotifColorKey, { bg: string; fg: string }> = {
+    green: { bg: 'rgba(52,211,153,0.15)',  fg: '#34D399' },
+    blue:  { bg: 'rgba(59,130,246,0.15)',  fg: '#3B82F6' },
+    amber: { bg: 'rgba(251,191,36,0.15)',  fg: '#FBBF24' },
+    red:   { bg: 'rgba(248,113,113,0.15)', fg: '#F87171' },
+  };
+  return (dark ? darkV : light)[color];
+}
+
+type MobileFilter = 'all' | 'unread';
+
+function MobileSegmented({
+  active, onChange, unreadCount, t, dark,
+}: {
+  active: MobileFilter;
+  onChange: (f: MobileFilter) => void;
+  unreadCount: number;
+  t: T;
+  dark: boolean;
+}) {
+  const trackBg = dark ? '#2D3148' : '#F3F4F6';
+  const items: Array<{ id: MobileFilter; label: string; badge?: number }> = [
+    { id: 'all',    label: 'Все' },
+    { id: 'unread', label: 'Непрочитанные', badge: unreadCount > 0 ? unreadCount : undefined },
+  ];
+  return (
+    <div style={{
+      display: 'flex', padding: 4, borderRadius: 999,
+      background: trackBg, height: 36, boxSizing: 'border-box',
+    }}>
+      {items.map(it => {
+        const isActive = it.id === active;
+        return (
+          <div
+            key={it.id}
+            onClick={() => onChange(it.id)}
+            style={{
+              flex: 1, borderRadius: 999,
+              background: isActive ? t.surface : 'transparent',
+              boxShadow: isActive ? (dark ? '0 1px 2px rgba(0,0,0,0.4)' : '0 1px 2px rgba(17,24,39,0.08)') : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+              color: isActive ? t.text1 : t.text3,
+              cursor: 'pointer',
+            }}
+          >
+            {it.label}
+            {it.badge && (
+              <span style={{
+                minWidth: 18, height: 18, padding: '0 5px', borderRadius: 999,
+                background: t.blue, color: '#FFFFFF',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: F.inter, fontSize: 10, fontWeight: 700, lineHeight: 1,
+              }}>
+                {it.badge}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MobileNotifRow({
+  n, isLast, t, dark, onTap, onDelete, swipedId, setSwipedId,
+}: {
+  n: Notif;
+  isLast: boolean;
+  t: T;
+  dark: boolean;
+  onTap: (n: Notif) => void;
+  onDelete: (id: number) => void;
+  swipedId: number | null;
+  setSwipedId: (id: number | null) => void;
+}) {
+  const Icon = n.icon;
+  const pal = notifTint(n.color, dark);
+  const startX = useRef<number | null>(null);
+  const movedX = useRef(0);
+  const actionsW = 88;
+  const revealed = swipedId === n.id;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    movedX.current = 0;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startX.current === null) return;
+    movedX.current = e.touches[0].clientX - startX.current;
+  };
+  const onTouchEnd = () => {
+    if (movedX.current < -40) setSwipedId(n.id);
+    else if (movedX.current > 40) setSwipedId(null);
+    startX.current = null;
+    movedX.current = 0;
+  };
+
+  const handleTap = () => {
+    if (revealed) { setSwipedId(null); return; }
+    onTap(n);
+  };
+
+  return (
+    <div style={{
+      position: 'relative', overflow: 'hidden',
+      borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+    }}>
+      {/* Swipe-revealed delete */}
+      <div style={{
+        position: 'absolute', top: 0, right: 0, bottom: 0,
+        width: actionsW, display: 'flex',
+      }}>
+        <button
+          onClick={() => onDelete(n.id)}
+          style={{
+            flex: 1, border: 'none', background: t.error,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 4, cursor: 'pointer',
+          }}
+        >
+          <Trash2 size={18} color="#FFFFFF" strokeWidth={2} />
+          <span style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 500, color: '#FFFFFF' }}>
+            Удалить
+          </span>
+        </button>
+      </div>
+
+      {/* Row foreground */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={handleTap}
+        style={{
+          position: 'relative',
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          padding: '14px 16px',
+          paddingLeft: n.unread ? 13 : 16,
+          borderLeft: n.unread ? `3px solid ${t.blue}` : 'none',
+          background: t.surface,
+          transform: `translateX(${revealed ? -actionsW : 0}px)`,
+          transition: 'transform 0.18s ease',
+          cursor: 'pointer',
+        }}
+      >
+        {/* Icon circle */}
+        <div style={{
+          width: 40, height: 40, borderRadius: '50%',
+          background: pal.bg,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          marginTop: 2,
+        }}>
+          <Icon size={20} color={pal.fg} strokeWidth={2} />
+        </div>
+
+        {/* Middle */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontFamily: F.inter, fontSize: 14,
+            fontWeight: n.unread ? 600 : 500,
+            color: t.text1,
+            lineHeight: 1.35,
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}>
+            {n.title}
+          </div>
+          {n.sub && (
+            <div style={{
+              fontFamily: F.inter, fontSize: 12, color: t.text3,
+              marginTop: 3, lineHeight: 1.35,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}>
+              {n.sub}
+            </div>
+          )}
+        </div>
+
+        {/* Right */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0, marginTop: 4 }}>
+          <span style={{ fontFamily: F.inter, fontSize: 11, color: t.text4, whiteSpace: 'nowrap' }}>
+            {n.time}
+          </span>
+          {n.unread && (
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: t.blue }} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileNotifications({
+  t, dark, navigate, fromOrg, notifs, markAllRead, markRead, removeNotif,
+}: {
+  t: T;
+  dark: boolean;
+  navigate: (p: string) => void;
+  fromOrg: boolean;
+  notifs: Notif[];
+  markAllRead: () => void;
+  markRead: (id: number) => void;
+  removeNotif: (id: number) => void;
+}) {
+  const [filter, setFilter] = useState<MobileFilter>('all');
+  const [swipedId, setSwipedId] = useState<number | null>(null);
+  const unreadCount = notifs.filter(n => n.unread).length;
+
+  const visible = notifs.filter(n => filter === 'all' ? true : n.unread);
+
+  const groups = ['Сегодня', 'Вчера', '11 апреля', '10 апреля'] as const;
+  const groupedRows = groups
+    .map(g => ({ group: g, items: visible.filter(n => n.group === g) }))
+    .filter(g => g.items.length > 0);
+
+  const handleTap = (n: Notif) => {
+    if (n.unread) markRead(n.id);
+  };
+
+  return (
+    <>
+      {/* Sticky header Y-02 V3 */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 30,
+        height: 52, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 4px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`,
+      }}>
+        <button
+          onClick={() => navigate(fromOrg ? '/org-dashboard' : '/dashboard')}
+          style={{
+            width: 48, height: 48, border: 'none', background: 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          <ChevronLeft size={24} color={t.blue} strokeWidth={2} />
+        </button>
+
+        {/* Absolute-centered title */}
+        <span style={{
+          position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+          fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1,
+          whiteSpace: 'nowrap',
+        }}>
+          Уведомления
+        </span>
+
+        <button
+          onClick={unreadCount > 0 ? markAllRead : undefined}
+          disabled={unreadCount === 0}
+          style={{
+            height: 40, padding: '0 12px',
+            border: 'none', background: 'transparent',
+            fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+            color: unreadCount > 0 ? t.blue : t.textDisabled,
+            cursor: unreadCount > 0 ? 'pointer' : 'not-allowed',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          Прочитать все
+        </button>
+      </div>
+
+      <div
+        onClick={() => swipedId !== null && setSwipedId(null)}
+        style={{ padding: '12px 0 96px', boxSizing: 'border-box', width: '100%' }}
+      >
+        {/* Segmented */}
+        <div style={{ padding: '0 16px 12px' }}>
+          <MobileSegmented
+            active={filter}
+            onChange={setFilter}
+            unreadCount={unreadCount}
+            t={t}
+            dark={dark}
+          />
+        </div>
+
+        {groupedRows.length === 0 ? (
+          <div style={{
+            padding: '80px 24px 48px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+          }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: dark ? 'rgba(59,130,246,0.10)' : '#EFF6FF',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              marginBottom: 16,
+            }}>
+              <Bell size={34} color={t.blue} strokeWidth={1.5} />
+            </div>
+            <h2 style={{
+              fontFamily: F.dm, fontSize: 18, fontWeight: 600, color: t.text1,
+              margin: '0 0 6px',
+            }}>
+              Нет уведомлений
+            </h2>
+            <p style={{
+              fontFamily: F.inter, fontSize: 14, color: t.text3, margin: 0, maxWidth: 280,
+            }}>
+              {filter === 'unread'
+                ? 'Все уведомления прочитаны. Хорошая работа!'
+                : 'Пока ничего нового. Мы сообщим, когда что-то произойдёт.'}
+            </p>
+          </div>
+        ) : (
+          <>
+            {groupedRows.map(g => (
+              <React.Fragment key={g.group}>
+                <div style={{
+                  fontFamily: F.inter, fontSize: 11, fontWeight: 600,
+                  color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
+                  padding: '16px 20px 8px',
+                }}>
+                  {g.group}
+                </div>
+                <div style={{
+                  margin: '0 16px',
+                  background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+                  overflow: 'hidden',
+                }}>
+                  {g.items.map((n, i) => (
+                    <MobileNotifRow
+                      key={n.id}
+                      n={n}
+                      isLast={i === g.items.length - 1}
+                      t={t}
+                      dark={dark}
+                      onTap={handleTap}
+                      onDelete={removeNotif}
+                      swipedId={swipedId}
+                      setSwipedId={setSwipedId}
+                    />
+                  ))}
+                </div>
+              </React.Fragment>
+            ))}
+
+            <div style={{
+              fontFamily: F.inter, fontSize: 12, color: t.text4,
+              textAlign: 'center', padding: '18px 16px 0',
+            }}>
+              Проведите уведомление влево для удаления
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+
 export default function NotificationsHistoryPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
   const [typeFilter, setTypeFilter] = useState('');
@@ -342,6 +722,18 @@ export default function NotificationsHistoryPage() {
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
+        {mobile ? (
+          <MobileNotifications
+            t={t}
+            dark={dark}
+            navigate={navigate}
+            fromOrg={fromOrg}
+            notifs={notifs}
+            markAllRead={markAllRead}
+            markRead={markRead}
+            removeNotif={removeNotif}
+          />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
           {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
@@ -476,6 +868,7 @@ export default function NotificationsHistoryPage() {
 
           <div style={{ height: '48px' }} />
         </div>
+        )}
       </div>
     </div>
   );

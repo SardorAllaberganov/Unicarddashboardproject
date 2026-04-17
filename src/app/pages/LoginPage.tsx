@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, Check } from 'lucide-react';
+import React, { useCallback, useRef, useState } from 'react';
+import { Eye, EyeOff, Check, CreditCard } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { F, C, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 
 type T = ReturnType<typeof theme>;
 
@@ -162,8 +163,226 @@ function Divider({ label, t }: { label: string; t: T }) {
 
 /* ─── Main Page ─── */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — Login page
+═══════════════════════════════════════════════════════════════════════════ */
+
+function MobileInput({
+  label, value, onChange, placeholder, type = 'text', suffix, t,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  suffix?: React.ReactNode;
+  t: T;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState(false);
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    setTimeout(() => {
+      wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }, []);
+  return (
+    <div ref={wrapRef}>
+      <label style={{
+        display: 'block', fontFamily: inter, fontSize: 13, fontWeight: 500,
+        color: t.text2, marginBottom: 8,
+      }}>
+        {label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={handleFocus}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder}
+          style={{
+            width: '100%', height: 48,
+            padding: suffix ? '0 48px 0 14px' : '0 14px',
+            border: `1.5px solid ${focused ? t.blue : t.inputBorder}`,
+            borderRadius: 12,
+            background: t.surface,
+            fontFamily: inter, fontSize: 15, color: t.text1,
+            outline: 'none', boxSizing: 'border-box',
+            transition: 'border-color 0.12s',
+          }}
+        />
+        {suffix && (
+          <div style={{
+            position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+            display: 'flex', alignItems: 'center',
+          }}>
+            {suffix}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MobileLogin({
+  t, dark,
+}: { t: T; dark: boolean }) {
+  const navigate = useNavigate();
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [remember, setRemember] = useState(false);
+
+  const canSubmit = login.trim().length > 0 && password.length > 0;
+
+  const handleLogin = () => {
+    const isOrg = /org|mysafar|muhammad/i.test(login);
+    navigate(isOrg ? '/org-dashboard' : '/dashboard');
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh', width: '100%',
+      background: t.pageBg, color: t.text1,
+      display: 'flex', flexDirection: 'column',
+      padding: 'max(80px, env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))',
+      boxSizing: 'border-box',
+      transition: 'background 0.2s',
+    }}>
+      {/* Top — Logo + brand */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: 24,
+          background: t.blue,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: dark ? '0 6px 18px rgba(37,99,235,0.35)' : '0 6px 18px rgba(37,99,235,0.25)',
+          marginBottom: 20,
+        }}>
+          <CreditCard size={36} color="#FFFFFF" strokeWidth={2} />
+        </div>
+        <h1 style={{
+          fontFamily: dm, fontSize: 24, fontWeight: 700, color: t.text1,
+          margin: 0, lineHeight: 1.2,
+        }}>
+          Moment KPI
+        </h1>
+        <p style={{
+          fontFamily: inter, fontSize: 13, color: t.text3,
+          margin: '6px 0 0', textAlign: 'center', maxWidth: 280,
+        }}>
+          Платформа управления продажами карт
+        </p>
+      </div>
+
+      {/* Middle — Form */}
+      <div style={{ paddingTop: 48, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <MobileInput
+          label="Телефон или логин"
+          value={login}
+          onChange={setLogin}
+          placeholder="+998 __ ___ __ __"
+          type="tel"
+          t={t}
+        />
+        <MobileInput
+          label="Пароль"
+          value={password}
+          onChange={setPassword}
+          placeholder="••••••••"
+          type={showPass ? 'text' : 'password'}
+          t={t}
+          suffix={
+            <button
+              onClick={() => setShowPass(s => !s)}
+              style={{
+                width: 32, height: 32, border: 'none', background: 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              {showPass ? <EyeOff size={18} color={t.text3} strokeWidth={1.75} /> : <Eye size={18} color={t.text3} strokeWidth={1.75} />}
+            </button>
+          }
+        />
+
+        {/* Remember + Forgot */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
+            <div
+              onClick={() => setRemember(r => !r)}
+              style={{
+                width: 20, height: 20, borderRadius: 6,
+                border: `1.5px solid ${remember ? t.blue : t.inputBorder}`,
+                background: remember ? t.blue : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.12s', flexShrink: 0,
+              }}
+            >
+              {remember && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
+            </div>
+            <span style={{ fontFamily: inter, fontSize: 14, color: t.text2 }}>Запомнить меня</span>
+          </label>
+          <span style={{ fontFamily: inter, fontSize: 14, fontWeight: 500, color: t.blue, cursor: 'pointer' }}>
+            Забыли пароль?
+          </span>
+        </div>
+
+        {/* Primary login */}
+        <button
+          disabled={!canSubmit}
+          onClick={handleLogin}
+          style={{
+            width: '100%', height: 48, marginTop: 8,
+            border: 'none', borderRadius: 12,
+            background: canSubmit ? t.blue : (dark ? '#3A3F50' : '#D1D5DB'),
+            fontFamily: inter, fontSize: 15, fontWeight: 600, color: '#FFFFFF',
+            cursor: canSubmit ? 'pointer' : 'not-allowed',
+            transition: 'background 0.12s',
+          }}
+        >
+          Войти
+        </button>
+
+        {/* Divider with "или" */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+          <div style={{ flex: 1, height: 1, background: t.border }} />
+          <span style={{ fontFamily: inter, fontSize: 12, color: t.text4 }}>или</span>
+          <div style={{ flex: 1, height: 1, background: t.border }} />
+        </div>
+
+        {/* Outline Unired ID */}
+        <button
+          style={{
+            width: '100%', height: 48,
+            border: `1.5px solid ${t.inputBorder}`, borderRadius: 12,
+            background: 'transparent',
+            fontFamily: inter, fontSize: 15, fontWeight: 500, color: t.text1,
+            cursor: 'pointer',
+          }}
+        >
+          Войти через Unired ID
+        </button>
+      </div>
+
+      {/* Spacer to push footer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Bottom — Copyright */}
+      <div style={{
+        paddingTop: 24, textAlign: 'center',
+        fontFamily: inter, fontSize: 12, color: t.text4,
+      }}>
+        © 2026 Universalbank
+      </div>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const [darkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
 
@@ -177,6 +396,10 @@ export default function LoginPage() {
     const isOrg = /org|mysafar|muhammad/i.test(login);
     navigate(isOrg ? '/org-dashboard' : '/dashboard');
   };
+
+  if (mobile) {
+    return <MobileLogin t={t} dark={dark} />;
+  }
 
   const rightPanelBg = dark ? '#0F1117' : C.surface;
   const loginCardBorder = dark ? `1px solid ${t.border}` : 'none';
