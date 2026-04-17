@@ -57,6 +57,9 @@ import MobileMoreMenuShowcasePage from './pages/MobileMoreMenuShowcasePage';
 import MobileMoreMenuOrgShowcasePage from './pages/MobileMoreMenuOrgShowcasePage';
 import MobileNavMapPage from './pages/MobileNavMapPage';
 import MobileDashboardShowcasePage from './pages/MobileDashboardShowcasePage';
+import MobileBottomSheetsShowcasePage from './pages/MobileBottomSheetsShowcasePage';
+import MobileEmptySkeletonsShowcasePage from './pages/MobileEmptySkeletonsShowcasePage';
+import MobileToastsShowcasePage from './pages/MobileToastsShowcasePage';
 
 export const router = createBrowserRouter([
   {
@@ -98,6 +101,18 @@ export const router = createBrowserRouter([
   {
     path: '/mobile-dashboard',
     Component: MobileDashboardShowcasePage,
+  },
+  {
+    path: '/mobile-bottom-sheets',
+    Component: MobileBottomSheetsShowcasePage,
+  },
+  {
+    path: '/mobile-empty-skeletons',
+    Component: MobileEmptySkeletonsShowcasePage,
+  },
+  {
+    path: '/mobile-toasts',
+    Component: MobileToastsShowcasePage,
   },
   {
     path: '/sidebar',
