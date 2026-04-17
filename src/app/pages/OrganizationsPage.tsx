@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import {
   Search, ChevronDown, ChevronUp, ChevronRight,
-  Plus, Building2,
+  Plus, Building2, SlidersHorizontal,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
@@ -453,37 +454,177 @@ function PaginationBtn({ label, active, disabled, t, dark }: {
    PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE LAYOUT (< 768 px)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function MobileOrganizations({ t, dark, navigate }: { t: T; dark: boolean; navigate: (p: string) => void }) {
+  const [search, setSearch] = useState('');
+  const filtered = ORG_DATA.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div style={{ padding: '8px 16px 96px', boxSizing: 'border-box', width: '100%' }}>
+      {/* Title + actions */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <h1 style={{ fontFamily: F.dm, fontSize: 24, fontWeight: 700, color: t.text1, margin: 0 }}>
+          Организации
+        </h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => navigate('/organizations/new')}
+            style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: t.blue, border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+          >
+            <Plus size={20} color="#FFFFFF" strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div style={{
+        height: 44, borderRadius: 12,
+        background: dark ? '#2D3148' : '#F3F4F6',
+        padding: '0 14px', display: 'flex', alignItems: 'center', gap: 8,
+        marginBottom: 16, boxSizing: 'border-box',
+      }}>
+        <Search size={18} color={t.text3} strokeWidth={2} />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Поиск организаций…"
+          style={{
+            flex: 1, border: 'none', outline: 'none', background: 'transparent',
+            fontFamily: F.inter, fontSize: 15, color: t.text1,
+          }}
+        />
+      </div>
+
+      {/* Stat summary strip */}
+      <div style={{
+        display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto',
+        scrollbarWidth: 'none',
+      }}>
+        {[
+          { label: 'Всего', value: String(ORG_DATA.length), color: t.blue },
+          { label: 'Активна', value: String(ORG_DATA.filter(o => o.status === 'Активна').length), color: dark ? '#34D399' : '#16A34A' },
+          { label: 'На паузе', value: String(ORG_DATA.filter(o => o.status === 'На паузе').length), color: dark ? '#FBBF24' : '#D97706' },
+        ].map(s => (
+          <div key={s.label} style={{
+            background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12,
+            padding: '10px 14px', flexShrink: 0, minWidth: 90,
+          }}>
+            <div style={{ fontFamily: F.inter, fontSize: 11, color: t.text4, marginBottom: 2 }}>{s.label}</div>
+            <div style={{ fontFamily: F.dm, fontSize: 20, fontWeight: 700, color: s.color }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* List rows */}
+      <div style={{
+        background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+        overflow: 'hidden',
+      }}>
+        {filtered.length === 0 && (
+          <div style={{ padding: '40px 16px', textAlign: 'center' }}>
+            <div style={{ fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text2, marginBottom: 4 }}>Ничего не найдено</div>
+            <div style={{ fontFamily: F.inter, fontSize: 14, color: t.text3 }}>Попробуйте другой запрос</div>
+          </div>
+        )}
+        {filtered.map((org, i) => {
+          const st = (dark ? STATUS_STYLE_DARK : STATUS_STYLE_LIGHT)[org.status];
+          return (
+            <div
+              key={org.id}
+              onClick={() => navigate(`/organizations/${org.id}`)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px',
+                borderBottom: i < filtered.length - 1 ? `1px solid ${t.border}` : 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {/* Avatar */}
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: t.blueLt,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <span style={{ fontFamily: F.inter, fontSize: 13, fontWeight: 600, color: t.blue }}>
+                  {org.name.slice(0, 2).toUpperCase()}
+                </span>
+              </div>
+
+              {/* Name + sub */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.text1,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {org.name}
+                  </span>
+                  <span style={{
+                    fontFamily: F.inter, fontSize: 11, fontWeight: 500,
+                    padding: '2px 8px', borderRadius: 10,
+                    background: st.bg, color: st.color,
+                    whiteSpace: 'nowrap', flexShrink: 0,
+                  }}>
+                    {org.status}
+                  </span>
+                </div>
+                <div style={{ fontFamily: F.inter, fontSize: 13, color: t.text3, marginTop: 2 }}>
+                  {org.sold} продано · {org.kpiDone} KPI 3 · {org.contact}
+                </div>
+              </div>
+
+              {/* Right value + chevron */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 500, color: t.text2 }}>
+                  {org.rewarded}
+                </span>
+                <ChevronRight size={18} color={t.textDisabled} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+
 export default function OrganizationsPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const t = theme(darkMode);
   const dark = darkMode;
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: t.pageBg, transition: 'background 0.2s' }}>
 
-      {/* Responsive sidebar */}
-      <style>{`
-        .org-sidebar-wrap { flex-shrink: 0; }
-        @media (max-width: 768px) { .org-sidebar-wrap { display: none; } }
-      `}</style>
-
-      <div className="org-sidebar-wrap">
-        <Sidebar role="bank"
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(c => !c)}
-          darkMode={darkMode}
-          onDarkModeToggle={() => setDarkMode(d => !d)}
-        />
-      </div>
+      <Sidebar role="bank"
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(c => !c)}
+        darkMode={darkMode}
+        onDarkModeToggle={() => setDarkMode(d => !d)}
+      />
 
       {/* ── Main ─────────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
-        {/* ── Content ────────────────────────────────────────────── */}
+        {mobile ? (
+          <MobileOrganizations t={t} dark={dark} navigate={navigate} />
+        ) : (
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
 
           {/* Breadcrumbs */}
@@ -519,6 +660,7 @@ export default function OrganizationsPage() {
 
           <div style={{ height: '40px' }} />
         </div>
+        )}
       </div>
     </div>
   );

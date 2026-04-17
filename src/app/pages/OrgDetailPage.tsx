@@ -2,15 +2,37 @@ import React, { useState } from 'react';
 import {
   X, CreditCard, ShoppingBag, CheckCircle2, Wallet,
   Check, Minus, Search, ChevronDown, ChevronRight, Plus,
-  Pencil, AlertTriangle,
+  Pencil, AlertTriangle, ChevronLeft, MoreHorizontal,
+  Phone, Users, PauseCircle, XCircle,
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { Navbar } from '../components/Navbar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { useNavigate } from 'react-router';
 
 type T = ReturnType<typeof theme>;
+
+function iconVariant(variant: string, dark: boolean) {
+  const light: Record<string, { bg: string; color: string }> = {
+    blue:   { bg: '#EFF6FF', color: '#2563EB' },
+    violet: { bg: '#F3F0FF', color: '#7C3AED' },
+    green:  { bg: '#F0FDF4', color: '#16A34A' },
+    cyan:   { bg: '#ECFEFF', color: '#0891B2' },
+    amber:  { bg: '#FFFBEB', color: '#D97706' },
+    rose:   { bg: '#FFF1F2', color: '#E11D48' },
+  };
+  const darkV: Record<string, { bg: string; color: string }> = {
+    blue:   { bg: 'rgba(37,99,235,0.15)',  color: '#3B82F6' },
+    violet: { bg: 'rgba(124,58,237,0.15)', color: '#A78BFA' },
+    green:  { bg: 'rgba(22,163,74,0.15)',  color: '#34D399' },
+    cyan:   { bg: 'rgba(8,145,178,0.15)',  color: '#22D3EE' },
+    amber:  { bg: 'rgba(217,119,6,0.15)',  color: '#FBBF24' },
+    rose:   { bg: 'rgba(225,29,72,0.15)',  color: '#FB7185' },
+  };
+  return (dark ? darkV : light)[variant] || light.blue;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    BADGES
@@ -783,8 +805,326 @@ function DeactivateModal({ open, onClose, t, dark }: { open: boolean; onClose: (
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE LAYOUT (< 768 px)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function MobileSegmented({ active, onTabChange, t }: { active: TabId; onTabChange: (id: TabId) => void; t: T }) {
+  const trackBg = t.pageBg === D.pageBg ? '#2D3148' : '#F3F4F6';
+  return (
+    <div style={{ display: 'flex', padding: 4, borderRadius: 999, background: trackBg, height: 36, boxSizing: 'border-box' }}>
+      {TABS.map(tab => {
+        const isActive = active === tab.id;
+        return (
+          <div key={tab.id} onClick={() => onTabChange(tab.id)} style={{
+            flex: 1, borderRadius: 999,
+            background: isActive ? t.surface : 'transparent',
+            boxShadow: isActive ? (t.pageBg === D.pageBg ? '0 1px 2px rgba(0,0,0,0.4)' : '0 1px 2px rgba(17,24,39,0.08)') : 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: F.inter, fontSize: 13, fontWeight: 500,
+            color: isActive ? t.text1 : t.text3,
+            cursor: 'pointer',
+          }}>
+            {tab.label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MobileActionSheet({ open, onClose, dark, t, navigate }: { open: boolean; onClose: () => void; dark: boolean; t: T; navigate: (p: string) => void }) {
+  if (!open) return null;
+  const actions: Array<{ icon: React.ElementType; label: string; destructive?: boolean; onClick: () => void }> = [
+    { icon: Pencil,      label: 'Редактировать',       onClick: () => { onClose(); navigate('/organizations/1/edit'); } },
+    { icon: Users,       label: 'Назначить карты',      onClick: () => { onClose(); navigate('/card-assignment'); } },
+    { icon: PauseCircle, label: 'Поставить на паузу',   onClick: onClose },
+    { icon: XCircle,     label: 'Деактивировать',       destructive: true, onClick: onClose },
+  ];
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100, background: dark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.4)' }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        background: t.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        boxShadow: dark ? '0 -4px 24px rgba(0,0,0,0.6)' : '0 -4px 24px rgba(17,24,39,0.15)',
+        paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 8 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: t.inputBorder }} />
+        </div>
+        <div style={{ padding: '8px 20px 12px', fontFamily: F.dm, fontSize: 17, fontWeight: 600, color: t.text1 }}>
+          Действия с организацией
+        </div>
+        {actions.map((a, i) => {
+          const Icon = a.icon;
+          const color = a.destructive ? t.error : t.text1;
+          const iconBg = a.destructive ? (dark ? 'rgba(248,113,113,0.15)' : '#FEF2F2') : t.blueLt;
+          const iconColor = a.destructive ? t.error : t.blue;
+          return (
+            <div key={i} onClick={a.onClick} style={{
+              minHeight: 52, display: 'flex', alignItems: 'center', gap: 14,
+              padding: '12px 20px', borderBottom: `1px solid ${t.border}`, cursor: 'pointer',
+            }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon size={20} color={iconColor} strokeWidth={2} />
+              </div>
+              <span style={{ fontFamily: F.inter, fontSize: 16, fontWeight: 500, color }}>{a.label}</span>
+            </div>
+          );
+        })}
+        <div style={{ padding: '12px 16px' }}>
+          <button onClick={onClose} style={{
+            width: '100%', height: 48, borderRadius: 12,
+            background: dark ? 'rgba(160,165,184,0.12)' : '#F3F4F6',
+            border: 'none', fontFamily: F.inter, fontSize: 16, fontWeight: 600, color: t.text2, cursor: 'pointer',
+          }}>
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileSH({ text, t }: { text: string; t: T }) {
+  return (
+    <div style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 600, color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '20px 0 10px' }}>
+      {text}
+    </div>
+  );
+}
+
+function MobileOrgDetail({ t, dark, navigate, activeTab, setActiveTab }: {
+  t: T; dark: boolean; navigate: (p: string) => void; activeTab: TabId; setActiveTab: (id: TabId) => void;
+}) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const iv = iconVariant;
+  const successBg = dark ? 'rgba(52,211,153,0.12)' : C.successBg;
+  const successFg = dark ? '#34D399' : '#15803D';
+  const greenBar = dark ? '#34D399' : '#16A34A';
+  const violetBar = dark ? '#A78BFA' : '#7C3AED';
+
+  return (
+    <>
+      {/* Mobile header — Y-02 V3 */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 40,
+        height: 56, display: 'flex', alignItems: 'center', padding: '0 4px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`, flexShrink: 0,
+      }}>
+        <div onClick={() => navigate('/organizations')} style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <ChevronLeft size={24} color={t.blue} strokeWidth={2} />
+        </div>
+        <div style={{ flex: 1, textAlign: 'center', fontFamily: F.inter, fontSize: 17, fontWeight: 600, color: t.text1, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+          Mysafar OOO
+        </div>
+        <div onClick={() => setSheetOpen(true)} style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <MoreHorizontal size={24} color={t.text1} strokeWidth={1.75} />
+        </div>
+      </div>
+
+      {/* Scroll content */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 16px 96px' }}>
+        {/* Hero */}
+        <div style={{ padding: '16px 0 12px' }}>
+          <h1 style={{ fontFamily: F.dm, fontSize: 24, fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.15 }}>
+            Mysafar OOO
+          </h1>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: F.inter, fontSize: 13, fontWeight: 500, padding: '3px 10px', borderRadius: 12, background: successBg, color: successFg, whiteSpace: 'nowrap' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: successFg }} />
+              Активна
+            </span>
+          </div>
+          <div style={{ fontFamily: F.inter, fontSize: 13, color: t.text3, marginTop: 10 }}>
+            Контакт: Рустам Алиев
+          </div>
+          <div onClick={() => {}} style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, cursor: 'pointer' }}>
+            <Phone size={14} color={t.blue} strokeWidth={2} />
+            <span style={{ fontFamily: F.mono, fontSize: 14, color: t.blue }}>+998 90 123 45 67</span>
+          </div>
+        </div>
+
+        {/* Stat cards 2×2 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          {([
+            { icon: CreditCard,  v: 'blue',   label: 'Карт выдано',    value: '500' },
+            { icon: ShoppingBag, v: 'green',  label: 'Продано',         value: '230 (46%)' },
+            { icon: CheckCircle2,v: 'violet', label: 'KPI завершено',   value: '45 (19.6%)' },
+            { icon: Wallet,      v: 'amber',  label: 'Начислено',       value: '1.83M UZS' },
+          ] as const).map(s => {
+            const pal = iconVariant(s.v, dark);
+            const Icon = s.icon;
+            return (
+              <div key={s.label} style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, padding: 14 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: pal.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+                  <Icon size={20} color={pal.color} strokeWidth={2} />
+                </div>
+                <div style={{ fontFamily: F.inter, fontSize: 12, fontWeight: 500, color: t.text3, marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontFamily: F.dm, fontSize: 20, fontWeight: 700, color: t.text1, lineHeight: 1 }}>{s.value}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Segmented */}
+        <MobileSegmented active={activeTab} onTabChange={setActiveTab} t={t} />
+
+        {/* Tab content */}
+        <div style={{ marginTop: 16 }}>
+          {activeTab === 'summary' && (
+            <div>
+              <MobileSH text="KPI ПРОГРЕСС" t={t} />
+              <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, padding: 16 }}>
+                {([
+                  { label: 'Регистрация', value: 185, total: 230, color: t.blue },
+                  { label: 'Пополнение',  value: 120, total: 230, color: violetBar },
+                  { label: 'Оплата 500K', value: 45,  total: 230, color: greenBar },
+                ]).map((row, i, arr) => {
+                  const pct = ((row.value / row.total) * 100).toFixed(1);
+                  return (
+                    <div key={row.label} style={{ marginBottom: i < arr.length - 1 ? 16 : 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <span style={{ fontFamily: F.inter, fontSize: 14, color: t.text2 }}>{row.label}</span>
+                        <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 500, color: t.text1 }}>{row.value}/{row.total} ({pct}%)</span>
+                      </div>
+                      <div style={{ height: 8, borderRadius: 4, background: dark ? D.progressTrack : '#EFF6FF', overflow: 'hidden' }}>
+                        <div style={{ width: `${pct}%`, height: '100%', background: row.color, borderRadius: 4 }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <MobileSH text="ПОСЛЕДНЯЯ АКТИВНОСТЬ" t={t} />
+              <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, padding: '0 16px' }}>
+                {([
+                  { dot: greenBar, text: 'KPI 3 выполнен: карта …4521', time: '2 часа назад' },
+                  { dot: t.blue,   text: 'KPI 2 выполнен: карта …3892', time: '5 часов назад' },
+                  { dot: t.text4,  text: 'Новый продавец: Камола Р.',   time: 'вчера' },
+                  { dot: t.blue,   text: 'Партия обновлена',             time: '2 дня назад' },
+                  { dot: greenBar, text: 'KPI 1 выполнен: карта …2210',  time: '3 дня назад' },
+                ]).map((ev, i, arr) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: i < arr.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: `${ev.dot}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: ev.dot }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: F.inter, fontSize: 14, color: t.text1 }}>{ev.text}</div>
+                      <div style={{ fontFamily: F.inter, fontSize: 12, color: t.text4, marginTop: 2 }}>{ev.time}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'sellers' && (
+            <div>
+              {SELLERS.map((s, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0',
+                  borderBottom: `1px solid ${t.border}`, cursor: 'pointer',
+                }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: t.blueLt, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span style={{ fontFamily: F.inter, fontSize: 12, fontWeight: 600, color: t.blue }}>{s.name.slice(0, 2)}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: F.inter, fontSize: 15, fontWeight: 500, color: t.text1 }}>{s.name}</div>
+                    <div style={{ fontFamily: F.inter, fontSize: 13, color: t.text3, marginTop: 1 }}>{s.sold} продано · {s.k3} KPI 3</div>
+                  </div>
+                  <span style={{ fontFamily: F.mono, fontSize: 13, fontWeight: 500, color: t.text2, flexShrink: 0 }}>{s.earned}</span>
+                  <ChevronRight size={18} color={t.textDisabled} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'cards' && (
+            <div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <div style={{ flex: 1, height: 40, borderRadius: 12, background: dark ? '#2D3148' : '#F3F4F6', padding: '0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Search size={16} color={t.text3} />
+                  <span style={{ fontFamily: F.inter, fontSize: 14, color: t.text4 }}>Поиск карт…</span>
+                </div>
+              </div>
+              {[
+                { num: '…1001', seller: 'Абдуллох Р.', status: 'Активна', kind: 'success' as const },
+                { num: '…1002', seller: 'Санжар М.',   status: 'Продана', kind: 'info' as const },
+                { num: '…1003', seller: 'Нилуфар К.',  status: 'KPI 1',   kind: 'blue' as const },
+                { num: '…1004', seller: 'Камола Р.',   status: 'На складе', kind: 'neutral' as const },
+                { num: '…1005', seller: 'Ислом Т.',    status: 'Активна', kind: 'success' as const },
+              ].map((c, i) => {
+                const badgePal: Record<string, { bg: string; fg: string }> = {
+                  success: dark ? { bg: 'rgba(52,211,153,0.15)', fg: '#34D399' } : { bg: '#F0FDF4', fg: '#15803D' },
+                  info:    dark ? { bg: 'rgba(34,211,238,0.15)', fg: '#22D3EE' } : { bg: '#ECFEFF', fg: '#0E7490' },
+                  blue:    dark ? { bg: 'rgba(59,130,246,0.15)', fg: '#3B82F6' } : { bg: '#EFF6FF', fg: '#1D4ED8' },
+                  neutral: dark ? { bg: 'rgba(160,165,184,0.15)', fg: '#A0A5B8' } : { bg: '#F3F4F6', fg: '#4B5563' },
+                };
+                const bp = badgePal[c.kind];
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: `1px solid ${t.border}`, cursor: 'pointer' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: t.blueLt, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <CreditCard size={16} color={t.blue} strokeWidth={2} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 500, color: t.text1 }}>•••• {c.num.slice(1)}</div>
+                      <div style={{ fontFamily: F.inter, fontSize: 13, color: t.text3, marginTop: 1 }}>{c.seller} · VISA SUM</div>
+                    </div>
+                    <span style={{ fontFamily: F.inter, fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 12, background: bp.bg, color: bp.fg, whiteSpace: 'nowrap' }}>{c.status}</span>
+                    <ChevronRight size={18} color={t.textDisabled} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {activeTab === 'finance' && (
+            <div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                {([
+                  { label: 'Начислено', value: '1.83M', color: t.blue },
+                  { label: 'Выведено',  value: '1.2M',  color: dark ? '#34D399' : '#16A34A' },
+                  { label: 'Баланс',    value: '625K',  color: dark ? '#FBBF24' : '#D97706' },
+                ]).map(s => (
+                  <div key={s.label} style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 12, padding: '10px 14px', flex: '1 1 100px' }}>
+                    <div style={{ fontFamily: F.inter, fontSize: 11, color: t.text4, marginBottom: 2 }}>{s.label}</div>
+                    <div style={{ fontFamily: F.mono, fontSize: 18, fontWeight: 600, color: s.color }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+              <MobileSH text="ТРАНЗАКЦИИ" t={t} />
+              {([
+                { text: 'KPI 3 начисление — карта …4521', amount: '+10 000', color: dark ? '#34D399' : '#16A34A', time: '2 часа назад' },
+                { text: 'KPI 2 начисление — карта …3892', amount: '+5 000',  color: dark ? '#3B82F6' : '#2563EB', time: '5 часов назад' },
+                { text: 'Вывод на кошелёк — Санжар М.',   amount: '−50 000', color: dark ? '#F87171' : '#DC2626', time: 'вчера' },
+                { text: 'KPI 1 начисление — карта …2210', amount: '+5 000',  color: dark ? '#3B82F6' : '#2563EB', time: '2 дня назад' },
+              ]).map((tx, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: `1px solid ${t.border}` }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: F.inter, fontSize: 14, color: t.text1 }}>{tx.text}</div>
+                    <div style={{ fontFamily: F.inter, fontSize: 12, color: t.text4, marginTop: 2 }}>{tx.time}</div>
+                  </div>
+                  <span style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: tx.color, flexShrink: 0 }}>{tx.amount}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <MobileActionSheet open={sheetOpen} onClose={() => setSheetOpen(false)} dark={dark} t={t} navigate={navigate} />
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+
 export default function OrgDetailPage() {
   const navigate = useNavigate();
+  const mobile = useIsMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
   const t = theme(darkMode);
@@ -810,6 +1150,10 @@ export default function OrgDetailPage() {
       />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {mobile ? (
+          <MobileOrgDetail t={t} dark={dark} navigate={navigate} activeTab={activeTab} setActiveTab={setActiveTab} />
+        ) : (
+        <>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
         <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
@@ -952,6 +1296,8 @@ export default function OrgDetailPage() {
 
           <div style={{ height: '48px' }} />
         </div>
+        </>
+        )}
       </div>
 
       <DeactivateModal open={deactivateModalOpen} onClose={() => setDeactivateModalOpen(false)} t={t} dark={dark} />

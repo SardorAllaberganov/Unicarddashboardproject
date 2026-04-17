@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { ChevronRight, X } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 
@@ -18,12 +19,20 @@ function FormInput({ label, placeholder, required, error, mono, value, onChange,
   disabled?: boolean; type?: string; t: T; dark: boolean;
 }) {
   const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const hasError = !!error;
   const errorColor = dark ? D.error : C.error;
   const disabledBg = dark ? D.tableAlt : '#F9FAFB';
 
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    setTimeout(() => {
+      wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }, []);
+
   return (
-    <div>
+    <div ref={wrapRef}>
       <label style={{
         display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: t.text2, marginBottom: '8px',
@@ -35,7 +44,7 @@ function FormInput({ label, placeholder, required, error, mono, value, onChange,
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
-        onFocus={() => setFocused(true)}
+        onFocus={handleFocus}
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         disabled={disabled}
@@ -68,9 +77,17 @@ function FormTextarea({ label, placeholder, value, onChange, colSpan, t }: {
   colSpan?: boolean; t: T;
 }) {
   const [focused, setFocused] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    setTimeout(() => {
+      wrapRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 120);
+  }, []);
 
   return (
-    <div style={colSpan ? { gridColumn: 'span 2' } : undefined}>
+    <div ref={wrapRef} style={colSpan ? { gridColumn: 'span 2' } : undefined}>
       <label style={{
         display: 'block', fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
         color: t.text2, marginBottom: '8px',
@@ -80,7 +97,7 @@ function FormTextarea({ label, placeholder, value, onChange, colSpan, t }: {
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
-        onFocus={() => setFocused(true)}
+        onFocus={handleFocus}
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         style={{
@@ -161,8 +178,160 @@ function FormNumberInput({ label, placeholder, value, onChange, t }: {
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE SECTION HEADER
+═══════════════════════════════════════════════════════════════════════════ */
+
+function MobileSH({ text, t }: { text: string; t: T }) {
+  return (
+    <div style={{ fontFamily: F.inter, fontSize: 11, fontWeight: 600, color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '24px 0 10px' }}>
+      {text}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE FORM (< 768 px) — Y-02 V4 modal header + stacked fields + sticky CTA
+═══════════════════════════════════════════════════════════════════════════ */
+
+function MobileNewOrg({ t, dark, navigate, state }: {
+  t: T; dark: boolean; navigate: (p: string) => void;
+  state: {
+    orgName: string; setOrgName: (v: string) => void;
+    inn: string; setInn: (v: string) => void;
+    contactName: string; setContactName: (v: string) => void;
+    contactPosition: string; setContactPosition: (v: string) => void;
+    phone: string; setPhone: (v: string) => void;
+    email: string; setEmail: (v: string) => void;
+    address: string; setAddress: (v: string) => void;
+    contractNum: string; setContractNum: (v: string) => void;
+    contractDate: string; setContractDate: (v: string) => void;
+    contractExpiry: string; setContractExpiry: (v: string) => void;
+    adminName: string; setAdminName: (v: string) => void;
+    adminPhone: string; setAdminPhone: (v: string) => void;
+    adminEmail: string; setAdminEmail: (v: string) => void;
+    sendSMS: boolean; setSendSMS: (v: boolean) => void;
+    submitted: boolean; setSubmitted: (v: boolean) => void;
+    nameError: string | undefined;
+  };
+}) {
+  const s = state;
+  const toggleOffBg = dark ? '#4A4F63' : '#D1D5DB';
+  const canCreate = !!s.orgName && !!s.contactName && !!s.phone;
+
+  return (
+    <>
+      {/* Mobile header — Y-02 V4: X close + title + action text */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 40,
+        height: 56, display: 'flex', alignItems: 'center', padding: '0 4px',
+        background: t.surface, borderBottom: `1px solid ${t.border}`, flexShrink: 0,
+      }}>
+        <div onClick={() => navigate('/organizations')} style={{ width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <X size={22} color={t.text1} strokeWidth={1.75} />
+        </div>
+        <div style={{ flex: 1, textAlign: 'center', fontFamily: F.inter, fontSize: 17, fontWeight: 600, color: t.text1 }}>
+          Новая организация
+        </div>
+        <div
+          onClick={() => { if (canCreate) s.setSubmitted(true); }}
+          style={{ paddingRight: 12, cursor: canCreate ? 'pointer' : 'default' }}
+        >
+          <span style={{ fontFamily: F.inter, fontSize: 16, fontWeight: 600, color: canCreate ? t.blue : t.textDisabled }}>
+            Создать
+          </span>
+        </div>
+      </div>
+
+      {/* Scroll content */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '0 16px' }}>
+        <MobileSH text="ОСНОВНАЯ ИНФОРМАЦИЯ" t={t} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <FormInput label="Название организации" required placeholder="ООО «Название»" value={s.orgName} onChange={s.setOrgName} error={s.nameError} t={t} dark={dark} />
+          <FormInput label="ИНН" placeholder="123456789" value={s.inn} onChange={s.setInn} mono t={t} dark={dark} />
+          <FormInput label="Контактное лицо" required placeholder="Фамилия Имя Отчество" value={s.contactName} onChange={s.setContactName} t={t} dark={dark} />
+          <FormInput label="Должность" placeholder="Директор / Менеджер" value={s.contactPosition} onChange={s.setContactPosition} t={t} dark={dark} />
+          <FormInput label="Телефон" required placeholder="+998 __ ___ __ __" value={s.phone} onChange={s.setPhone} mono t={t} dark={dark} />
+          <FormInput label="Email" placeholder="info@company.uz" value={s.email} onChange={s.setEmail} t={t} dark={dark} />
+          <FormTextarea label="Юридический адрес" placeholder="г. Ташкент, ул. ..." value={s.address} onChange={s.setAddress} t={t} />
+        </div>
+
+        <MobileSH text="ДОГОВОР" t={t} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <FormInput label="Номер договора" placeholder="MC-2026-___" value={s.contractNum} onChange={s.setContractNum} mono t={t} dark={dark} />
+          <FormInput label="Дата заключения" placeholder="ДД.ММ.ГГГГ" value={s.contractDate} onChange={s.setContractDate} type="date" t={t} dark={dark} />
+          <FormInput label="Срок действия до" placeholder="ДД.ММ.ГГГГ" value={s.contractExpiry} onChange={s.setContractExpiry} type="date" t={t} dark={dark} />
+        </div>
+
+        <MobileSH text="АДМИНИСТРАТОР" t={t} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <FormInput label="ФИО администратора" required placeholder="Фамилия Имя Отчество" value={s.adminName} onChange={s.setAdminName} t={t} dark={dark} />
+          <FormInput label="Телефон" required placeholder="+998 __ ___ __ __" value={s.adminPhone} onChange={s.setAdminPhone} mono t={t} dark={dark} />
+          <FormInput label="Email" placeholder="admin@company.uz" value={s.adminEmail} onChange={s.setAdminEmail} t={t} dark={dark} />
+
+          {/* SMS toggle */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '14px 16px', borderRadius: 12,
+            background: dark ? D.tableAlt : '#F9FAFB', border: `1px solid ${t.border}`,
+          }}>
+            <span style={{ fontFamily: F.inter, fontSize: 14, fontWeight: 500, color: t.text2 }}>
+              Приглашение по SMS
+            </span>
+            <button
+              onClick={() => s.setSendSMS(!s.sendSMS)}
+              style={{
+                width: 52, height: 32, borderRadius: 16,
+                background: s.sendSMS ? t.blue : toggleOffBg,
+                border: 'none', cursor: 'pointer', position: 'relative',
+                transition: 'background 0.2s', flexShrink: 0,
+              }}
+            >
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%',
+                background: '#FFFFFF', position: 'absolute', top: 2,
+                left: s.sendSMS ? 22 : 2,
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              }} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ height: 120 }} />
+      </div>
+
+      {/* Sticky bottom action bar */}
+      <div style={{
+        flexShrink: 0, padding: '12px 16px',
+        background: dark ? 'rgba(26,29,39,0.97)' : 'rgba(255,255,255,0.97)',
+        backdropFilter: 'blur(16px)', borderTop: `1px solid ${t.border}`,
+        paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+      }}>
+        <button
+          onClick={() => { if (canCreate) s.setSubmitted(true); }}
+          style={{
+            width: '100%', height: 48, borderRadius: 12,
+            background: canCreate ? t.blue : (dark ? 'rgba(59,130,246,0.35)' : '#93C5FD'),
+            border: 'none',
+            fontFamily: F.inter, fontSize: 16, fontWeight: 600, color: '#FFFFFF',
+            cursor: canCreate ? 'pointer' : 'not-allowed',
+          }}
+        >
+          Создать организацию
+        </button>
+      </div>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+
 export default function NewOrganizationPage() {
   const navigate = useNavigate();
+  const mobile = useIsMobile();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useDarkMode();
   const t = theme(darkMode);
@@ -207,6 +376,17 @@ export default function NewOrganizationPage() {
       />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {mobile ? (
+          <MobileNewOrg t={t} dark={dark} navigate={navigate} state={{
+            orgName, setOrgName, inn, setInn, contactName, setContactName,
+            contactPosition, setContactPosition, phone, setPhone, email, setEmail,
+            address, setAddress, contractNum, setContractNum, contractDate, setContractDate,
+            contractExpiry, setContractExpiry, adminName, setAdminName, adminPhone, setAdminPhone,
+            adminEmail, setAdminEmail, sendSMS, setSendSMS, submitted, setSubmitted, nameError,
+          }} />
+        ) : (
+        <>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
         <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
@@ -378,6 +558,8 @@ export default function NewOrganizationPage() {
             </button>
           </div>
         </div>
+        </>
+        )}
       </div>
 
       <style>{`

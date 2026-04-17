@@ -7,6 +7,7 @@ import {
 import { Sidebar } from '../components/Sidebar';
 import { F, C, D, theme } from '../components/ds/tokens';
 import { useDarkMode } from '../components/useDarkMode';
+import { useIsMobile } from '../components/useIsMobile';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
@@ -394,6 +395,158 @@ function OrgTable({ t }: { t: ReturnType<typeof theme> }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE-ONLY HELPERS (Y-06 spec)
+═══════════════════════════════════════════════════════════════════════════ */
+
+function MobileSectionHeader({ text, t }: { text: string; t: ReturnType<typeof theme> }) {
+  return (
+    <div style={{
+      fontFamily: F.inter, fontSize: '11px', fontWeight: 600,
+      color: t.text3, textTransform: 'uppercase', letterSpacing: '0.06em',
+      padding: '24px 0 10px',
+    }}>
+      {text}
+    </div>
+  );
+}
+
+function MobileOrgRow({ org, sub, tint, dark, t, navigate }: {
+  org: string; sub: string; tint: string; dark: boolean; t: ReturnType<typeof theme>; navigate: (p: string) => void;
+}) {
+  const iv = iconVariant(tint, dark);
+  return (
+    <div
+      onClick={() => navigate('/organizations')}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0',
+        borderBottom: `1px solid ${t.border}`, cursor: 'pointer',
+      }}
+    >
+      <div style={{ width: 36, height: 36, borderRadius: '50%', background: iv.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <span style={{ fontFamily: F.inter, fontSize: 14, fontWeight: 600, color: iv.color }}>
+          {org.charAt(0)}
+        </span>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: F.inter, fontSize: '15px', fontWeight: 500, color: t.text1 }}>{org}</div>
+        <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: 1 }}>{sub}</div>
+      </div>
+      <ChevronRight size={20} color={t.textDisabled} />
+    </div>
+  );
+}
+
+function MobileActivityRow({ color, text, time, dark, t }: {
+  color: string; text: string; time: string; dark: boolean; t: ReturnType<typeof theme>;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: `1px solid ${t.border}` }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: '50%',
+        background: dark ? `${color}22` : `${color}18`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <div style={{ width: 10, height: 10, borderRadius: '50%', background: color }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: F.inter, fontSize: '14px', color: t.text1 }}>{text}</div>
+        <div style={{ fontFamily: F.inter, fontSize: '12px', color: t.text4, marginTop: 2 }}>{time}</div>
+      </div>
+    </div>
+  );
+}
+
+function MobileDashboard({ t, dark, navigate }: { t: ReturnType<typeof theme>; dark: boolean; navigate: (p: string) => void }) {
+  return (
+    <div style={{ padding: '12px 16px 96px', boxSizing: 'border-box', width: '100%' }}>
+      {/* Greeting */}
+      <h1 style={{ fontFamily: F.dm, fontSize: '32px', fontWeight: 700, color: t.text1, margin: '4px 0 0', lineHeight: 1.1 }}>
+        Привет, Админ!
+      </h1>
+      <p style={{ fontFamily: F.inter, fontSize: '15px', color: t.text3, margin: '6px 0 16px' }}>
+        Вот что происходит сегодня
+      </p>
+
+      {/* Hero KPI gradient card */}
+      <div style={{
+        background: dark ? 'linear-gradient(135deg, #1E3A5F 0%, #1A2B4A 100%)' : 'linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)',
+        borderRadius: 20, padding: 20, marginBottom: 16,
+      }}>
+        <div style={{ fontFamily: F.inter, fontSize: '13px', color: 'rgba(255,255,255,0.8)', marginBottom: 6 }}>
+          Всего начислено за апрель
+        </div>
+        <div style={{ fontFamily: F.dm, fontSize: '32px', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.1, marginBottom: 10 }}>
+          24 565 000 UZS
+        </div>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '4px 10px', borderRadius: 20,
+          background: 'rgba(255,255,255,0.18)',
+        }}>
+          <TrendingUp size={14} color="#FFFFFF" strokeWidth={2.5} />
+          <span style={{ fontFamily: F.inter, fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>+18% vs март</span>
+        </div>
+      </div>
+
+      {/* 2×2 Stat Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
+        <StatCard icon={CreditCard}  variant="blue"   label="Карт выпущено" value="5 000" t={t} />
+        <StatCard icon={ShoppingBag} variant="green"  label="Продано"       value="2 340" trend={{ value: '+12%', positive: true }} t={t} />
+        <StatCard icon={UserCheck}   variant="cyan"   label="KPI 1"         value="1 890" t={t} />
+        <StatCard icon={Wallet}      variant="rose"   label="KPI 3"         value="567"   trend={{ value: '+15%', positive: true }} t={t} />
+      </div>
+
+      {/* Funnel */}
+      <MobileSectionHeader text="ВОРОНКА КОНВЕРСИИ" t={t} />
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, padding: 16, marginBottom: 8 }}>
+        {FUNNEL_DATA.map((row, i) => {
+          const barW = (row.count / FUNNEL_MAX) * 100;
+          const blues = dark ? ['#60A5FA','#3B82F6','#2563EB','#1D4ED8','#1E40AF'] : ['#93C5FD','#60A5FA','#3B82F6','#2563EB','#1D4ED8'];
+          return (
+            <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: i < FUNNEL_DATA.length - 1 ? 14 : 0 }}>
+              <div style={{ width: 56, fontFamily: F.inter, fontSize: '13px', color: t.text2, textAlign: 'right', flexShrink: 0 }}>{row.label}</div>
+              <div style={{ flex: 1, height: 8, borderRadius: 4, background: dark ? D.progressTrack : '#EFF6FF', overflow: 'hidden' }}>
+                <div style={{ width: `${barW}%`, height: '100%', background: blues[i], borderRadius: 4 }} />
+              </div>
+              <div style={{ width: 80, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 500, color: t.text1 }}>{row.count.toLocaleString()}</span>
+                <span style={{ fontFamily: F.inter, fontSize: '11px', color: t.text4 }}>{row.pct}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Top orgs */}
+      <MobileSectionHeader text="ТОП ОРГАНИЗАЦИЙ" t={t} />
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, padding: '0 16px', marginBottom: 8 }}>
+        <MobileOrgRow org="Mysafar OOO"     sub="230 продано · 45 KPI 3" tint="blue"   dark={dark} t={t} navigate={navigate} />
+        <MobileOrgRow org="Unired Marketing" sub="310 продано · 78 KPI 3" tint="violet" dark={dark} t={t} navigate={navigate} />
+        <MobileOrgRow org="SmartCard Group"  sub="290 продано · 68 KPI 3" tint="green"  dark={dark} t={t} navigate={navigate} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 0' }}>
+        <span onClick={() => navigate('/organizations')} style={{ fontFamily: F.inter, fontSize: '15px', fontWeight: 500, color: t.blue, padding: '10px 20px', cursor: 'pointer' }}>
+          Показать все
+        </span>
+      </div>
+
+      {/* Activity */}
+      <MobileSectionHeader text="ПОСЛЕДНЯЯ АКТИВНОСТЬ" t={t} />
+      <div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, padding: '0 16px', marginBottom: 8 }}>
+        <MobileActivityRow color={dark ? '#34D399' : '#16A34A'} text="KPI 3 выполнен: карта …4521" time="14 мин назад" dark={dark} t={t} />
+        <MobileActivityRow color={dark ? '#3B82F6' : '#2563EB'} text="Новая продажа: карта …3092"  time="1 час назад"  dark={dark} t={t} />
+        <MobileActivityRow color={dark ? '#FBBF24' : '#D97706'} text="Запрос на вывод: Санжар М."  time="2 часа назад" dark={dark} t={t} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 0' }}>
+        <span onClick={() => navigate('/notifications')} style={{ fontFamily: F.inter, fontSize: '15px', fontWeight: 500, color: t.blue, padding: '10px 20px', cursor: 'pointer' }}>
+          Все уведомления
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    PAGE
 ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -401,6 +554,7 @@ export default function BankAdminDashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const [darkMode, setDarkMode] = useDarkMode();
+  const mobile = useIsMobile();
   const [dateRange, setDateRange] = useState({ from: '2026-04-01', to: '2026-04-13' });
 
   const t = theme(darkMode);
@@ -418,99 +572,99 @@ export default function BankAdminDashboardPage() {
         @media (max-width: 480px)  { .stat-grid { grid-template-columns: 1fr; } }
         .row2-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; }
         @media (max-width: 1024px) { .row2-grid { grid-template-columns: 1fr; } }
-        .sidebar-wrap { flex-shrink: 0; }
-        @media (max-width: 768px) { .sidebar-wrap { display: none; } }
       `}</style>
 
-      <div className="sidebar-wrap">
-        <Sidebar role="bank"
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(c => !c)}
-          darkMode={darkMode}
-          onDarkModeToggle={() => setDarkMode(d => !d)}
-        />
-      </div>
+      <Sidebar role="bank"
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(c => !c)}
+        darkMode={darkMode}
+        onDarkModeToggle={() => setDarkMode(d => !d)}
+      />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
 
-        <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
-          {/* Breadcrumbs */}
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-              <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
-              <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
-              <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Дашборд</span>
+        {mobile ? (
+          <MobileDashboard t={t} dark={dark} navigate={navigate} />
+        ) : (
+          <div style={{ padding: '28px 32px', boxSizing: 'border-box', width: '100%' }}>
+            {/* Breadcrumbs */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                <span onClick={() => navigate('/dashboard')} style={{ fontFamily: F.inter, fontSize: '13px', color: t.blue, cursor: 'pointer' }}>Главная</span>
+                <ChevronRight size={13} color={t.text4} strokeWidth={1.75} />
+                <span style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3 }}>Дашборд</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                <div>
+                  <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>Дашборд</h1>
+                  <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '3px 0 0' }}>Общая сводка по всем организациям</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <DateRangePicker value={dateRange} onChange={setDateRange} />
+                  <button style={{
+                    height: '40px', padding: '0 16px',
+                    border: `1px solid ${t.inputBorder}`, borderRadius: '8px',
+                    background: t.surface, fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
+                    color: t.text2, display: 'flex', alignItems: 'center', gap: '7px',
+                    cursor: 'pointer', flexShrink: 0, transition: 'all 0.12s',
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = dark ? D.tableHover : '#F9FAFB'; e.currentTarget.style.borderColor = dark ? '#3A3F50' : '#9CA3AF'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = t.surface; e.currentTarget.style.borderColor = t.inputBorder; }}
+                  >
+                    <Download size={14} color={t.text3} strokeWidth={1.75} />
+                    Экспорт
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-              <div>
-                <h1 style={{ fontFamily: F.dm, fontSize: '22px', fontWeight: 700, color: t.text1, margin: 0, lineHeight: 1.2 }}>Дашборд</h1>
-                <p style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, margin: '3px 0 0' }}>Общая сводка по всем организациям</p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                <DateRangePicker value={dateRange} onChange={setDateRange} />
+            {/* Row 1: Stat Cards */}
+            <div className="stat-grid" style={{ marginBottom: '20px' }}>
+              <StatCard icon={CreditCard}  variant="blue"   label="Всего карт выпущено" value="5 000" t={t} />
+              <StatCard icon={Building2}   variant="violet" label="Организаций"          value="8" t={t} />
+              <StatCard icon={ShoppingBag} variant="green"  label="Карт продано"         value="2 340" trend={{ value: '+12%', positive: true }} t={t} />
+              <StatCard icon={UserCheck}   variant="cyan"   label="Регистраций (KPI 1)"  value="1 890" trend={{ value: '+8%', positive: true }} t={t} />
+              <StatCard icon={ArrowUpDown} variant="amber"  label="Пополнений (KPI 2)"   value="1 210" trend={{ value: '+5%', positive: true }} t={t} />
+              <StatCard icon={Wallet}      variant="rose"   label="Оплата 500K (KPI 3)"  value="567"   trend={{ value: '+15%', positive: true }} t={t} />
+            </div>
+
+            {/* Row 2: Funnel + Rewards */}
+            <div className="row2-grid" style={{ marginBottom: '20px' }}>
+              <FunnelCard t={t} />
+              <RewardsCard t={t} />
+            </div>
+
+            {/* Row 3: Org Table */}
+            <div style={{
+              background: t.surface, border: `1px solid ${t.border}`,
+              borderRadius: '12px', overflow: 'hidden',
+            }}>
+              <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div>
+                  <div style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 700, color: t.text1 }}>Организации</div>
+                  <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '2px' }}>KPI прогресс и вознаграждения по всем партнёрам</div>
+                </div>
                 <button style={{
-                  height: '40px', padding: '0 16px',
-                  border: `1px solid ${t.inputBorder}`, borderRadius: '8px',
-                  background: t.surface, fontFamily: F.inter, fontSize: '13px', fontWeight: 500,
-                  color: t.text2, display: 'flex', alignItems: 'center', gap: '7px',
-                  cursor: 'pointer', flexShrink: 0, transition: 'all 0.12s',
+                  border: 'none', background: 'none',
+                  fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.blue,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                  padding: '6px 10px', borderRadius: '8px', transition: 'background 0.12s',
                 }}
-                  onMouseEnter={e => { e.currentTarget.style.background = dark ? D.tableHover : '#F9FAFB'; e.currentTarget.style.borderColor = dark ? '#3A3F50' : '#9CA3AF'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = t.surface; e.currentTarget.style.borderColor = t.inputBorder; }}
+                  onMouseEnter={e => (e.currentTarget.style.background = dark ? D.blueLt : C.blueLt)}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                 >
-                  <Download size={14} color={t.text3} strokeWidth={1.75} />
-                  Экспорт
+                  Показать все
+                  <ChevronRight size={15} strokeWidth={2} />
                 </button>
               </div>
+              <OrgTable t={t} />
             </div>
-          </div>
 
-          {/* Row 1: Stat Cards */}
-          <div className="stat-grid" style={{ marginBottom: '20px' }}>
-            <StatCard icon={CreditCard}  variant="blue"   label="Всего карт выпущено" value="5 000" t={t} />
-            <StatCard icon={Building2}   variant="violet" label="Организаций"          value="8" t={t} />
-            <StatCard icon={ShoppingBag} variant="green"  label="Карт продано"         value="2 340" trend={{ value: '+12%', positive: true }} t={t} />
-            <StatCard icon={UserCheck}   variant="cyan"   label="Регистраций (KPI 1)"  value="1 890" trend={{ value: '+8%', positive: true }} t={t} />
-            <StatCard icon={ArrowUpDown} variant="amber"  label="Пополнений (KPI 2)"   value="1 210" trend={{ value: '+5%', positive: true }} t={t} />
-            <StatCard icon={Wallet}      variant="rose"   label="Оплата 500K (KPI 3)"  value="567"   trend={{ value: '+15%', positive: true }} t={t} />
+            <div style={{ height: '40px' }} />
           </div>
-
-          {/* Row 2: Funnel + Rewards */}
-          <div className="row2-grid" style={{ marginBottom: '20px' }}>
-            <FunnelCard t={t} />
-            <RewardsCard t={t} />
-          </div>
-
-          {/* Row 3: Org Table */}
-          <div style={{
-            background: t.surface, border: `1px solid ${t.border}`,
-            borderRadius: '12px', overflow: 'hidden',
-          }}>
-            <div style={{ padding: '20px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div>
-                <div style={{ fontFamily: F.dm, fontSize: '16px', fontWeight: 700, color: t.text1 }}>Организации</div>
-                <div style={{ fontFamily: F.inter, fontSize: '13px', color: t.text3, marginTop: '2px' }}>KPI прогресс и вознаграждения по всем партнёрам</div>
-              </div>
-              <button style={{
-                border: 'none', background: 'none',
-                fontFamily: F.inter, fontSize: '14px', fontWeight: 500, color: t.blue,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
-                padding: '6px 10px', borderRadius: '8px', transition: 'background 0.12s',
-              }}
-                onMouseEnter={e => (e.currentTarget.style.background = dark ? D.blueLt : C.blueLt)}
-                onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-              >
-                Показать все
-                <ChevronRight size={15} strokeWidth={2} />
-              </button>
-            </div>
-            <OrgTable t={t} />
-          </div>
-
-          <div style={{ height: '40px' }} />
-        </div>
+        )}
       </div>
     </div>
   );
