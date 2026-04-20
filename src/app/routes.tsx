@@ -314,4 +314,9 @@ export const router = createBrowserRouter([
     path: '/org-settings',
     Component: OrgSettingsPage,
   },
-]);
+], {
+  // import.meta.env.BASE_URL is the Vite `base` option injected at build time
+  // (e.g. '/Unicarddashboardproject/' on GitHub Pages, '/' in dev). Router
+  // basename must NOT have a trailing slash, so strip it.
+  basename: import.meta.env.BASE_URL.replace(/\/$/, ''),
+});

@@ -17,7 +17,14 @@ function figmaAssetResolver() {
   }
 }
 
+// GitHub Pages serves the app under https://<user>.github.io/<repo>/ — all
+// asset paths must be prefixed with the repo name. For local dev (`pnpm dev`)
+// we want `/`. Vite exposes `command` in the defineConfig callback form, but
+// an env switch is simpler: set `BASE_PATH` in the GH Actions workflow.
+const base = process.env.BASE_PATH ?? '/';
+
 export default defineConfig({
+  base,
   plugins: [
     figmaAssetResolver(),
     // The React and Tailwind plugins are both required for Make, even if
@@ -38,8 +45,8 @@ export default defineConfig({
         description: 'Платформа управления продажами карт Moment VISA',
         lang: 'ru',
         dir: 'ltr',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#F9FAFB',
