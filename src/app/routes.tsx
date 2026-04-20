@@ -60,6 +60,7 @@ import MobileDashboardShowcasePage from './pages/MobileDashboardShowcasePage';
 import MobileBottomSheetsShowcasePage from './pages/MobileBottomSheetsShowcasePage';
 import MobileEmptySkeletonsShowcasePage from './pages/MobileEmptySkeletonsShowcasePage';
 import MobileToastsShowcasePage from './pages/MobileToastsShowcasePage';
+import MobileMultiSelectShowcasePage from './pages/MobileMultiSelectShowcasePage';
 
 export const router = createBrowserRouter([
   {
@@ -113,6 +114,10 @@ export const router = createBrowserRouter([
   {
     path: '/mobile-toasts',
     Component: MobileToastsShowcasePage,
+  },
+  {
+    path: '/mobile-multi-select',
+    Component: MobileMultiSelectShowcasePage,
   },
   {
     path: '/sidebar',
