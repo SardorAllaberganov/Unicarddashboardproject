@@ -85,6 +85,7 @@ Role column: **bank** = Bank Admin, **org** = Organization Admin, **shared** = b
 | `/mobile-bottom-sheets` | shared | [MobileBottomSheetsShowcasePage](../src/app/pages/MobileBottomSheetsShowcasePage.tsx) | 6 sheet variants (action menu / filter single-select / confirm delete / confirm simple / export / approve-reject) × light+dark PhoneFrame pairs. X-00 §11 |
 | `/mobile-empty-skeletons` | shared | [MobileEmptySkeletonsShowcasePage](../src/app/pages/MobileEmptySkeletonsShowcasePage.tsx) | 6 empty-state variants + 4 skeleton loaders (list / stat 2×2 / KPI stepper / detail) + 3 PTR states (idle / pulling / refreshing). Shimmer via `@keyframes mdsShimmer`. X-00 §15 §16 |
 | `/mobile-toasts` | shared | [MobileToastsShowcasePage](../src/app/pages/MobileToastsShowcasePage.tsx) | 6 toast variants (success / error / warning / info-long / loading / undo) + 2 positioning scenes (above tab bar / no tab bar). Entrance `toastSlideUp 200 ms`, exit `toastSlideDown 200 ms`. X-00 §13 |
+| `/mobile-multi-select` | shared | [MobileMultiSelectShowcasePage](../src/app/pages/MobileMultiSelectShowcasePage.tsx) | Multi-select mode catalogue — 3 states (default list / selection active 3 of 5 / long-press mid-transition) × light+dark PhoneFrame pairs. Context: Y-09 cards list. Contextual action bar actions: Назначить (primary) / Заблокировать / Экспорт / Отмена. Y-10 |
 | `/sidebar` | shared | [SidebarShowcasePage](../src/app/pages/SidebarShowcasePage.tsx) | |
 | `/sidebar-org` | shared | [OrgSidebarShowcasePage](../src/app/pages/OrgSidebarShowcasePage.tsx) | |
 

@@ -59,6 +59,7 @@ src/
 ├── main.tsx                       # RouterProvider root + registerSW (PWA auto-update)
 └── vite-env.d.ts                  # triple-slash refs for vite/client + vite-plugin-pwa/client
 public/                            # static PWA assets (served as-is)
+├── .nojekyll                      # tells GitHub Pages to skip Jekyll post-processing
 ├── favicon.svg                    # master SVG — card silhouette + "M" mark, regenerated raster icons from this
 ├── favicon.ico                    # 32×32 fallback
 ├── pwa-192x192.png                # PWA icon (any purpose)
@@ -69,6 +70,8 @@ public/                            # static PWA assets (served as-is)
 scripts/
 ├── gen-pwa-icons.mjs              # one-shot sharp-based rasterizer from favicon.svg
 └── gen-splash-screens.mjs         # generates iOS launch images + emits <link> tags for index.html
+.github/workflows/
+└── deploy.yml                     # pnpm install → pnpm build (BASE_PATH=/Unicarddashboardproject/) → 404.html SPA fallback → actions/deploy-pages@v4
 docs/                              # this folder
 tasks/
 └── lessons.md                     # cross-session lessons
@@ -178,5 +181,25 @@ Configured via `vite-plugin-pwa` in [vite.config.ts](../vite.config.ts). Generat
 - `pnpm build` — Vite production build; emits `dist/sw.js`, `dist/manifest.webmanifest`, and raster icons alongside the bundle.
 - `pnpm exec vite preview` — local preview at `:4173` (use this to test PWA install, not `dev`).
 - No test suite currently wired up.
-- No CI pipeline committed.
 - **`pnpm-lock.yaml` is the source of truth, NOT `package-lock.json`.** This project declares `react`/`react-dom` as optional `peerDependencies`; `pnpm` handles that correctly, `npm` drops them entirely. If `package-lock.json` reappears after a stray `npm install`, delete it and run `pnpm install`.
+
+## Deployment (GitHub Pages)
+
+`.github/workflows/deploy.yml` publishes the SPA to `https://sardorallaberganov.github.io/Unicarddashboardproject/` on every push to `main`. Steps:
+
+1. Checkout · pnpm 10 · node 20 (pnpm cache)
+2. `pnpm install --frozen-lockfile`
+3. `pnpm build` with `BASE_PATH=/Unicarddashboardproject/` exported in the job env
+4. `cp dist/index.html dist/404.html` — SPA fallback for deep-link refresh (GitHub Pages serves `404.html` on any unknown path; the Vite-built index rehydrates the router)
+5. `actions/upload-pages-artifact@v3` + `actions/deploy-pages@v4` in a dependent `deploy` job with `environment: github-pages`
+
+**Subpath plumbing.** The repo name sits in the deployed URL path, so every asset and route reference must be prefixed:
+
+- [vite.config.ts](../vite.config.ts) reads `process.env.BASE_PATH` and passes it to Vite `base` **and** to the PWA manifest `scope` + `start_url`. Defaults to `/` for local dev.
+- [index.html](../index.html) uses `%BASE_URL%` instead of `/` for favicons + iOS splash images — Vite rewrites at build.
+- [src/app/routes.tsx](../src/app/routes.tsx) passes `basename: import.meta.env.BASE_URL.replace(/\/$/, '')` to `createBrowserRouter` so client-side routes resolve under the subpath.
+- [public/.nojekyll](../public/.nojekyll) disables Jekyll on the Pages side so the Vite output (including underscore-prefixed workbox files) is served as-is.
+
+**Repo Settings → Pages → Source must be set to "GitHub Actions"** for the workflow to publish — the default "Deploy from a branch" ignores the workflow. Toggle this manually once; it persists.
+
+**Windows dev gotcha.** If you want to reproduce the production build locally on Windows + Git Bash, prefix the command with `MSYS_NO_PATHCONV=1`: `MSYS_NO_PATHCONV=1 BASE_PATH=/Unicarddashboardproject/ pnpm build`. MSYS's path translation otherwise rewrites `/Unicarddashboardproject/` into `/Program Files/Git/Unicarddashboardproject/`. CI (Linux) is unaffected.

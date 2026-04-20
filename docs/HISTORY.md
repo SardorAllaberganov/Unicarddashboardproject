@@ -4,6 +4,32 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
+## 2026-04-20 (late) — GitHub Pages deploy pipeline + multi-select showcase
+
+**Module:** all (deployment + one new mobile showcase)
+**Commits:** `18a48f5` (Jekyll exclude), `8ec9327` (README rewrite), `5626421` (Pages deploy pipeline), plus uncommitted working tree (Y-10 multi-select showcase + this doc sync). Builds on `2c2b70f`.
+**Files touched:** 12
+
+**What changed:**
+
+- **GitHub Pages deploy pipeline.** First iteration added [_config.yml](../_config.yml) excluding `docs/`, `tasks/`, `scripts/`, `src/`, `public/`, and top-level markdowns so Jekyll stopped choking on Liquid-like `{{ ... }}` samples in COMPONENTS.md. User then asked to serve the actual Vite SPA on Pages, not docs. Pivoted to a proper build-and-deploy workflow:
+  - New [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) — pnpm 10 + node 20, `pnpm install --frozen-lockfile`, `pnpm build` with `BASE_PATH=/Unicarddashboardproject/`, `cp dist/index.html dist/404.html` for SPA fallback, `actions/upload-pages-artifact@v3` + `actions/deploy-pages@v4` with `environment: github-pages`.
+  - [vite.config.ts](../vite.config.ts) — reads `process.env.BASE_PATH` → feeds Vite `base` + PWA manifest `scope` + `start_url`. Defaults `/` for local dev.
+  - [src/app/routes.tsx](../src/app/routes.tsx) — `createBrowserRouter(..., { basename: import.meta.env.BASE_URL.replace(/\/$/, '') })` so client-side routes line up with the subpath.
+  - [index.html](../index.html) — `/favicon.*` + `/splash/*.png` rewritten to `%BASE_URL%…` so Vite substitutes the base prefix.
+  - [public/.nojekyll](../public/.nojekyll) — disables Jekyll post-processing on the Pages side.
+  - `_config.yml` removed (superseded by `.nojekyll` + workflow).
+  - Manual step required once: Repo Settings → Pages → Source = "GitHub Actions".
+- **README rewrite.** The Figma-generated placeholder was misleading (said `npm i`, which corrupts installs in this pnpm repo). Replaced with a real overview: two admin roles, tech stack, pnpm-not-npm install rule, project layout, PWA summary, and links to the internal docs.
+- **Mobile multi-select showcase Y-10.** New [MobileMultiSelectShowcasePage](../src/app/pages/MobileMultiSelectShowcasePage.tsx) at `/mobile-multi-select`. Three states × light+dark PhoneFrame pairs: (1) default Y-09 cards list, (2) selection mode active with 3 of 5 selected — header morphs to X / "Выбрано: 3" / "Выбрать все", icon tiles become checkbox circles, selected rows tint `#EFF6FF` / `#1E2A4A`, tab bar becomes contextual action bar (Назначить primary-blue / Заблокировать / Экспорт / Отмена), (3) long-press mid-transition with the triggered row scaled 1.02 + 2 px blue glow ring + checkboxes cross-fading in over icon tiles at ~40 % opacity + header cross-fade.
+- **Docs updated:** AI_CONTEXT.md, ROUTES.md, ARCHITECTURE.md (new Deployment section, folder map), HISTORY.md (this entry), lessons.md (Vite subpath + MSYS path-conv gotcha).
+
+**Follow-ups:**
+- Bundle size warning persists — main chunk is 2.15 MB (gzip 471 KB). Code-splitting via `build.rollupOptions.output.manualChunks` would help but nobody's asked.
+- Repo Settings → Pages → Source still needs a one-time manual flip to "GitHub Actions" before the workflow can publish.
+
+---
+
 ## 2026-04-20 — Mobile polish: double-header fix, tab-bar clearance, iOS splash, iconVariant helper, ROUTES.md split
 
 **Module:** all (mobile shell + PWA + docs)

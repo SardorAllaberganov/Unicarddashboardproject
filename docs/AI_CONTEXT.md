@@ -1,6 +1,6 @@
 # AI Context — Moment Card KPI Platform
 
-Last synced: 2026-04-20 (mobile polish: double-header fix, tab-bar clearance audit, iOS splash screens, iconVariant helper extracted, ROUTES.md split)
+Last synced: 2026-04-20 (GitHub Pages deployment pipeline + mobile multi-select showcase Y-10)
 
 ## Current state
 
@@ -11,9 +11,11 @@ Moment Card KPI is a React 18 + TypeScript + Vite single-page app serving two ad
 
 There is no backend. All data is mock TypeScript arrays inside each page file. Role is inferred from the URL path (and `?from=org` for shared pages like `/notifications` and `/card-detail/:id`). Dark mode persists via a module-level theme store backed by `localStorage['moment-kpi-theme']` with values `'light' | 'dark' | 'system'`. Every page, showcase, modal, and Design System showcase row (Row 1 through Row 10) themes against the `theme(dark)` token surface. The target resolution is 1920×1080 desktop.
 
-**Installable PWA.** The app ships with `vite-plugin-pwa` — workbox-generated service worker, web-app manifest (`Moment KPI`, blue `#2563EB`, Russian, standalone), and 5 PWA icons. Mobile Settings "Приложение" section exposes an install button that delegates to the browser's `beforeinstallprompt` event on Chrome/Edge/Android, falls back to a 3-step Safari instructions sheet on iOS, and shows an "Установлено" green state when already launched standalone. First load precaches 17 files (~2.2 MB) so the app runs fully offline.
+**Installable PWA.** The app ships with `vite-plugin-pwa` — workbox-generated service worker, web-app manifest (`Moment KPI`, blue `#2563EB`, Russian, standalone), and 5 PWA icons. Mobile Settings "Приложение" section exposes an install button that delegates to the browser's `beforeinstallprompt` event on Chrome/Edge/Android, falls back to a 3-step Safari instructions sheet on iOS, and shows an "Установлено" green state when already launched standalone. First load precaches 57 files (~2.3 MB) so the app runs fully offline.
 
-A parallel **mobile design system** lives at `/mobile-design-system` (master reference, 20 sections) plus per-component drill-downs at `/mobile-tab-bar`, `/mobile-header`, `/mobile-more-menu`, `/mobile-more-menu-org`, `/mobile-nav-map`, `/mobile-dashboard`, `/mobile-bottom-sheets`, `/mobile-empty-skeletons`, and `/mobile-toasts`. These are rendered inside `PhoneFrame` wrappers on the desktop canvas as reference catalogues.
+**Deployed to GitHub Pages.** `.github/workflows/deploy.yml` runs on every push to `main`: `pnpm install` → `pnpm build` with `BASE_PATH=/Unicarddashboardproject/` → copies `index.html` to `404.html` for SPA fallback on deep-link refresh → uploads `dist/` via `actions/deploy-pages@v4`. Live URL: `https://sardorallaberganov.github.io/Unicarddashboardproject/`. The `base` feeds the Vite `base` option, the PWA manifest `scope` + `start_url`, and `createBrowserRouter`'s `basename` (via `import.meta.env.BASE_URL.replace(/\/$/, '')`). `public/.nojekyll` disables Jekyll post-processing on the GitHub Pages side. Local `pnpm dev` keeps `base: '/'`.
+
+A parallel **mobile design system** lives at `/mobile-design-system` (master reference, 20 sections) plus per-component drill-downs at `/mobile-tab-bar`, `/mobile-header`, `/mobile-more-menu`, `/mobile-more-menu-org`, `/mobile-nav-map`, `/mobile-dashboard`, `/mobile-bottom-sheets`, `/mobile-empty-skeletons`, `/mobile-toasts`, and `/mobile-multi-select`. These are rendered inside `PhoneFrame` wrappers on the desktop canvas as reference catalogues.
 
 The app is **responsive**. A shared shell detects `<768 px` via [useIsMobile](../src/app/components/useIsMobile.tsx): [Sidebar](../src/app/components/Sidebar.tsx) becomes a fixed-bottom [MobileTabBar](../src/app/components/MobileTabBar.tsx) (4 tabs per role), and [Navbar](../src/app/components/Navbar.tsx) renders a simplified 56 px mobile header (brand left, bell + theme + avatar + chevron right). 13 pages have per-page mobile branches: `/` & `/login`, `/dashboard`, `/organizations`, `/organizations/:id`, `/organizations/new`, `/org-dashboard`, `/sellers`, `/sellers/:id`, `/all-cards`, `/notifications`, `/notification-rules`, `/notification-rules/new`, `/notification-rules/:id/edit`, `/announcements/new`, `/seller-messages/new`, `/settings`, `/org-settings`. Mobile form inputs auto-scroll to center on focus (120 ms delay for keyboard).
 
@@ -44,6 +46,7 @@ The app is **responsive**. A shared shell detects `<768 px` via [useIsMobile](..
 | `/mobile-bottom-sheets` | [MobileBottomSheetsShowcasePage](../src/app/pages/MobileBottomSheetsShowcasePage.tsx) | 6 bottom-sheet variants (action / filter / confirm delete / confirm simple / export / approve-reject). X-00 §11 |
 | `/mobile-empty-skeletons` | [MobileEmptySkeletonsShowcasePage](../src/app/pages/MobileEmptySkeletonsShowcasePage.tsx) | 6 empty states + 4 skeleton loaders + 3 PTR states. X-00 §15 §16 |
 | `/mobile-toasts` | [MobileToastsShowcasePage](../src/app/pages/MobileToastsShowcasePage.tsx) | 6 toast variants + 2 positioning scenes (above tab bar / safe-area only). X-00 §13 |
+| `/mobile-multi-select` | [MobileMultiSelectShowcasePage](../src/app/pages/MobileMultiSelectShowcasePage.tsx) | 3 states of list multi-select mode (default / active — 3 of 5 selected / long-press mid-transition) on the Y-09 cards-list context. Y-10 |
 | `/sidebar`, `/sidebar-org` | Sidebar showcases |  |
 | `/flow/announcements` | [AnnouncementFlowPage](../src/app/pages/AnnouncementFlowPage.tsx) | Dev-handoff diagram (no sidebar/navbar) |
 
