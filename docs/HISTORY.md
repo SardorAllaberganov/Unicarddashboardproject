@@ -4,6 +4,27 @@ Reverse-chronological log of documentation syncs. Prepend new entries — never 
 
 ---
 
+## 2026-04-20 — Mobile polish: double-header fix, tab-bar clearance, iOS splash, iconVariant helper, ROUTES.md split
+
+**Module:** all (mobile shell + PWA + docs)
+**Commits:** uncommitted working tree — 25 modified + 23 new files (includes `public/splash/` 20 PNGs + 2 new component/script files). Builds on `7519fa9`.
+**Files touched:** 48
+
+**What changed:**
+
+- **Mobile double-header fix.** [Navbar](../src/app/components/Navbar.tsx) gained a `hideOnMobile?: boolean` prop. When `true` on a <768 px viewport the navbar returns `null` (after running all hooks, so rules-of-hooks are respected). Pages that draw their own sticky 52 px back-button header now pass `hideOnMobile`: [AllCardsPage](../src/app/pages/AllCardsPage.tsx), [SellersManagementPage](../src/app/pages/SellersManagementPage.tsx), [SellerDetailPage](../src/app/pages/SellerDetailPage.tsx), [NotificationsHistoryPage](../src/app/pages/NotificationsHistoryPage.tsx), [NotificationRulesPage](../src/app/pages/NotificationRulesPage.tsx), [SettingsPage](../src/app/pages/SettingsPage.tsx), [OrgSettingsPage](../src/app/pages/OrgSettingsPage.tsx). Previously the 56 px mobile navbar stacked on top of the page header producing ~108 px chrome; now only one header renders.
+- **Tab-bar clearance audit.** Replaced bare `padding-bottom: 96px` with `calc(80px + env(safe-area-inset-bottom, 0px))` across 11 bottom-tab-exposed containers in BankAdminDashboard, OrgAdminDashboard, AllCards, Sellers, SellerDetail, Organizations, OrgDetail, Notifications, NotificationRules, and MobileSettings. Previous 96 px under-covered iPhones with a home indicator by a few px; new value = 64 px bar + 16 px breathing + safe-area.
+- **PWA icon artwork refined.** [public/favicon.svg](../public/favicon.svg) now layers a subtle white card silhouette (1.5 px stroke at 22 % opacity + 18 % filled magnetic stripe) behind the "M" mark, reinforcing the Moment Card / VISA theme. Maskable SVG inside [scripts/gen-pwa-icons.mjs](../scripts/gen-pwa-icons.mjs) updated to match. Regenerated `pwa-192x192.png`, `pwa-512x512.png`, `pwa-512x512-maskable.png`, `apple-touch-icon-180.png`, `favicon.ico`.
+- **iOS PWA launch images.** New [scripts/gen-splash-screens.mjs](../scripts/gen-splash-screens.mjs) emits 20 PNGs to `public/splash/` covering 10 iPhone sizes (5/SE, 6/7/8/SE2, Plus, X/XS/11Pro, XR/11, XS Max/11 Pro Max, 12/13/14, 12/13 Pro Max, 14 Pro/15/15Pro/16, 14 Pro Max/15 Pro Max/16 Plus) × light (`#F9FAFB`) / dark (`#0B0D14`) themes. Each splash is a centered 22 %-of-shortest-side icon. Wired into [index.html](../index.html) as 20 `<link rel="apple-touch-startup-image" media="...">` entries. Splash glob added to PWA `includeAssets` in [vite.config.ts](../vite.config.ts).
+- **Extracted `iconVariant` helper.** New [ds/iconVariant.ts](../src/app/components/ds/iconVariant.ts) exports `iconVariant(variant, dark): { bg, color }` with 6 variants (blue/violet/green/cyan/amber/rose). Inline duplicates removed from [BankAdminDashboardPage](../src/app/pages/BankAdminDashboardPage.tsx) and [OrgDetailPage](../src/app/pages/OrgDetailPage.tsx); both now import the shared helper.
+- **Docs split.** [ROUTES.md](./ROUTES.md) (was 369 lines, past 300-line soft limit) split into ROUTES.md (124 lines: route table + query/state/event contracts + add-route checklist) and new [COMPONENTS.md](./COMPONENTS.md) (276 lines: shared component contracts for Sidebar, Navbar, MobileTabBar, MobileSettings, PopoverPosition, ExportToast, EmptyState, PaginationBar, RadioCard, DateRangePicker, OrgDetailDrawer, useDarkMode, useIsMobile, useInstallPrompt, iconVariant, renderMarkdown). Cross-links added between the two files and from ARCHITECTURE.md.
+- **Docs updated:** AI_CONTEXT.md, ARCHITECTURE.md, HISTORY.md, this entry.
+
+**Follow-ups:**
+- None flagged — all 6 queued items landed.
+
+---
+
 ## 2026-04-17 (late) — PWA wiring + 13 mobile page layouts + 3 new showcase routes + safe-area fixes
 
 **Module:** all (PWA infrastructure + mobile page rollout)

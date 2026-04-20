@@ -45,6 +45,7 @@ src/
 │       ├── renderMarkdown.tsx     # markdown-lite renderer + FormatToolbar (dark-aware)
 │       ├── ds/
 │       │   ├── tokens.ts          # F (fonts), C (colors), D (dark), theme()
+│       │   ├── iconVariant.ts     # dark-aware palette for tinted icon tiles (6 variants)
 │       │   └── Row1…Row10.tsx     # design-system showcase rows
 │       ├── mds/                   # mobile design system sections (desktop-canvas reference, not mobile routes)
 │       │   ├── frame.tsx          # PhoneFrame / Pair / SectionBlock + MDS constants (safe areas, tab-bar blur bg)
@@ -58,14 +59,16 @@ src/
 ├── main.tsx                       # RouterProvider root + registerSW (PWA auto-update)
 └── vite-env.d.ts                  # triple-slash refs for vite/client + vite-plugin-pwa/client
 public/                            # static PWA assets (served as-is)
-├── favicon.svg                    # master SVG — regenerated raster icons from this
+├── favicon.svg                    # master SVG — card silhouette + "M" mark, regenerated raster icons from this
 ├── favicon.ico                    # 32×32 fallback
 ├── pwa-192x192.png                # PWA icon (any purpose)
 ├── pwa-512x512.png                # PWA icon (any purpose)
 ├── pwa-512x512-maskable.png       # PWA icon (maskable — 80% safe zone)
-└── apple-touch-icon-180.png       # iOS home-screen icon
+├── apple-touch-icon-180.png       # iOS home-screen icon
+└── splash/                        # iOS PWA launch images (20 PNGs = 10 iPhone sizes × light/dark)
 scripts/
-└── gen-pwa-icons.mjs              # one-shot sharp-based rasterizer from favicon.svg
+├── gen-pwa-icons.mjs              # one-shot sharp-based rasterizer from favicon.svg
+└── gen-splash-screens.mjs         # generates iOS launch images + emits <link> tags for index.html
 docs/                              # this folder
 tasks/
 └── lessons.md                     # cross-session lessons
@@ -162,6 +165,12 @@ Configured via `vite-plugin-pwa` in [vite.config.ts](../vite.config.ts). Generat
 **Install button** — [useInstallPrompt](../src/app/components/useInstallPrompt.tsx) hook captures `beforeinstallprompt` (Chrome/Edge/Android), detects `(display-mode: standalone)` + iOS Safari. Surfaced as a row in [MobileSettings](../src/app/components/MobileSettings.tsx) "Приложение" section with 4 dynamic states.
 
 **Safe-area padding** — both [Navbar](../src/app/components/Navbar.tsx) mobile header and [MobileTabBar](../src/app/components/MobileTabBar.tsx) size their container as `calc(Xpx + env(safe-area-inset-{top,bottom}))` with `box-sizing: border-box`. Keeps content rows exactly 56 px (top) / 64 px (tabs) regardless of device; safe-area pushes the whole bar into the notch / home-indicator zone. Outside PWA standalone mode `env()` returns 0 so there's no visual change.
+
+**Tab-bar clearance** — pages rendered above the MobileTabBar pad their bottom content container with `calc(80px + env(safe-area-inset-bottom, 0px))` (64 px bar + 16 px breathing room + safe-area). Applied consistently across BankAdminDashboard, OrgAdminDashboard, AllCards, Sellers, SellerDetail, Organizations, OrgDetail, Notifications, NotificationRules, MobileSettings.
+
+**iOS launch images** — 20 PNGs in `public/splash/` (iPhone 5/6/Plus/X/XR/XS-Max/12/12-PM/14-Pro/14-PM × light/dark) referenced from [index.html](../index.html) via `<link rel="apple-touch-startup-image" media="...">` tags. Regenerate with `node scripts/gen-splash-screens.mjs`. Each splash is a centered 22 %-of-shortest-side icon on `#F9FAFB` (light) or `#0B0D14` (dark).
+
+**Double-header avoidance** — pages that render their own sticky 52 px back-button header on mobile pass `hideOnMobile` to `<Navbar>` to suppress the 56 px mobile navbar. Otherwise the two stack to ~108 px. Dashboards and top-level list pages (which rely on the default Navbar brand header) keep the default.
 
 ## Build & dev
 
