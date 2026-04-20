@@ -30,6 +30,7 @@ export default defineConfig({
         'favicon.svg',
         'favicon.ico',
         'apple-touch-icon-180.png',
+        'splash/*.png',
       ],
       manifest: {
         name: 'Moment KPI',

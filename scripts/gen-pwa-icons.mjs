@@ -17,12 +17,18 @@ const flatTargets = [
   { name: 'apple-touch-icon-180.png', size: 180 },
 ];
 
-// Maskable SVG — safe zone 80% — wrap the mark in larger bg so OS mask doesn't clip.
+// Maskable SVG — safe zone 80% (80×80 centered in 100×100). The OS may mask
+// to a circle or squircle; only the inner 80 % is guaranteed visible. We put
+// the card silhouette + "M" mark inside the safe zone and extend the blue
+// fill to the edges so masking never reveals transparency.
 const maskableSvg = Buffer.from(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <rect width="100" height="100" fill="#2563EB"/>
-  <g transform="translate(22 22) scale(0.875)">
-    <path d="M16 46 V22 L24 22 L32 36 L40 22 L48 22 V46 L42 46 V32 L34 44 H30 L22 32 V46 Z"
+  <g transform="translate(18 18) scale(1.04)">
+    <rect x="10" y="20" width="44" height="28" rx="4"
+          fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="1.5"/>
+    <rect x="10" y="26" width="44" height="4" fill="#FFFFFF" fill-opacity="0.18"/>
+    <path d="M17 44 V24 L23.5 24 L32 36.5 L40.5 24 L47 24 V44 L41.5 44 V31 L34 42 H30 L22.5 31 V44 Z"
           fill="#FFFFFF"/>
   </g>
 </svg>
