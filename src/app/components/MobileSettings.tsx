@@ -376,7 +376,7 @@ export function MobileSettings({
         </span>
       </div>
 
-      <div style={{ padding: '4px 0 96px', boxSizing: 'border-box', width: '100%' }}>
+      <div style={{ padding: '4px 0 calc(80px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', width: '100%' }}>
         {/* ПРОФИЛЬ */}
         <SectionHeader text="Профиль" t={t} />
         <SectionCard t={t}>

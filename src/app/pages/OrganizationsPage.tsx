@@ -463,7 +463,7 @@ function MobileOrganizations({ t, dark, navigate }: { t: T; dark: boolean; navig
   const filtered = ORG_DATA.filter(o => o.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div style={{ padding: '8px 16px 96px', boxSizing: 'border-box', width: '100%' }}>
+    <div style={{ padding: '8px 16px calc(80px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', width: '100%' }}>
       {/* Title + actions */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <h1 style={{ fontFamily: F.dm, fontSize: 24, fontWeight: 700, color: t.text1, margin: 0 }}>

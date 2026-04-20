@@ -6,35 +6,12 @@ import {
 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { F, C, D, theme } from '../components/ds/tokens';
+import { iconVariant } from '../components/ds/iconVariant';
 import { useDarkMode } from '../components/useDarkMode';
 import { useIsMobile } from '../components/useIsMobile';
 import { Navbar } from '../components/Navbar';
 import { useNavigate } from 'react-router';
 import { DateRangePicker } from '../components/DateRangePicker';
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ICON VARIANTS (dark-aware)
-═══════════════════════════════════════════════════════════════════════════ */
-
-function iconVariant(variant: string, dark: boolean) {
-  const light: Record<string, { bg: string; color: string }> = {
-    blue:   { bg: '#EFF6FF', color: '#2563EB' },
-    violet: { bg: '#F3F0FF', color: '#7C3AED' },
-    green:  { bg: '#F0FDF4', color: '#16A34A' },
-    cyan:   { bg: '#ECFEFF', color: '#0891B2' },
-    amber:  { bg: '#FFFBEB', color: '#D97706' },
-    rose:   { bg: '#FFF1F2', color: '#E11D48' },
-  };
-  const darkV: Record<string, { bg: string; color: string }> = {
-    blue:   { bg: 'rgba(37,99,235,0.15)',  color: '#3B82F6' },
-    violet: { bg: 'rgba(124,58,237,0.15)', color: '#A78BFA' },
-    green:  { bg: 'rgba(22,163,74,0.15)',  color: '#34D399' },
-    cyan:   { bg: 'rgba(8,145,178,0.15)',  color: '#22D3EE' },
-    amber:  { bg: 'rgba(217,119,6,0.15)',  color: '#FBBF24' },
-    rose:   { bg: 'rgba(225,29,72,0.15)',  color: '#FB7185' },
-  };
-  return (dark ? darkV : light)[variant] || light.blue;
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STAT CARD
@@ -458,7 +435,7 @@ function MobileActivityRow({ color, text, time, dark, t }: {
 
 function MobileDashboard({ t, dark, navigate }: { t: ReturnType<typeof theme>; dark: boolean; navigate: (p: string) => void }) {
   return (
-    <div style={{ padding: '12px 16px 96px', boxSizing: 'border-box', width: '100%' }}>
+    <div style={{ padding: '12px 16px calc(80px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', width: '100%' }}>
       {/* Greeting */}
       <h1 style={{ fontFamily: F.dm, fontSize: '32px', fontWeight: 700, color: t.text1, margin: '4px 0 0', lineHeight: 1.1 }}>
         Привет, Админ!

@@ -1028,7 +1028,7 @@ function MobileAllCards({
       </div>
 
       {/* Scrollable content */}
-      <div style={{ padding: '12px 0 96px', boxSizing: 'border-box', width: '100%' }}>
+      <div style={{ padding: '12px 0 calc(80px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', width: '100%' }}>
         {/* Search bar */}
         <div ref={searchWrapRef} style={{ padding: '0 16px 14px' }}>
           <div style={{
@@ -1209,7 +1209,7 @@ export default function AllCardsPage() {
       />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} hideOnMobile />
 
         {mobile ? (
           <MobileAllCards t={t} dark={dark} navigate={navigate} />

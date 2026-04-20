@@ -1098,7 +1098,7 @@ function MobileSellers({
       {/* Body */}
       <div
         onClick={() => swipedId !== null && setSwipedId(null)}
-        style={{ padding: '12px 0 96px', boxSizing: 'border-box', width: '100%' }}
+        style={{ padding: '12px 0 calc(80px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', width: '100%' }}
       >
         {/* Search */}
         <div ref={searchWrapRef} style={{ padding: '0 16px 14px' }}>
@@ -1233,7 +1233,7 @@ export default function SellersManagementPage() {
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {/* Top Navbar */}
-        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} hideOnMobile />
 
         {mobile ? (
           <MobileSellers t={t} dark={dark} navigate={navigate} />

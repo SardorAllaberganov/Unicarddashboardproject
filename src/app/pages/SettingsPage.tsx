@@ -1391,7 +1391,7 @@ export default function SettingsPage() {
       />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} hideOnMobile />
 
         {mobile ? (
           <MobileSettings role="bank" t={t} dark={dark} navigate={navigate} />

@@ -1942,7 +1942,7 @@ function MobileSellerDetail({
       </div>
 
       {/* Body */}
-      <div style={{ flex: 1, padding: '0 16px 96px' }}>
+      <div style={{ flex: 1, padding: '0 16px calc(80px + env(safe-area-inset-bottom, 0px))' }}>
         {/* Hero */}
         <div style={{ padding: '20px 0 12px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
           {/* Avatar 72×72 */}
@@ -2266,7 +2266,7 @@ export default function SellerDetailPage() {
       />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} hideOnMobile />
 
         {mobile ? (
           <MobileSellerDetail

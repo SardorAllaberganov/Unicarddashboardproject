@@ -2022,7 +2022,7 @@ function MobileRules({
 
       <div
         onClick={() => swipedId !== null && setSwipedId(null)}
-        style={{ padding: '14px 0 96px', boxSizing: 'border-box', width: '100%' }}
+        style={{ padding: '14px 0 calc(80px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', width: '100%' }}
       >
         {/* Segmented */}
         <div style={{ padding: '0 16px 16px' }}>
@@ -2120,7 +2120,7 @@ export default function NotificationRulesPage() {
       />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} hideOnMobile />
 
         {mobile ? (
           <MobileRules

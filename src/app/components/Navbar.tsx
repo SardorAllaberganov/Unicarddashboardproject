@@ -17,6 +17,12 @@ type AdminRole = 'bank' | 'org';
 interface NavbarProps {
   darkMode: boolean;
   onDarkModeToggle: () => void;
+  /**
+   * When true, the navbar renders `null` on mobile (< 768 px). Use on pages
+   * that draw their own sticky 52-56 px back-button header so the 56 px
+   * mobile navbar doesn't stack on top.
+   */
+  hideOnMobile?: boolean;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -62,7 +68,7 @@ function detectRole(pathname: string): AdminRole {
    NAVBAR COMPONENT
 ═══════════════════════════════════════════════════════════════════════════ */
 
-export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
+export function Navbar({ darkMode, onDarkModeToggle, hideOnMobile = false }: NavbarProps) {
   const mobile = useIsMobile();
   const [menuOpen, setMenuOpen] = useState(false);
   const [themeHov, setThemeHov] = useState(false);
@@ -94,6 +100,11 @@ export function Navbar({ darkMode, onDarkModeToggle }: NavbarProps) {
     setMenuOpen(false);
     navigate(otherCfg.homePath);
   };
+
+  // Pages that draw their own sticky back-button header opt out of the 56 px
+  // mobile navbar here. All hooks above already executed, so rules-of-hooks
+  // are respected.
+  if (mobile && hideOnMobile) return null;
 
   /* ── MOBILE HEADER ──────────────────────────────────────────────────── */
   if (mobile) {

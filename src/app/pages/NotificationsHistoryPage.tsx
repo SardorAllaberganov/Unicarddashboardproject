@@ -587,7 +587,7 @@ function MobileNotifications({
 
       <div
         onClick={() => swipedId !== null && setSwipedId(null)}
-        style={{ padding: '12px 0 96px', boxSizing: 'border-box', width: '100%' }}
+        style={{ padding: '12px 0 calc(80px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', width: '100%' }}
       >
         {/* Segmented */}
         <div style={{ padding: '0 16px 12px' }}>
@@ -720,7 +720,7 @@ export default function NotificationsHistoryPage() {
       />
 
       <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} />
+        <Navbar darkMode={darkMode} onDarkModeToggle={() => setDarkMode(d => !d)} hideOnMobile />
 
         {mobile ? (
           <MobileNotifications

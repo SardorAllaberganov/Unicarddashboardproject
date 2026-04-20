@@ -677,7 +677,7 @@ function MobileOrgDashboard({
   ];
 
   return (
-    <div style={{ padding: '12px 16px 96px', boxSizing: 'border-box', width: '100%' }}>
+    <div style={{ padding: '12px 16px calc(80px + env(safe-area-inset-bottom, 0px))', boxSizing: 'border-box', width: '100%' }}>
       {/* Greeting */}
       <h1 style={{
         fontFamily: F.dm, fontSize: 32, fontWeight: 700,
